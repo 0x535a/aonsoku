@@ -62,21 +62,22 @@ Aonsoku 是基于 Navidrome/Subsonic 的音乐播放器。希望在现有 iOS �
   `MPMediaItemArtwork` 没有承诺可以触发 3:4 沉浸式布局。
   因此采用「静态竖版预览 + 相同画面的无声 H.264 短视频」，视觉上保持静止。
   这是基于公开接口的替代实现，是否展开和实际显示尺寸仍由 iOS 与用户决定。
-- 保留普通封面；仅 iOS 26+ 且系统声明支持 3:4 时增加新字段。
+- 保留普通封面；仅 iOS 26+ 且系统声明支持相应比例时增加新字段。
+  同时适配 3:4 和 1:1，具体以 `supportedAnimatedArtworkKeys` 为准。
   低电量、低数据、热限制、减少动态效果等情况下，系统可以使用竖版预览。
   旧系统、不支持的平台及处理失败时保留正常静态封面。
 
 ### 已实现
 
 - 新增 iOS 原生封面处理模块，图片限尺寸解码后按原始比例完整放入
-  720×960 画布。延伸区使用边缘窄带的反射纹理、逐渐减缓的延展坐标及
+  720×960（3:4）或 720×720（1:1）画布。延伸区使用边缘窄带的反射纹理、逐渐减缓的延展坐标及
   随边缘距离平滑增加的模糊；主体区域不参与模糊，无卡片阴影或裁切。
 - 原封面先发布，竖版生成在独立 utility 队列执行；系统实际请求视频时才编码
   单帧保持 2 秒且无音轨的 MP4，不创建额外的播放会话。
   这样避免多帧 H.264 量化变化造成轻微闪动；当前仓库封面的样例视频约 16 KiB。
 - 复用现有本地封面/原生下载链路，支持离线封面及远程播放投影。
-  所有异步发布检查 Now Playing revision；切换封面或无封面时清除旧竖版字段。
-- 派生视频按内容 SHA-256 与算法版本复用，不持久化认证 URL。
+  所有异步发布检查 Now Playing revision；切换封面或无封面时清除两种旧比例字段。
+- 派生视频按内容 SHA-256、输出尺寸与算法版本复用，不持久化认证 URL。
   使用不备份的 Application Support 子目录与首次解锁后可读的文件保护。
   LRU 上限为 12 个文件/24 MiB；系统持有的封面对象会保护对应文件，
   因此活跃引用可暂时超过上限，随后在下一次处理时清理。
@@ -87,7 +88,8 @@ Aonsoku 是基于 Navidrome/Subsonic 的音乐播放器。希望在现有 iOS �
   macOS + Xcode 下直接编译并运行生产代码，不需要音乐服务器或模拟数据库。
   测试包括方形、横向、纵向、原生 3:4、极端比例、1×1、透明图、4000×2000 图片
   及 EXIF 方向；逐像素确认缩放后的原图主体未被裁切/模糊，检查接缝连续性。
-  视频检查包括 720×960、2 秒、无音轨、前后解码画面完全相同、方向/颜色一致；
+  视频检查包括 720×960/720×720、2 秒、无音轨、前后解码画面完全相同、方向/颜色一致；
+  两种比例的图像主体均逐像素检查，且缓存 ID/文件互不覆盖。
   缓存检查包括按需编码、并发请求合并、同图复用、换图 ID 更新、重启复用、
   活跃引用保护、释放后淘汰及无法写入时返回失败回退。
 - Xcode 27.1：iOS Simulator（arm64/x86_64）和 generic iOS（arm64）
@@ -101,11 +103,13 @@ Aonsoku 是基于 Navidrome/Subsonic 的音乐播放器。希望在现有 iOS �
 
 ### 系统限制与实机验收清单
 
-资源生成和编译已验证，**尚未完成真机锁屏验收**。公开 API 不提供强制展开、
-绕过系统设置或保证具体锁屏布局的方法；单帧视频在系统锁屏上的实际接纳与展示
-仍需要 iOS 26+ 真机验证。边缘文字、边框、极端比例等素材可能保留可辨认的
+资源生成和编译已验证，**指定 iPad 的横屏 1:1 真机验收已通过**，其他设备与设置
+组合仍需验证。公开 API 不提供强制展开、绕过系统设置或保证具体锁屏布局的方法。
+边缘文字、边框、极端比例等素材可能保留可辨认的
 边缘特征，本算法不生成不存在的新场景，不能保证所有任意图片都达到人工修图效果。
 
+- [x] iPad Pro 11-inch（第 3 代）、iPadOS 27.2 横屏：系统请求 1:1 预览和
+  本地视频，锁屏显示沉浸式静态封面；截图已核对，用户确认「效果可以了」。
 - [ ] iOS 26+ 在线播放，点击锁屏封面展开，确认 3:4 大幅静态效果；
   Debug 的 `NowPlayingArtwork` 日志应出现 `3:4 artwork published`。
 - [ ] 方形/横向/纵向、相邻同专辑和不同专辑歌曲，连续快速切换，
@@ -115,7 +119,63 @@ Aonsoku 是基于 Navidrome/Subsonic 的音乐播放器。希望在现有 iOS �
   确认控制、音频与进度保持正确。
 - [ ] 远程控制投影、切换目标设备和 handoff，确认锁屏元数据与受控设备一致。
 - [ ] 低电量、减少动态效果、关闭自动播放动画图像，确认预览或普通封面回退可用。
-- [ ] iOS 15–25 或系统不声明支持 3:4 的设备，确认普通封面与控制正常。
+- [ ] iOS 26 以前或系统不声明支持任何动画封面比例的设备，确认普通封面与控制正常。
+
+### iPad 实机问题定位与修复（2026-10-14）
+
+用户报告 iPhone 正常、iPad 不生效。在用户指定的 iPad Pro 11-inch（第 3 代）
+上安装同 bundle ID 的 Debug 构建，保留应用数据；设备实际版本为 iPadOS 27.2。
+
+**已确认原因：** 系统仅返回 `MPNowPlayingInfoProperty1x1AnimatedArtwork`。
+初版只提供 3:4，因此能力检查跳过新封面，退回普通静态封面。普通封面本身也可
+展开成方形卡片，但这不代表新的沉浸式素材已生效。与 3:4 素材比例对应的并不是
+设备横竖屏，不能把「需要竖过来」作为解决办法，也不能断言所有 iPad 都不支持。
+
+修复后按系统能力提供 1:1/3:4 中支持的版本；原本已正常工作的 3:4 路径保留。
+本次真机日志摘要（已省略歌曲标识与设备标识）：
+
+```text
+os=27.2 idiom=1 compiledAnimated=true
+supportedKeys=["MPNowPlayingInfoProperty1x1AnimatedArtwork"]
+lowPower=false thermal=0 reduceMotion=false
+1:1 artwork published
+1:1 preview requested size=(1668.0, 1668.0) returning=(720.0, 720.0)
+1:1 video returned local=true bytes=51952 elapsedMs=432
+1:1 video returned local=true bytes=51210 elapsedMs=67
+1:1 video returned local=true bytes=51210 elapsedMs=1
+```
+
+后两条分别对应另一首歌曲的首次处理和已有视频的缓存命中。修复后已收到系统实际
+资源请求、核对锁屏全屏背景截图，并获得用户确认。未将带有个人通知的截图或
+原始应用控制台日志提交到仓库。
+
+修复后的 3:4/1:1 原生资源测试、`pnpm run lint`、指定 iPad 的签名 Debug 构建
+及 generic iOS Release 构建均通过。Debug 本地 JSONL 已从设备取回并验证可解析。
+
+### 可重复的真机调试方法
+
+`NowPlayingArtwork` 日志现在记录 SDK/OS、系统支持的比例、界面朝向、低电量/
+热状态/减少动态效果、普通/两种比例封面的安装状态、过期结果丢弃，以及系统
+预览和视频请求的尺寸、返回文件大小及耗时。无法写入/编码的失败记录错误域和代码。
+
+Debug 构建可通过环境变量开启仅封面诊断的本地 JSONL 日志（上限约 512 KiB，
+每次启用后的首次记录重新开始；普通启动与 Release 不写入）：
+
+```bash
+xcrun devicectl device process launch \
+  --device "<UDID>" --terminate-existing --console \
+  --environment-variables '{"AONSOKU_ARTWORK_TRACE":"1"}' \
+  github.realtvop.aonsoku
+
+xcrun devicectl device copy from \
+  --device "<UDID>" \
+  --domain-type appDataContainer --domain-identifier github.realtvop.aonsoku \
+  --source Documents/lock-screen-artwork-debug.jsonl \
+  --destination /tmp/aonsoku-artwork-debug.jsonl
+```
+
+播放有封面的歌曲、进入锁屏并点击封面展开后，先检查系统支持的 key，再检查
+是否发布对应比例、是否收到系统预览/视频请求及是否成功返回本地文件。
 
 ### 代码入口
 
@@ -124,6 +184,6 @@ Aonsoku 是基于 Navidrome/Subsonic 的音乐播放器。希望在现有 iOS �
   `LockScreenArtworkVideo.swift`（静态视频）、
   `LockScreenArtworkStore.swift`（缓存与生命周期）。
 - 同目录 `AonsokuNativeAudioPlugin.swift` 的 `publishNowPlayingArtwork`
-  统一处理已有本地/网络图片，先发布普通封面，再按系统能力发布 3:4。
+  统一处理已有本地/网络图片，先发布普通封面，再按系统能力发布 3:4/1:1。
 - `scripts/ios/lock-screen-artwork-tests.swift` 与
   `scripts/ios/test-lock-screen-artwork.mjs` 提供可重复的原生资源验证。

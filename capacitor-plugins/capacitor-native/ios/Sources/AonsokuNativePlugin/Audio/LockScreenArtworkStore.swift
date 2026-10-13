@@ -45,7 +45,8 @@ final class LockScreenArtworkStore {
     }
 
     func prepare(
-        data: Data, source: CGImage, completion: @escaping (LockScreenArtworkAsset?) -> Void
+        data: Data, source: CGImage, format: LockScreenArtworkFormat = .tall,
+        completion: @escaping (LockScreenArtworkAsset?) -> Void
     ) {
         queue.async {
             autoreleasepool {
@@ -53,12 +54,12 @@ final class LockScreenArtworkStore {
                 // invalidates them on cover replacement. No authenticated URL
                 // or server/album identifier is stored on disk.
                 let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-                let id = "edge-v1-720x960-\(digest)"
+                let id = "edge-v1-\(format.width)x\(format.height)-\(digest)"
                 if let existing = self.assets[id]?.value {
                     completion(existing)
                     return
                 }
-                guard let preview = LockScreenArtworkRenderer.render(source) else {
+                guard let preview = LockScreenArtworkRenderer.render(source, format: format) else {
                     completion(nil)
                     return
                 }
@@ -136,12 +137,22 @@ final class LockScreenArtworkStore {
                         output = final
                     } catch {
                         // Leave ordinary static artwork installed on any failure.
+                        #if os(iOS)
+                            NativeLogger.shared.warn(
+                                "video export failed domain=\((error as NSError).domain) code=\((error as NSError).code)",
+                                source: "NowPlayingArtwork")
+                        #endif
                         try? FileManager.default.removeItem(at: temporary)
                     }
                     self.finishEncoding(output)
                 }
             }
         } catch {
+            #if os(iOS)
+                NativeLogger.shared.warn(
+                    "video export setup failed domain=\((error as NSError).domain) code=\((error as NSError).code)",
+                    source: "NowPlayingArtwork")
+            #endif
             try? FileManager.default.removeItem(at: temporary)
             finishEncoding(nil)
         }

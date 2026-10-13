@@ -66,11 +66,16 @@ private func fixture(width: Int, height: Int) -> CGImage {
     return canvas.makeImage()!
 }
 
-private func prepare(_ store: LockScreenArtworkStore, data: Data, image: CGImage) async
+private func prepare(
+    _ store: LockScreenArtworkStore, data: Data, image: CGImage,
+    format: LockScreenArtworkFormat = .tall
+) async
     -> LockScreenArtworkAsset?
 {
     await withCheckedContinuation { continuation in
-        store.prepare(data: data, source: image) { continuation.resume(returning: $0) }
+        store.prepare(data: data, source: image, format: format) {
+            continuation.resume(returning: $0)
+        }
     }
 }
 
@@ -99,50 +104,57 @@ struct ArtworkTests {
         ]
         var images: [(String, CGImage, CGImage)] = []
         let started = Date()
-        for (name, width, height) in examples {
-            let source = fixture(width: width, height: height)
-            let result = LockScreenArtworkRenderer.render(source)!
-            try require(
-                result.width == 720 && result.height == 960, "\(name): incorrect output ratio")
-            let rect = LockScreenArtworkRenderer.sourceRect(for: source)
-            let w = Int(rect.width)
-            let h = Int(rect.height)
-            let scaled = CGContext(
-                data: nil, width: w, height: h, bitsPerComponent: 8,
-                bytesPerRow: w * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-            scaled.interpolationQuality = .high
-            scaled.draw(source, in: CGRect(x: 0, y: 0, width: w, height: h))
-            let expected = pixels(scaled.makeImage()!)
-            let actual = pixels(result)
-            // Compare every pixel of the resampled source: no subject cropping,
-            // deformation beyond integer rounding, or blur inside the source.
-            for y in 0..<h {
-                for x in 0..<w {
-                    let a = ((y + Int(rect.minY)) * 720 + x + Int(rect.minX)) * 4
-                    let b = (y * w + x) * 4
-                    for c in 0..<4 {
-                        try require(
-                            actual[a + c] == expected[b + c], "\(name): source pixel changed")
+        for format in [LockScreenArtworkFormat.tall, .square] {
+            for (name, width, height) in examples {
+                let source = fixture(width: width, height: height)
+                let result = LockScreenArtworkRenderer.render(source, format: format)!
+                try require(
+                    result.width == format.width && result.height == format.height,
+                    "\(name): incorrect output ratio")
+                let rect = LockScreenArtworkRenderer.sourceRect(for: source, format: format)
+                let w = Int(rect.width)
+                let h = Int(rect.height)
+                let scaled = CGContext(
+                    data: nil, width: w, height: h, bitsPerComponent: 8,
+                    bytesPerRow: w * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+                scaled.interpolationQuality = .high
+                scaled.draw(source, in: CGRect(x: 0, y: 0, width: w, height: h))
+                let expected = pixels(scaled.makeImage()!)
+                let actual = pixels(result)
+                // Compare every pixel of the resampled source: no subject cropping,
+                // deformation beyond integer rounding, or blur inside the source.
+                for y in 0..<h {
+                    for x in 0..<w {
+                        let a = ((y + Int(rect.minY)) * 720 + x + Int(rect.minX)) * 4
+                        let b = (y * w + x) * 4
+                        for c in 0..<4 {
+                            try require(
+                                actual[a + c] == expected[b + c], "\(name): source pixel changed")
+                        }
                     }
                 }
-            }
-            try require(
-                stride(from: 3, to: actual.count, by: 4).allSatisfy { actual[$0] == 255 },
-                "\(name): transparent hole in output")
-            // Smooth source regions should not acquire a color step at the join.
-            if rect.minY > 0 && w > 10 {
-                let x = Int(rect.midX)
-                for y in [Int(rect.minY), Int(rect.maxY)] {
-                    for c in 0..<3 {
-                        let delta = abs(
-                            Int(actual[(y * 720 + x) * 4 + c])
-                                - Int(actual[((y - 1) * 720 + x) * 4 + c]))
-                        try require(delta < 6, "\(name): hard edge at vertical join")
+                try require(
+                    stride(from: 3, to: actual.count, by: 4).allSatisfy { actual[$0] == 255 },
+                    "\(name): transparent hole in output")
+                // Smooth source regions should not acquire a color step at the join.
+                if rect.minY > 0 && w > 10 {
+                    let x = Int(rect.midX)
+                    for y in [Int(rect.minY), Int(rect.maxY)] {
+                        for c in 0..<3 {
+                            let delta = abs(
+                                Int(actual[(y * 720 + x) * 4 + c])
+                                    - Int(actual[((y - 1) * 720 + x) * 4 + c]))
+                            try require(delta < 6, "\(name): hard edge at vertical join")
+                        }
                     }
                 }
+                if format == .tall {
+                    images.append((name, source, result))
+                } else {
+                    try png(result).write(to: output.appendingPathComponent(name + "-1x1.png"))
+                }
             }
-            images.append((name, source, result))
         }
         let fixtureData = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[2]))
         let cover = LockScreenArtworkRenderer.decode(fixtureData)!
@@ -215,6 +227,27 @@ struct ArtworkTests {
         let cached = await video(first!)
         try require(cached == file, "repeated request did not reuse disk video")
 
+        let square = await prepare(store, data: fixtureData, image: cover, format: .square)!
+        try require(square.id != first!.id, "square asset reused tall identity")
+        try require(
+            square.preview.width == 720 && square.preview.height == 720,
+            "square preview ratio incorrect")
+        let squareFile = await video(square)!
+        try require(squareFile != file, "square video replaced tall video")
+        let squareMovie = AVURLAsset(url: squareFile)
+        let squareTracks = try await squareMovie.loadTracks(withMediaType: .video)
+        let squareSize = try await squareTracks[0].load(.naturalSize)
+        let squareDuration = try await squareMovie.load(.duration)
+        let squareAudio = try await squareMovie.loadTracks(withMediaType: .audio)
+        try require(
+            squareSize == CGSize(width: 720, height: 720) && abs(squareDuration.seconds - 2) < 0.05
+                && squareAudio.isEmpty,
+            "square video is not a silent two-second 1:1 clip")
+        let squareGenerator = AVAssetImageGenerator(asset: squareMovie)
+        let squareFrame0 = try await squareGenerator.image(at: .zero).image
+        let squareFrame1 = try await squareGenerator.image(at: CMTime(value: 1, timescale: 1)).image
+        try require(pixels(squareFrame0) == pixels(squareFrame1), "square clip changes over time")
+
         let secondData = png(images[0].1)
         let second = await prepare(store, data: secondData, image: images[0].1)!
         try require(second.id != first!.id, "new content reused stale artwork ID")
@@ -283,7 +316,7 @@ struct ArtworkTests {
         try Data(contentsOf: file).write(
             to: output.appendingPathComponent("static-artwork.mp4"), options: .atomic)
         print(
-            "PASS: source preservation, seams, ratios, transparency, bounded decode, EXIF, lazy/coalesced video, static frames, cache reuse/eviction, live-file protection, failure fallback"
+            "PASS: 3:4 + 1:1 source preservation, seams, ratios, transparency, bounded decode, EXIF, lazy/coalesced video, static frames, cache reuse/eviction, live-file protection, failure fallback"
         )
         print(
             String(

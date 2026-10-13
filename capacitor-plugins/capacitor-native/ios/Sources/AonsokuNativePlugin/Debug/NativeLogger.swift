@@ -17,6 +17,10 @@ final class NativeLogger {
     private var buckets: [String: [Entry]] = [:]
     private let maxEntriesPerSource = 200
     private let queue = DispatchQueue(label: "com.aonsoku.NativeLogger")
+    #if DEBUG
+    private let artworkTraceEnabled = ProcessInfo.processInfo.environment["AONSOKU_ARTWORK_TRACE"] == "1"
+    private var artworkTraceStarted = false
+    #endif
 
     private init() {}
 
@@ -36,8 +40,44 @@ final class NativeLogger {
             }
             bucket.append(entry)
             self.buckets[key] = bucket
+            #if DEBUG
+            if self.artworkTraceEnabled && source == "NowPlayingArtwork" {
+                self.appendArtworkTrace(entry)
+            }
+            #endif
         }
     }
+
+    #if DEBUG
+    /// Opt-in, bounded, app-local trace retrievable with devicectl. It contains
+    /// artwork diagnostics only, never the web console or credential requests.
+    private func appendArtworkTrace(_ entry: Entry) {
+        guard let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let file = directory.appendingPathComponent("lock-screen-artwork-debug.jsonl")
+        guard let encoded = try? JSONSerialization.data(withJSONObject: [
+            "time": entry.timestamp.timeIntervalSince1970,
+            "level": entry.level.rawValue,
+            "message": entry.message,
+        ]) else { return }
+        var line = encoded
+        line.append(10)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let size = (try? file.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            if !artworkTraceStarted || size > 512 * 1024 {
+                try line.write(to: file, options: .atomic)
+                artworkTraceStarted = true
+            } else {
+                let handle = try FileHandle(forWritingTo: file)
+                defer { try? handle.close() }
+                try handle.seekToEnd()
+                try handle.write(contentsOf: line)
+            }
+        } catch {
+            // Diagnostic I/O must never affect playback.
+        }
+    }
+    #endif
 
     func debug(_ message: String, source: String = "") {
         log(.debug, message, source: source)

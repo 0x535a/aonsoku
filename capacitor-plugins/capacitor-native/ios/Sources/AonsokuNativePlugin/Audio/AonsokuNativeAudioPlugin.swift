@@ -212,6 +212,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
         recoveryController.delegate = self
         registerLifecycleObservers()
         registerRemoteCommands()
+        logNowPlayingArtworkDiagnostics("plugin-load")
 
         do {
             try configureAudioSession()
@@ -2077,6 +2078,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
+                self?.logNowPlayingArtworkDiagnostics("background")
                 self?.handleDidEnterBackground()
             }
         }
@@ -2087,6 +2089,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
+                self?.logNowPlayingArtworkDiagnostics("foreground")
                 self?.handleWillEnterForeground()
             }
         }
@@ -2097,6 +2100,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
+                self?.logNowPlayingArtworkDiagnostics("active")
                 self?.handleDidBecomeActive()
             }
         }
@@ -2758,8 +2762,40 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
         #if compiler(>=6.2)
             if #available(iOS 26.0, *) {
                 info.removeValue(forKey: MPNowPlayingInfoProperty3x4AnimatedArtwork)
+                info.removeValue(forKey: MPNowPlayingInfoProperty1x1AnimatedArtwork)
             }
         #endif
+    }
+
+    private func logNowPlayingArtworkDiagnostics(_ phase: String) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+            var supported: [String] = []
+            var tallInstalled = false
+            var squareInstalled = false
+            var compiled = false
+            #if compiler(>=6.2)
+                compiled = true
+                if #available(iOS 26.0, *) {
+                    supported = MPNowPlayingInfoCenter.supportedAnimatedArtworkKeys
+                    tallInstalled = info[MPNowPlayingInfoProperty3x4AnimatedArtwork] != nil
+                    squareInstalled = info[MPNowPlayingInfoProperty1x1AnimatedArtwork] != nil
+                }
+            #endif
+            let orientations = UIApplication.shared.connectedScenes.compactMap {
+                ($0 as? UIWindowScene)?.interfaceOrientation.rawValue
+            }
+            NativeLogger.shared.info(
+                "diagnostics phase=\(phase) os=\(UIDevice.current.systemVersion) "
+                    + "idiom=\(UIDevice.current.userInterfaceIdiom.rawValue) sdk=\(Bundle.main.object(forInfoDictionaryKey: "DTSDKName") ?? "unknown") "
+                    + "compiledAnimated=\(compiled) supportedKeys=\(supported) orientations=\(orientations) "
+                    + "appState=\(UIApplication.shared.applicationState.rawValue) lowPower=\(ProcessInfo.processInfo.isLowPowerModeEnabled) "
+                    + "thermal=\(ProcessInfo.processInfo.thermalState.rawValue) reduceMotion=\(UIAccessibility.isReduceMotionEnabled) "
+                    + "revision=\(self.nowPlayingRevision) staticInstalled=\(info[MPMediaItemPropertyArtwork] != nil) tallInstalled=\(tallInstalled) squareInstalled=\(squareInstalled)",
+                source: "NowPlayingArtwork"
+            )
+        }
     }
 
     private func publishNowPlayingArtwork(
@@ -2774,52 +2810,100 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
             info[MPMediaItemPropertyArtwork] = artwork
             self.publishedArtworkSource = source
             MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+            self.logNowPlayingArtworkDiagnostics("static-published")
 
             #if compiler(>=6.2)
-                if #available(iOS 26.0, *),
-                    MPNowPlayingInfoCenter.supportedAnimatedArtworkKeys.contains(
-                        MPNowPlayingInfoProperty3x4AnimatedArtwork)
-                {
-                    LockScreenArtworkStore.shared.prepare(data: data, source: image) {
-                        [weak self] asset in
-                        guard let asset else {
-                            NativeLogger.shared.warn(
-                                "portrait artwork generation failed; using static cover",
-                                source: "NowPlayingArtwork")
-                            return
-                        }
-                        DispatchQueue.main.async { [weak self] in
-                            guard let self, self.nowPlayingRevision == revision,
-                                var info = MPNowPlayingInfoCenter.default().nowPlayingInfo
-                            else { return }
-                            let preview = UIImage(cgImage: asset.preview)
-                            let tallArtwork = MPMediaItemAnimatedArtwork(
-                                artworkID: asset.id,
-                                previewImageRequestHandler: { _, completion in
-                                    completion(preview)
-                                },
-                                videoAssetFileURLRequestHandler: { _, completion in
-                                    asset.requestVideo { url in
-                                        if url == nil {
-                                            NativeLogger.shared.warn(
-                                                "portrait artwork video unavailable; using system fallback",
-                                                source: "NowPlayingArtwork")
-                                        }
-                                        completion(url)
-                                    }
-                                }
-                            )
-                            info[MPNowPlayingInfoProperty3x4AnimatedArtwork] = tallArtwork
-                            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
-                            NativeLogger.shared.info(
-                                "3:4 artwork published revision=\(revision)",
-                                source: "NowPlayingArtwork")
-                        }
+                if #available(iOS 26.0, *) {
+                    let keys = MPNowPlayingInfoCenter.supportedAnimatedArtworkKeys
+                    let variants: [(LockScreenArtworkFormat, String)] = [
+                        (.tall, MPNowPlayingInfoProperty3x4AnimatedArtwork),
+                        (.square, MPNowPlayingInfoProperty1x1AnimatedArtwork),
+                    ]
+                    for (format, key) in variants where keys.contains(key) {
+                        self.prepareAnimatedNowPlayingArtwork(
+                            image, data: data, format: format, key: key, revision: revision)
                     }
+                    if keys.isEmpty {
+                        NativeLogger.shared.info(
+                            "animated artwork skipped: system supports no variants",
+                            source: "NowPlayingArtwork")
+                    }
+                } else {
+                    NativeLogger.shared.info(
+                        "animated artwork skipped: OS older than 26", source: "NowPlayingArtwork")
                 }
+            #else
+                NativeLogger.shared.warn(
+                    "animated artwork skipped: built without iOS 26 artwork API",
+                    source: "NowPlayingArtwork")
             #endif
         }
     }
+
+    #if compiler(>=6.2)
+        @available(iOS 26.0, *)
+        private func prepareAnimatedNowPlayingArtwork(
+            _ image: CGImage, data: Data, format: LockScreenArtworkFormat, key: String,
+            revision: Int
+        ) {
+            LockScreenArtworkStore.shared.prepare(data: data, source: image, format: format) {
+                [weak self] asset in
+                guard let asset else {
+                    NativeLogger.shared.warn(
+                        "\(format.label) artwork generation failed; using static cover",
+                        source: "NowPlayingArtwork")
+                    return
+                }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, self.nowPlayingRevision == revision,
+                        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo
+                    else {
+                        NativeLogger.shared.debug(
+                            "\(format.label) result dropped as stale revision=\(revision)",
+                            source: "NowPlayingArtwork")
+                        return
+                    }
+                    let preview = UIImage(cgImage: asset.preview)
+                    let animated = MPMediaItemAnimatedArtwork(
+                        artworkID: asset.id,
+                        previewImageRequestHandler: { size, completion in
+                            NativeLogger.shared.info(
+                                "\(format.label) preview requested revision=\(revision) size=\(size) returning=\(preview.size)",
+                                source: "NowPlayingArtwork")
+                            completion(preview)
+                        },
+                        videoAssetFileURLRequestHandler: { size, completion in
+                            let started = Date()
+                            NativeLogger.shared.info(
+                                "\(format.label) video requested revision=\(revision) size=\(size)",
+                                source: "NowPlayingArtwork")
+                            asset.requestVideo { url in
+                                if url == nil {
+                                    NativeLogger.shared.warn(
+                                        "\(format.label) video unavailable; using system fallback",
+                                        source: "NowPlayingArtwork")
+                                }
+                                let bytes =
+                                    url.flatMap {
+                                        try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize
+                                    } ?? 0
+                                NativeLogger.shared.info(
+                                    "\(format.label) video returned revision=\(revision) local=\(url?.isFileURL ?? false) bytes=\(bytes) elapsedMs=\(Int(Date().timeIntervalSince(started) * 1000))",
+                                    source: "NowPlayingArtwork")
+                                completion(url)
+                            }
+                        }
+                    )
+                    info[key] = animated
+                    MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+                    NativeLogger.shared.info(
+                        "\(format.label) artwork published revision=\(revision)",
+                        source: "NowPlayingArtwork")
+                    self.logNowPlayingArtworkDiagnostics("\(format.label)-published")
+                }
+            }
+        }
+    #endif
 
     private func clearNowPlayingInfo() {
         nowPlayingRevision += 1

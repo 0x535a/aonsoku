@@ -3,12 +3,19 @@ import CoreImage
 import Foundation
 import ImageIO
 
+enum LockScreenArtworkFormat {
+    case tall
+    case square
+
+    var width: Int { 720 }
+    var height: Int { self == .tall ? 960 : 720 }
+    var label: String { self == .tall ? "3:4" : "1:1" }
+}
+
 /// A single continuous image: aspect-fit the source, then extend its actual
 /// edge pixels. Blur increases only as we move away from the source boundary.
 /// There is no cropped background image or foreground card to join together.
 enum LockScreenArtworkRenderer {
-    static let width = 720
-    static let height = 960
     private static let context = CIContext(options: [.cacheIntermediates: false])
 
     static func decode(_ data: Data) -> CGImage? {
@@ -23,15 +30,19 @@ enum LockScreenArtworkRenderer {
             ] as CFDictionary)
     }
 
-    static func sourceRect(for image: CGImage) -> CGRect {
+    static func sourceRect(for image: CGImage, format: LockScreenArtworkFormat = .tall) -> CGRect {
+        let width = format.width
+        let height = format.height
         let scale = min(Double(width) / Double(image.width), Double(height) / Double(image.height))
         let w = max(1, min(width, Int((Double(image.width) * scale).rounded())))
         let h = max(1, min(height, Int((Double(image.height) * scale).rounded())))
         return CGRect(x: (width - w) / 2, y: (height - h) / 2, width: w, height: h)
     }
 
-    static func render(_ image: CGImage) -> CGImage? {
-        let rect = sourceRect(for: image)
+    static func render(_ image: CGImage, format: LockScreenArtworkFormat = .tall) -> CGImage? {
+        let width = format.width
+        let height = format.height
+        let rect = sourceRect(for: image, format: format)
         let w = Int(rect.width)
         let h = Int(rect.height)
         let left = Int(rect.minX)

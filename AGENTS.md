@@ -349,14 +349,21 @@ Key files:
 - `src/native/audio/` — native audio facade and shared TS types.
 - iOS lock-screen artwork stays inside the Capacitor native audio plugin.
   `Audio/LockScreenArtworkRenderer.swift` preserves the source aspect ratio and
-  extends edge texture into a continuous 720x960 portrait;
+  extends edge texture into a continuous 720x960 portrait or 720x720 square;
   `LockScreenArtworkStore.swift` prepares it on a utility queue and reuses
   content-addressed videos (12 files / 24 MiB, with live assets protected from
   eviction) in a backup-excluded Application Support directory.
   `LockScreenArtworkVideo.swift` lazily encodes a silent, motionless H.264 clip
-  when MediaPlayer requests it. On iOS 26+ with a supported 3:4 key,
+  when MediaPlayer requests it. On iOS 26+,
   `AonsokuNativeAudioPlugin` adds `MPMediaItemAnimatedArtwork` alongside the
-  ordinary artwork, with revision checks for local and remote playback.
+  ordinary artwork for each key in `supportedAnimatedArtworkKeys` (3:4 and/or
+  1:1), with revision checks for local and remote playback. Do not infer aspect
+  ratio support from device orientation or iPhone/iPad model; the tested iPad
+  Pro on iPadOS 27.2 supports only 1:1. Format dimensions are part of cache IDs.
+  Artwork logs expose capability checks and system preview/video requests.
+  Debug launches with `AONSOKU_ARTWORK_TRACE=1` also write a bounded, app-local
+  `Documents/lock-screen-artwork-debug.jsonl` via `NativeLogger` for devicectl
+  retrieval; ordinary launches and release builds do not write this trace.
   System layout/expansion remains OS-controlled; older iOS/SDKs and processing
   failures retain ordinary static artwork. No extra audio player/session is
   created. See `doc/ios-lock-screen/overall.md` for the design and device checks.

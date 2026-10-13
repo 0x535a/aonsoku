@@ -54,6 +54,9 @@ cd coordination-server && cargo run --bin aonsoku-coordination-server
 cd android && ./gradlew :aonsoku-capacitor-native:compileDebugKotlin
 cd android && ./gradlew :aonsoku-capacitor-native:testDebugUnitTest
 
+# iOS lock-screen artwork (macOS + Xcode, no server/device required)
+node scripts/ios/test-lock-screen-artwork.mjs # Native renderer/video/cache tests + QA PNGs in /tmp/aonsoku-artwork-qa
+
 # Electron desktop native audio
 pnpm native-audio:build   # Build the Node-API libmpv addon
 pnpm native-audio:prepare # Copy addon/runtime libs into resources/native-audio
@@ -344,6 +347,19 @@ Key files:
 - `src/player/playback/tauri-backend.ts` — Tauri command/event playback bridge;
   Tauri uses the web queue controller while native Rust owns audio playback.
 - `src/native/audio/` — native audio facade and shared TS types.
+- iOS lock-screen artwork stays inside the Capacitor native audio plugin.
+  `Audio/LockScreenArtworkRenderer.swift` preserves the source aspect ratio and
+  extends edge texture into a continuous 720x960 portrait;
+  `LockScreenArtworkStore.swift` prepares it on a utility queue and reuses
+  content-addressed videos (12 files / 24 MiB, with live assets protected from
+  eviction) in a backup-excluded Application Support directory.
+  `LockScreenArtworkVideo.swift` lazily encodes a silent, motionless H.264 clip
+  when MediaPlayer requests it. On iOS 26+ with a supported 3:4 key,
+  `AonsokuNativeAudioPlugin` adds `MPMediaItemAnimatedArtwork` alongside the
+  ordinary artwork, with revision checks for local and remote playback.
+  System layout/expansion remains OS-controlled; older iOS/SDKs and processing
+  failures retain ordinary static artwork. No extra audio player/session is
+  created. See `doc/ios-lock-screen/overall.md` for the design and device checks.
 - `electron/preload/native-audio.ts` and `electron/main/native/audio/` —
   desktop bridge IPC plus a minimal Node.js `NativeAudioService`
   implementing the base `@aonsoku/audio-contract` playback methods through an

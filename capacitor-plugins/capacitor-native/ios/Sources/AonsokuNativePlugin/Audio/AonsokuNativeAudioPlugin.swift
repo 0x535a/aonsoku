@@ -166,6 +166,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     private var loadedDurationSeconds: Double?
     private var artworkTask: URLSessionDataTask?
     private var nowPlayingRevision = 0
+    private var publishedArtworkSource: String?
     private var remoteCommandTargets: [(command: MPRemoteCommand, target: Any)] = []
     private let queueEngine = NativeQueueEngine()
     private let sourceResolver = NativeSourceResolver()
@@ -2489,8 +2490,10 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
         apply(currentMetadata.album, forKey: MPMediaItemPropertyAlbumTitle, to: &info)
         applyNowPlayingPlaybackFields(to: &info)
 
-        if currentMetadata.artworkUrl == nil {
+        if currentMetadata.artworkUrl == nil || publishedArtworkSource != currentMetadata.artworkUrl {
             info.removeValue(forKey: MPMediaItemPropertyArtwork)
+            removeImmersiveArtwork(from: &info)
+            publishedArtworkSource = nil
         }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
@@ -2635,31 +2638,14 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                 if let localURL = imageCache.resolveCoverImage(coverArtId: coverArtId) {
                     do {
                         let data = try Data(contentsOf: localURL)
-                        if let image = UIImage(data: data) {
+                        if let image = LockScreenArtworkRenderer.decode(data) {
                             NativeLogger.shared.info(
                                 "cache hit revision=\(revision) coverArtId=\(coverArtId) bytes=\(data.count)",
                                 source: "NowPlayingArtwork"
                             )
-                            let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
-                            DispatchQueue.main.async { [weak self] in
-                                guard let self else { return }
-                                guard self.nowPlayingRevision == revision else {
-                                    NativeLogger.shared.debug(
-                                        "cache artwork ignored as stale revision=\(revision) current=\(self.nowPlayingRevision)",
-                                        source: "NowPlayingArtwork"
-                                    )
-                                    return
-                                }
-                                var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
-                                info[MPMediaItemPropertyArtwork] = artwork
-                                MPNowPlayingInfoCenter.default().nowPlayingInfo = info
-                                let installed = MPNowPlayingInfoCenter.default()
-                                    .nowPlayingInfo?[MPMediaItemPropertyArtwork] != nil
-                                NativeLogger.shared.info(
-                                    "cache artwork published revision=\(revision) installed=\(installed)",
-                                    source: "NowPlayingArtwork"
-                                )
-                            }
+                            self.publishNowPlayingArtwork(
+                                image, data: data, source: urlString, revision: revision
+                            )
                             return
                         } else {
                             NativeLogger.shared.warn(
@@ -2728,7 +2714,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                     )
                     return
                 }
-                guard let image = UIImage(data: data) else {
+                guard let image = LockScreenArtworkRenderer.decode(data) else {
                     NativeLogger.shared.warn(
                         "network artwork decode failed revision=\(revision) bytes=\(data.count)",
                         source: "NowPlayingArtwork"
@@ -2751,31 +2737,87 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                             coverSize: "800"
                         )
                 }
-                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
-                DispatchQueue.main.async {
-                    guard self.nowPlayingRevision == revision else {
-                        NativeLogger.shared.debug(
-                            "network artwork ignored as stale revision=\(revision) current=\(self.nowPlayingRevision)",
-                            source: "NowPlayingArtwork"
-                        )
-                        return
-                    }
-                    var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
-                    info[MPMediaItemPropertyArtwork] = artwork
-                    MPNowPlayingInfoCenter.default().nowPlayingInfo = info
-                    let installed = MPNowPlayingInfoCenter.default()
-                        .nowPlayingInfo?[MPMediaItemPropertyArtwork] != nil
-                    NativeLogger.shared.info(
-                        "network artwork published revision=\(revision) installed=\(installed)",
-                        source: "NowPlayingArtwork"
-                    )
-                }
+                self.publishNowPlayingArtwork(
+                    image, data: data, source: urlString, revision: revision
+                )
             }
 
             DispatchQueue.main.async { [weak self] in
-                self?.artworkTask = task
+                guard let self, self.nowPlayingRevision == revision else {
+                    task.cancel()
+                    return
+                }
+                self.artworkTask = task
                 task.resume()
             }
+        }
+    }
+
+    private func removeImmersiveArtwork(from info: inout [String: Any]) {
+        // Older SDKs still build a fully functional static-artwork player.
+        #if compiler(>=6.2)
+            if #available(iOS 26.0, *) {
+                info.removeValue(forKey: MPNowPlayingInfoProperty3x4AnimatedArtwork)
+            }
+        #endif
+    }
+
+    private func publishNowPlayingArtwork(
+        _ image: CGImage, data: Data, source: String, revision: Int
+    ) {
+        let staticImage = UIImage(cgImage: image)
+        let artwork = MPMediaItemArtwork(boundsSize: staticImage.size) { _ in staticImage }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.nowPlayingRevision == revision,
+                var info = MPNowPlayingInfoCenter.default().nowPlayingInfo
+            else { return }
+            info[MPMediaItemPropertyArtwork] = artwork
+            self.publishedArtworkSource = source
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+
+            #if compiler(>=6.2)
+                if #available(iOS 26.0, *),
+                    MPNowPlayingInfoCenter.supportedAnimatedArtworkKeys.contains(
+                        MPNowPlayingInfoProperty3x4AnimatedArtwork)
+                {
+                    LockScreenArtworkStore.shared.prepare(data: data, source: image) {
+                        [weak self] asset in
+                        guard let asset else {
+                            NativeLogger.shared.warn(
+                                "portrait artwork generation failed; using static cover",
+                                source: "NowPlayingArtwork")
+                            return
+                        }
+                        DispatchQueue.main.async { [weak self] in
+                            guard let self, self.nowPlayingRevision == revision,
+                                var info = MPNowPlayingInfoCenter.default().nowPlayingInfo
+                            else { return }
+                            let preview = UIImage(cgImage: asset.preview)
+                            let tallArtwork = MPMediaItemAnimatedArtwork(
+                                artworkID: asset.id,
+                                previewImageRequestHandler: { _, completion in
+                                    completion(preview)
+                                },
+                                videoAssetFileURLRequestHandler: { _, completion in
+                                    asset.requestVideo { url in
+                                        if url == nil {
+                                            NativeLogger.shared.warn(
+                                                "portrait artwork video unavailable; using system fallback",
+                                                source: "NowPlayingArtwork")
+                                        }
+                                        completion(url)
+                                    }
+                                }
+                            )
+                            info[MPNowPlayingInfoProperty3x4AnimatedArtwork] = tallArtwork
+                            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+                            NativeLogger.shared.info(
+                                "3:4 artwork published revision=\(revision)",
+                                source: "NowPlayingArtwork")
+                        }
+                    }
+                }
+            #endif
         }
     }
 
@@ -2783,6 +2825,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
         nowPlayingRevision += 1
         artworkTask?.cancel()
         artworkTask = nil
+        publishedArtworkSource = nil
         remotePlaybackProjection = nil
         currentMetadata = NativeAudioMetadata()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil

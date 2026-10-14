@@ -227,7 +227,7 @@ export function LockScreenArtworkSettings() {
                 <SelectContent>
                   {[0.5, 0.75, 1, 1.5, 2].map((value) => (
                     <SelectItem key={value} value={String(value)}>
-                      {value}× · {6 / value}s
+                      {value}×
                       {value === 1 ? ` (${t(`${prefix}.motionDefault`)})` : ""}
                     </SelectItem>
                   ))}

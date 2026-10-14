@@ -608,6 +608,54 @@
           "label": "Accept browser PiP requests",
           "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
         }
+      },
+      "lockScreenArtwork": {
+        "group": "Obal na zamčené obrazovce",
+        "description": "iOS 26+. Rozvržení ovládá systém; pohyb se vytváří v zařízení.",
+        "loading": "Loading artwork settings…",
+        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
+        "retry": "Retry",
+        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "immersive": "Pohlcující obal",
+        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "dynamic": "Pohyblivý obal",
+        "dynamicInfo": "Jemná hloubková animace se vytváří lokálně. Model se stáhne podle potřeby; do té doby se používá statický obal.",
+        "quality": "Kvalita modelu",
+        "qualityInfo": "Automaticky volí P6/P8/FP16 podle paměti. Při zahřátí nebo tlaku paměti se kvalita sníží nebo tvorba pozastaví.",
+        "automatic": "Automaticky ({{tier}})",
+        "effectiveTier": "Limit prostředků: {{tier}}",
+        "wifiOnly": "Stahovat pouze přes Wi-Fi",
+        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
+        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "download": "Stáhnout",
+        "remove": "Smazat",
+        "cancel": "Zrušit",
+        "license": "Depth Anything V2 Small · Apple Core ML · Apache-2.0",
+        "generation": {
+          "ready": "Ready to generate in the foreground",
+          "disabled": "Motion generation is disabled",
+          "background": "Generation paused while the app is in the background",
+          "memoryPressure": "Generation paused for memory pressure",
+          "thermal": "Generation paused while the device is hot",
+          "lowPower": "Generation paused in Low Power Mode",
+          "reduceMotion": "Motion paused because Reduce Motion is enabled",
+          "waitingForModel": "Using static artwork while the required model prepares"
+        },
+        "model": {
+          "notDownloaded": "Not downloaded",
+          "queued": "Queued",
+          "waitingForWifi": "Waiting for Wi-Fi",
+          "waitingForResources": "Waiting for the app to be active and resources to recover",
+          "downloading": "Downloading",
+          "compiling": "Preparing model on this device",
+          "ready": "Downloaded",
+          "error": "Download or preparation failed"
+        },
+        "motionAmplitude": "Síla pohybu",
+        "motionAmplitudeInfo": "Mění paralaxu a pohyb kamery od 0,5× do 2× při zachování trajektorie.",
+        "motionSpeed": "Rychlost pohybu",
+        "motionSpeedInfo": "Smyčka 24 FPS: 0,5× / 0,75× / 1× / 1,5× / 2× odpovídá 12 / 8 / 6 / 4 / 3 sekundám.",
+        "motionDefault": "výchozí"
       }
     },
     "content": {

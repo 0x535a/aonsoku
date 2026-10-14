@@ -594,6 +594,54 @@
           "label": "Accept browser PiP requests",
           "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
         }
+      },
+      "lockScreenArtwork": {
+        "group": "ലോക്ക് സ്‌ക്രീൻ ആർട്ട്‌വർക്ക്",
+        "description": "iOS 26+ ആവശ്യമാണ്. ലേഔട്ട് സിസ്റ്റം നിയന്ത്രിക്കുന്നു; ചലനം ഉപകരണത്തിൽ സൃഷ്ടിക്കുന്നു.",
+        "loading": "Loading artwork settings…",
+        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
+        "retry": "Retry",
+        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "immersive": "ഇമ്മേഴ്‌സീവ് ആർട്ട്‌വർക്ക്",
+        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "dynamic": "ചലന ആർട്ട്‌വർക്ക്",
+        "dynamicInfo": "ആഴചലനം ഉപകരണത്തിൽ സൃഷ്ടിക്കുന്നു. മോഡൽ ആവശ്യാനുസരണം ഡൗൺലോഡ് ചെയ്യും; അതുവരെ സ്റ്റാറ്റിക് കവർ ഉപയോഗിക്കും.",
+        "quality": "മോഡൽ ഗുണനിലവാരം",
+        "qualityInfo": "മെമ്മറി അനുസരിച്ച് P6/P8/FP16 തിരഞ്ഞെടുക്കും. ചൂടോ മെമ്മറി സമ്മർദ്ദമോ ഉണ്ടെങ്കിൽ ഗുണനിലവാരം കുറയ്ക്കുകയോ സൃഷ്ടിക്കൽ നിർത്തുകയോ ചെയ്യും.",
+        "automatic": "ഓട്ടോ ({{tier}})",
+        "effectiveTier": "വിഭവ പരിധി: {{tier}}",
+        "wifiOnly": "Wi-Fi വഴി മാത്രം ഡൗൺലോഡ് ചെയ്യുക",
+        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
+        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "download": "ഡൗൺലോഡ്",
+        "remove": "നീക്കം ചെയ്യുക",
+        "cancel": "റദ്ദാക്കുക",
+        "license": "Depth Anything V2 Small · Apple Core ML · Apache-2.0",
+        "generation": {
+          "ready": "Ready to generate in the foreground",
+          "disabled": "Motion generation is disabled",
+          "background": "Generation paused while the app is in the background",
+          "memoryPressure": "Generation paused for memory pressure",
+          "thermal": "Generation paused while the device is hot",
+          "lowPower": "Generation paused in Low Power Mode",
+          "reduceMotion": "Motion paused because Reduce Motion is enabled",
+          "waitingForModel": "Using static artwork while the required model prepares"
+        },
+        "model": {
+          "notDownloaded": "Not downloaded",
+          "queued": "Queued",
+          "waitingForWifi": "Waiting for Wi-Fi",
+          "waitingForResources": "Waiting for the app to be active and resources to recover",
+          "downloading": "Downloading",
+          "compiling": "Preparing model on this device",
+          "ready": "Downloaded",
+          "error": "Download or preparation failed"
+        },
+        "motionAmplitude": "ചലന വ്യാപ്തി",
+        "motionAmplitudeInfo": "പാത മാറ്റാതെ പാരലാക്സും ക്യാമറ ചലനവും 0.5×–2× ക്രമീകരിക്കുന്നു.",
+        "motionSpeed": "ചലന വേഗം",
+        "motionSpeedInfo": "24 FPS ലൂപ്പ്: 0.5× / 0.75× / 1× / 1.5× / 2× യഥാക്രമം 12 / 8 / 6 / 4 / 3 സെക്കൻഡ്.",
+        "motionDefault": "സ്ഥിരസ്ഥിതി"
       }
     },
     "content": {

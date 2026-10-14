@@ -601,6 +601,54 @@
           "label": "Accept browser PiP requests",
           "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
         }
+      },
+      "lockScreenArtwork": {
+        "group": "Copertina schermata di blocco",
+        "description": "Richiede iOS 26+. Il sistema controlla il layout; il movimento viene generato sul dispositivo.",
+        "loading": "Loading artwork settings…",
+        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
+        "retry": "Retry",
+        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "immersive": "Copertina immersiva",
+        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "dynamic": "Copertina animata",
+        "dynamicInfo": "Il movimento di profondità è generato localmente. Il modello si scarica quando serve; nell’attesa si usa la copertina statica.",
+        "quality": "Qualità modello",
+        "qualityInfo": "Sceglie P6/P8/FP16 in base alla memoria. Calore o pressione della memoria riducono o sospendono la generazione.",
+        "automatic": "Automatico ({{tier}})",
+        "effectiveTier": "Limite risorse: {{tier}}",
+        "wifiOnly": "Scarica solo con Wi-Fi",
+        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
+        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "download": "Scarica",
+        "remove": "Elimina",
+        "cancel": "Annulla",
+        "license": "Depth Anything V2 Small · Apple Core ML · Apache-2.0",
+        "generation": {
+          "ready": "Ready to generate in the foreground",
+          "disabled": "Motion generation is disabled",
+          "background": "Generation paused while the app is in the background",
+          "memoryPressure": "Generation paused for memory pressure",
+          "thermal": "Generation paused while the device is hot",
+          "lowPower": "Generation paused in Low Power Mode",
+          "reduceMotion": "Motion paused because Reduce Motion is enabled",
+          "waitingForModel": "Using static artwork while the required model prepares"
+        },
+        "model": {
+          "notDownloaded": "Not downloaded",
+          "queued": "Queued",
+          "waitingForWifi": "Waiting for Wi-Fi",
+          "waitingForResources": "Waiting for the app to be active and resources to recover",
+          "downloading": "Downloading",
+          "compiling": "Preparing model on this device",
+          "ready": "Downloaded",
+          "error": "Download or preparation failed"
+        },
+        "motionAmplitude": "Ampiezza movimento",
+        "motionAmplitudeInfo": "Regola parallasse e camera da 0,5× a 2× mantenendo la traiettoria.",
+        "motionSpeed": "Velocità movimento",
+        "motionSpeedInfo": "Loop a 24 FPS: 0,5× / 0,75× / 1× / 1,5× / 2× corrispondono a 12 / 8 / 6 / 4 / 3 secondi.",
+        "motionDefault": "predefinito"
       }
     },
     "content": {

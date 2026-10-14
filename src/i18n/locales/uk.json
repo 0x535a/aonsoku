@@ -608,6 +608,54 @@
           "label": "Accept browser PiP requests",
           "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
         }
+      },
+      "lockScreenArtwork": {
+        "group": "Обкладинка екрана блокування",
+        "description": "Потрібна iOS 26+. Макетом керує система; рух створюється на пристрої.",
+        "loading": "Loading artwork settings…",
+        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
+        "retry": "Retry",
+        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "immersive": "Імерсивна обкладинка",
+        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "dynamic": "Анімована обкладинка",
+        "dynamicInfo": "Рух глибини створюється локально. Модель завантажується за потреби; поки використовується статична обкладинка.",
+        "quality": "Якість моделі",
+        "qualityInfo": "Автоматично вибирає P6/P8/FP16 за пам’яттю. Нагрівання або нестача пам’яті знижує якість чи призупиняє генерацію.",
+        "automatic": "Автоматично ({{tier}})",
+        "effectiveTier": "Обмеження ресурсів: {{tier}}",
+        "wifiOnly": "Завантажувати лише через Wi-Fi",
+        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
+        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "download": "Завантажити",
+        "remove": "Видалити",
+        "cancel": "Скасувати",
+        "license": "Depth Anything V2 Small · Apple Core ML · Apache-2.0",
+        "generation": {
+          "ready": "Ready to generate in the foreground",
+          "disabled": "Motion generation is disabled",
+          "background": "Generation paused while the app is in the background",
+          "memoryPressure": "Generation paused for memory pressure",
+          "thermal": "Generation paused while the device is hot",
+          "lowPower": "Generation paused in Low Power Mode",
+          "reduceMotion": "Motion paused because Reduce Motion is enabled",
+          "waitingForModel": "Using static artwork while the required model prepares"
+        },
+        "model": {
+          "notDownloaded": "Not downloaded",
+          "queued": "Queued",
+          "waitingForWifi": "Waiting for Wi-Fi",
+          "waitingForResources": "Waiting for the app to be active and resources to recover",
+          "downloading": "Downloading",
+          "compiling": "Preparing model on this device",
+          "ready": "Downloaded",
+          "error": "Download or preparation failed"
+        },
+        "motionAmplitude": "Сила руху",
+        "motionAmplitudeInfo": "Масштабує паралакс і камеру від 0,5× до 2× без зміни траєкторії.",
+        "motionSpeed": "Швидкість руху",
+        "motionSpeedInfo": "Цикл 24 кадр/с: 0,5× / 0,75× / 1× / 1,5× / 2× відповідає 12 / 8 / 6 / 4 / 3 секундам.",
+        "motionDefault": "типово"
       }
     },
     "content": {

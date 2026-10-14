@@ -594,6 +594,54 @@
           "label": "Accept browser PiP requests",
           "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
         }
+      },
+      "lockScreenArtwork": {
+        "group": "잠금 화면 아트워크",
+        "description": "iOS 26 이상이 필요합니다. 레이아웃은 시스템이 제어하며 움직임은 기기에서 생성됩니다.",
+        "loading": "Loading artwork settings…",
+        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
+        "retry": "Retry",
+        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "immersive": "몰입형 아트워크",
+        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "dynamic": "애니메이션 아트워크",
+        "dynamicInfo": "깊이 움직임은 로컬에서 생성합니다. 모델은 필요할 때 다운로드하고 준비 중에는 정적 커버를 사용합니다.",
+        "quality": "모델 품질",
+        "qualityInfo": "메모리에 따라 P6/P8/FP16을 자동 선택합니다. 발열이나 메모리 압박 시 품질을 낮추거나 생성을 일시 중지합니다.",
+        "automatic": "자동 ({{tier}})",
+        "effectiveTier": "리소스 한도: {{tier}}",
+        "wifiOnly": "Wi-Fi에서만 모델 다운로드",
+        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
+        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "download": "다운로드",
+        "remove": "삭제",
+        "cancel": "취소",
+        "license": "Depth Anything V2 Small · Apple Core ML · Apache-2.0",
+        "generation": {
+          "ready": "Ready to generate in the foreground",
+          "disabled": "Motion generation is disabled",
+          "background": "Generation paused while the app is in the background",
+          "memoryPressure": "Generation paused for memory pressure",
+          "thermal": "Generation paused while the device is hot",
+          "lowPower": "Generation paused in Low Power Mode",
+          "reduceMotion": "Motion paused because Reduce Motion is enabled",
+          "waitingForModel": "Using static artwork while the required model prepares"
+        },
+        "model": {
+          "notDownloaded": "Not downloaded",
+          "queued": "Queued",
+          "waitingForWifi": "Waiting for Wi-Fi",
+          "waitingForResources": "Waiting for the app to be active and resources to recover",
+          "downloading": "Downloading",
+          "compiling": "Preparing model on this device",
+          "ready": "Downloaded",
+          "error": "Download or preparation failed"
+        },
+        "motionAmplitude": "모션 강도",
+        "motionAmplitudeInfo": "경로를 유지하면서 시차와 카메라 움직임을 0.5×~2×로 조절합니다.",
+        "motionSpeed": "모션 속도",
+        "motionSpeedInfo": "24 FPS 루프: 0.5× / 0.75× / 1× / 1.5× / 2×는 12 / 8 / 6 / 4 / 3초입니다.",
+        "motionDefault": "기본값"
       }
     },
     "content": {

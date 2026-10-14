@@ -754,6 +754,54 @@
           "label": "履歴の最大件数",
           "info": "再生履歴に保持する曲の最大数です。上限を超えると古い項目が削除されます。"
         }
+      },
+      "lockScreenArtwork": {
+        "group": "ロック画面のアートワーク",
+        "description": "iOS 26以降が必要です。レイアウトはシステムが制御し、動きはデバイス上で生成します。",
+        "loading": "Loading artwork settings…",
+        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
+        "retry": "Retry",
+        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "immersive": "イマーシブアートワーク",
+        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "dynamic": "アニメーション",
+        "dynamicInfo": "奥行きの動きはローカルで生成します。モデルは必要時に取得し、準備中は静止画を使用します。",
+        "quality": "モデル品質",
+        "qualityInfo": "メモリに応じてP6/P8/FP16を自動選択します。発熱やメモリ不足時は品質を下げるか生成を停止します。",
+        "automatic": "自動（{{tier}}）",
+        "effectiveTier": "リソース上限：{{tier}}",
+        "wifiOnly": "Wi-Fiのみでモデルをダウンロード",
+        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
+        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "download": "ダウンロード",
+        "remove": "削除",
+        "cancel": "キャンセル",
+        "license": "Depth Anything V2 Small · Apple Core ML · Apache-2.0",
+        "generation": {
+          "ready": "Ready to generate in the foreground",
+          "disabled": "Motion generation is disabled",
+          "background": "Generation paused while the app is in the background",
+          "memoryPressure": "Generation paused for memory pressure",
+          "thermal": "Generation paused while the device is hot",
+          "lowPower": "Generation paused in Low Power Mode",
+          "reduceMotion": "Motion paused because Reduce Motion is enabled",
+          "waitingForModel": "Using static artwork while the required model prepares"
+        },
+        "model": {
+          "notDownloaded": "Not downloaded",
+          "queued": "Queued",
+          "waitingForWifi": "Waiting for Wi-Fi",
+          "waitingForResources": "Waiting for the app to be active and resources to recover",
+          "downloading": "Downloading",
+          "compiling": "Preparing model on this device",
+          "ready": "Downloaded",
+          "error": "Download or preparation failed"
+        },
+        "motionAmplitude": "動きの強さ",
+        "motionAmplitudeInfo": "軌道を変えずに視差とカメラ移動を0.5×〜2×で調整します。",
+        "motionSpeed": "動きの速度",
+        "motionSpeedInfo": "24 FPSのループ：0.5× / 0.75× / 1× / 1.5× / 2×は12 / 8 / 6 / 4 / 3秒です。",
+        "motionDefault": "標準"
       }
     },
     "privacy": {

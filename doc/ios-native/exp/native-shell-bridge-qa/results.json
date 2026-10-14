@@ -1,0 +1,13 @@
+{
+  "layout" : {
+    "bottom" : 201,
+    "compact" : true,
+    "top" : 0,
+    "type" : "layout"
+  },
+  "layoutRoundTrip" : "passed",
+  "nativeStateReceived" : "passed",
+  "reactMounted" : true,
+  "realCapacitorHandler" : "passed",
+  "webChromeHidden" : true
+}

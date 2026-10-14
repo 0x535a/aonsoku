@@ -100,3 +100,14 @@
 - Cypress 验证桥接的播放投影、实测 CSS 留白、原生 Tab 导航及返回原 Tab 详情位置、React StrictMode 重新挂载、全屏及模态遮挡同步；原有 Web BottomNavigation 测试继续执行。
 - `node scripts/ios/test-native-shell.mjs` 使用独立 Simulator 测试 App，直接运行生产 UIKit view，验证手机横竖屏、平板横竖屏和窄窗口的布局判断、空播放器释放空间、播放/下一首事件与键盘/模态命中测试；不启动真实音频或连接服务器。尺寸和 idiom 是测试夹具，不等同于真机分屏/Stage Manager 验收。结果与截图见 `exp/native-shell-qa/`。
 - Xcode Debug iOS Simulator 编译通过；未向真机安装。真实 iPhone/iPad 的播放、系统锁屏、键盘/VoiceOver、指针焦点、分屏/窗口变化与前后台最终交互验收仍待真机验证。
+
+
+## 真实外壳桥接修复（2026-10-15）
+
+用户反馈安装后仍显示 Web 底栏。根因是 Capacitor 8 在调用 `webViewConfiguration(for:)` 后，把 `WKWebViewConfiguration.userContentController` 替换为它自身的 delegation controller；之前注册在该回调里的 `aonsokuShell` 被丢弃。前端检测不到 host handler，因此保留 Web UI。
+
+已把 handler 注册移至最终 `webView(with:configuration:)` 创建钩子，并按主框架请求 URL 校验本地来源，避免自定义 scheme 的 opaque security origin 造成消息误拒绝。无需改动页面、队列或音频服务。
+
+此前独立 UIKit 测试和 Cypress 模拟桥测试没有覆盖 Capacitor 真实创建顺序，这部分验收存在缺口。新增 `test-native-shell-bridge.mjs`：使用实际 Debug Simulator App 和生产 AonsokuViewController，确认最终 WK handler 存在、真实 JS 状态消息启用原生控件、布局尺寸回传；已挂载 React 页面时同时验证 Web 导航和播放器确实隐藏。测试只在显式 Debug QA 环境变量开启时注入展示状态，不改变认证、队列或播放动作，Release 没有该测试路径。
+
+验证结果写入 `exp/native-shell-bridge-qa/results.json`；真实外壳截图留在 `/tmp/aonsoku-native-shell-bridge-qa/capacitor-shell.png`，不将 Simulator 已有账户的页面内容提交仓库。修复涉及原生二进制，需重新构建并安装 iOS App。此次验证使用 Simulator，没有更新真机。

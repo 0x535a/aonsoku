@@ -55,6 +55,7 @@ cd android && ./gradlew :aonsoku-capacitor-native:compileDebugKotlin
 cd android && ./gradlew :aonsoku-capacitor-native:testDebugUnitTest
 
 # iOS navigation/player UI (macOS + Xcode, booted iOS Simulator, no server/device)
+node scripts/ios/test-native-shell-bridge.mjs # Actual Debug Capacitor app WK state/layout round trip (build Simulator App first)
 node scripts/ios/test-native-shell.mjs # Standalone UIKit layout/control fixtures + PNGs in /tmp/aonsoku-native-shell-qa
 
 # iOS lock-screen artwork (macOS + Xcode, no server/device required)
@@ -274,6 +275,12 @@ fullscreen and modal states hide the obstructing controls.
 `src/app/layout/native-ios-shell.tsx` is mounted inside the shared Player and
 reuses its local/radio/remote projection. It sends deduplicated metadata/progress
 and app theme/localized labels via the iOS-only `aonsokuShell` WK message handler.
+Register that handler in `AonsokuViewController.webView(with:configuration:)`,
+after Capacitor replaces the configuration's userContentController; registration
+inside `webViewConfiguration` is discarded. The receiver validates the main-frame
+request URL (custom-scheme security origins may be opaque). Debug launches with
+`AONSOKU_SHELL_BRIDGE_QA=1` explicitly exercise the real host transport and write a
+small app-local result; normal launches and Release contain no fixture behavior.
 Artwork is a bounded 128px copy of the existing loaded image, sent separately;
 stale track IDs are ignored. Native controls dispatch existing React Router and
 player actions, preserving fullscreen history and tab locations. Measured native

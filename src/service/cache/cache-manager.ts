@@ -131,6 +131,8 @@ function isCoverSizeAtLeast(
   cachedSize: string | undefined,
   requestedSize: string | undefined,
 ): boolean {
+  if (cachedSize === "original") return true;
+  if (requestedSize === "original") return false;
   if (!requestedSize) return true;
 
   const requested = Number(requestedSize);
@@ -371,7 +373,11 @@ class CacheManager {
     if (isNativeImageCacheAdapterAvailable()) {
       const adapter = getNativeImageCacheAdapter();
       const existing = await adapter.getCoverImageSize(coverArtId);
-      if (existing.coverSize && Number(existing.coverSize) >= Number(size)) {
+      if (
+        existing.coverSize &&
+        (existing.coverSize === "original" ||
+          Number(existing.coverSize) >= Number(size))
+      ) {
         return;
       }
 
@@ -379,13 +385,18 @@ class CacheManager {
         adapter.downloadCoverImage(coverArtId, size),
       );
       if (!result) return;
-      this.rememberNativeCoverUrl(coverArtId, convertFileSrc(result.uri), size);
+      const storedSize = result.coverSize ?? size;
+      this.rememberNativeCoverUrl(
+        coverArtId,
+        convertFileSrc(result.uri),
+        storedSize,
+      );
 
       const meta: CachedItemMeta = {
         id: coverArtId,
         type: "cover",
         source: "explicit",
-        coverSize: size,
+        coverSize: storedSize,
         sizeBytes: result.sizeBytes ?? 0,
         cachedAt: Date.now(),
         lastAccessedAt: Date.now(),

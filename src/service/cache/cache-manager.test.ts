@@ -356,6 +356,38 @@ describe("cacheManager", () => {
     expect(url).toBeTruthy();
   });
 
+  it("does not download thumbnails over a native original", async () => {
+    const module = await import("./native-image-cache-adapter");
+    vi.mocked(module.isNativeImageCacheAdapterAvailable).mockReturnValue(true);
+    nativeImageCacheAdapterMock.getCoverImageSize.mockResolvedValue({
+      sizeBytes: 5000,
+      coverSize: "original",
+    });
+    const { cacheManager } = await import("./cache-manager");
+    await cacheManager.cacheCover("original-cover", "700");
+    expect(
+      nativeImageCacheAdapterMock.downloadCoverImage,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("retains the native original's actual quality when a racing thumbnail download returns it", async () => {
+    const module = await import("./native-image-cache-adapter");
+    vi.mocked(module.isNativeImageCacheAdapterAvailable).mockReturnValue(true);
+    nativeImageCacheAdapterMock.downloadCoverImage.mockResolvedValue({
+      coverArtId: "racing-cover",
+      uri: "file:///original.png",
+      sizeBytes: 5000,
+      coverSize: "original",
+    });
+    const { cacheManager } = await import("./cache-manager");
+    await cacheManager.cacheCover("racing-cover", "700");
+    expect(
+      useCacheIndexStore.getState().items["cover:racing-cover"]?.coverSize,
+    ).toBe("original");
+    const url = await cacheManager.getCachedCoverUrl("racing-cover", "1200");
+    expect(url).toBe("http://localhost/_capacitor_file_/original.png");
+  });
+
   it("deduplicates concurrent native cached cover resolves", async () => {
     const nativeImageCacheModule = await import("./native-image-cache-adapter");
     vi.mocked(

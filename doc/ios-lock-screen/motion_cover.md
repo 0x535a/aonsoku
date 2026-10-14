@@ -216,3 +216,27 @@ python scripts/ios/summarize-motion-experiment.py doc/ios-lock-screen/exp
 - DAV2 视频标识升级为 `motion-v6-<backend>-a<百分比>-s<百分比>-<尺寸>-<SHA256>`，参数变化后会请求新资产，不复用旧参数视频。快速整体运动继续使用 motion-v5，静态继续 edge-v1；深度分析缓存不包含运动参数，可复用结果重新编码，无需重复推理。缓存管理器显示视频幅度/速度，看板显示当前参数及循环秒数。
 - Mac 原生验证包含旧设置迁移、缓存隔离、非法参数、五档实际视频时长/FPS/静音、最大幅度的 1:1/3:4 不露空洞和相对位移。默认 1× 行为与此前一致。
 - 本次 Mac 原生测试、16 文件/212 项 Vitest 回归、TypeScript/Biome、mobile 构建与同步、generic iOS Release 编译通过。iPad 当前在 devicectl 中为 unavailable，本次未安装或完成真机调参验收。
+
+
+## 13. 原图就绪后才生成沉浸封面（2026-10-14）
+
+### 根因与“最清晰”的判定
+
+原生 `loadNowPlayingArtwork` 原先只要找到封面文件就调用沉浸生成，不读取缓存的 `coverSize`。列表/播放器使用的 100/300px 缩略图和同步的 700px 缓存因此会抢先进入静态、camera（用户称 Vision）和 DAV2 管线；缺失图片时的原生补下载又固定请求 800px。文件存在、图片可解码、尺寸看起来较大，均不能证明它是原图。
+
+现在按来源判定：Subsonic `getCoverArt` 请求省略 `size`，等待完整成功响应并通过 ImageIO 完整图片验证后，缓存元数据写为 `coverSize: original`。只有这个标记与同一份有效图片数据组合才允许沉浸流程；数字尺寸、旧缓存和未知尺寸均只属于普通预览。没有新增“必须大于 800px”阈值，因为服务器真实原图可能只有 400px；无尺寸限制响应代表服务器按该接口契约提供的最终来源，不能凭文件大小或像素数推断存在更高清版本。
+
+### 流程与缓存
+
+1. 缩略图可以作为普通 `MPMediaItemArtwork`，等待时移除沉浸对象。此时不渲染沉浸静态视频，不做 camera 或 DAV2，不应用旧缩略图生成的视频。
+2. 对当前封面发起单个原图请求；同封面的元数据/缓存通知不会取消并重复下载。换封面、清队列或插件销毁会取消；失败/离线时继续普通封面，在常规前台/元数据刷新机会重试。
+3. 原图完整落盘后，现有缓存通知触发当前封面刷新，原图通过门槛后才按“静态 → camera → DAV2”渐进发布。原图数据继续以最多 1200px 解码后进入既有 720px 渲染和视频限制，不直接把原图无限放大送入模型。
+4. 图片缓存跨 `ImageCacheManager` 实例串行写入；数据与质量一起读取。`original` 高于所有数字尺寸，迟到的 700/800/1200px 下载不能降级它。下载或解码失败不先删好文件；原生桥返回实际存储的质量和字节数，Web 缓存管理器识别原图并复用它。
+5. 原图字节参与现有视频 SHA-256 缓存键，旧缩略图视频不会命中原图的键；不需要用户清理全部视频或重新下载模型。保持已有静态/动态视频管理和在用文件保护。
+6. Debug → Artwork 新增来源字段：`sourceQuality`（`waitingForOriginal` / `originalReady` / `originalUnavailable`）、`sourcePixels`、`decodedPixels` 和 `sourceRequest`。原图没准备好与模型延后/失败能够分别观察。
+
+### 验证
+
+- `node scripts/ios/test-original-cover.mjs` 在隔离目录用实际图片缓存、GRDB 和本地 URLProtocol 响应验证：缩略图不准入、请求省略 size、原图升级、迟到缩略图与跨实例并发写入不降级、HTTP 503/损坏图片保留好缓存、小尺寸真实原图可准入。无需服务器或设备；测试用原图/缩略图及结果保存在 `exp/original-cover-qa/`。
+- 缓存相关 Vitest 16 个文件、221 项通过，包括原图避免重复缩略下载、并发返回原图时保留真实质量；既有 Mac 静态/动态封面回归通过。
+- 移动端构建、Biome、iOS Debug Simulator 与 generic iOS Release 编译已通过。未向真机安装；真实服务器的下载过程及实际锁屏效果仍需真机确认。

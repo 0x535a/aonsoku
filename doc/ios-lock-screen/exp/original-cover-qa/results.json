@@ -1,0 +1,10 @@
+{
+  "concurrentWrites" : "passed",
+  "failedDownloadRetainsOriginal" : "passed",
+  "invalidImage" : "passed",
+  "lateThumbnail" : "passed",
+  "originalPixels" : "1600x1600",
+  "originalRequest" : "passed",
+  "smallOriginal" : "passed",
+  "thumbnailGate" : "passed"
+}

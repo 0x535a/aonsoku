@@ -486,14 +486,15 @@ public class AonsokuNativeDataPlugin: CAPPlugin, CAPBridgedPlugin {
                     contentType: contentType,
                     coverSize: coverSize
                 )
+                let stored = manager.getCoverImageSize(coverArtId: coverArtId)
                 DispatchQueue.main.async {
                     call.resolve([
                         "file": [
                             "coverArtId": coverArtId,
                             "uri": fileURL.absoluteString,
                             "contentType": contentType,
-                            "sizeBytes": data.count,
-                            "coverSize": coverSize,
+                            "sizeBytes": stored?.sizeBytes ?? data.count,
+                            "coverSize": stored?.coverSize ?? coverSize,
                         ] as [String: Any],
                     ])
                 }
@@ -523,6 +524,7 @@ public class AonsokuNativeDataPlugin: CAPPlugin, CAPBridgedPlugin {
 
             let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path)
             let sizeBytes = (attrs?[.size] as? NSNumber)?.intValue
+            let quality = manager.getCoverImageSize(coverArtId: coverArtId)?.coverSize
 
             DispatchQueue.main.async {
                 call.resolve([
@@ -530,6 +532,7 @@ public class AonsokuNativeDataPlugin: CAPPlugin, CAPBridgedPlugin {
                         "coverArtId": coverArtId,
                         "uri": fileURL.absoluteString,
                         "sizeBytes": sizeBytes as Any,
+                        "coverSize": quality ?? NSNull(),
                     ] as [String: Any],
                 ])
             }
@@ -636,12 +639,13 @@ public class AonsokuNativeDataPlugin: CAPPlugin, CAPBridgedPlugin {
                 let fileURL = try await manager.downloadCoverImage(coverArtId: coverArtId, size: size)
                 let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path)
                 let sizeBytes = (attrs?[.size] as? NSNumber)?.intValue
+                let quality = manager.getCoverImageSize(coverArtId: coverArtId)?.coverSize
                 call.resolve([
                     "file": [
                         "coverArtId": coverArtId,
                         "uri": fileURL.absoluteString,
                         "sizeBytes": sizeBytes as Any,
-                        "coverSize": size,
+                        "coverSize": quality ?? size,
                     ] as [String: Any],
                 ])
             } catch {

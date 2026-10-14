@@ -58,6 +58,7 @@ cd android && ./gradlew :aonsoku-capacitor-native:testDebugUnitTest
 node scripts/ios/test-native-shell.mjs # Standalone UIKit layout/control fixtures + PNGs in /tmp/aonsoku-native-shell-qa
 
 # iOS lock-screen artwork (macOS + Xcode, no server/device required)
+node scripts/ios/test-original-cover.mjs # Offline Mac original-source/cache-quality tests (uses Xcode-resolved GRDB)
 node scripts/ios/test-lock-screen-artwork.mjs # Native static/motion/Vision/video/cache tests + QA PNGs/MP4s in /tmp/aonsoku-artwork-qa
 AONSOKU_TEST_MODEL_DOWNLOAD=1 node scripts/ios/test-lock-screen-artwork.mjs # Optional network test: production P6 download/verify/compile/infer/delete on Mac
 python scripts/ios/prepare-motion-models.py /tmp/aonsoku-depth-models # Mac experiment models, isolated Python + coremltools
@@ -430,6 +431,20 @@ Key files:
   model preserves cached videos. Model license/notice is bundled as a SwiftPM
   resource; weights are not bundled. Background/resource conditions defer
   compilation and generation; existing lower tiers/videos remain reusable.
+  Immersive publication first requires a complete unresized server original:
+  `CoverImageQuality.swift` treats numeric/unknown cache sizes as previews only.
+  The native cover download omits Subsonic's `size` query and persists the
+  `original` quality marker after image validation; an atomic data/quality read
+  gates every static/camera/DAV2 stage. One current-cover download survives
+  same-cover metadata updates, cancels on cover change/clear, and retries on
+  normal foreground/metadata opportunities after failure. Original-ready sources
+  retain the bounded 1200px decode and existing content-addressed video pipeline.
+  ImageCacheManager serializes cover writes across instances and prevents late
+  smaller writes from downgrading originals. Native image methods report actual
+  stored quality; the shared cache manager recognizes `original` and avoids
+  redundant thumbnail downloads. Debug Artwork reports source readiness and
+  raw/decoded pixel dimensions. Ordinary Now Playing artwork remains available
+  while waiting; no immersive object is installed from a thumbnail.
   Publication is progressive: pin the static clip, publish a quick camera-motion
   clip, then upgrade to completed DAV2 depth. Cached depth skips regenerating
   the camera stage; superseded camera files are retired only after live artwork

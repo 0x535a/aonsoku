@@ -167,11 +167,16 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     private var remotePlaybackProjection: NativeRemotePlaybackProjection?
     private var loadedDurationSeconds: Double?
     private var artworkTask: URLSessionDataTask?
+    private var coverDownloadTask: Task<Void, Never>?
+    private var coverDownloadArtId: String?
+    private var coverDownloadSize: String?
+    private var coverDownloadRequestID: UUID?
     private var nowPlayingRevision = 0
     private var artworkResourceObservers: [NSObjectProtocol] = []
     private let artworkGeneration = LockScreenArtworkGeneration()
     private var artworkPublishedStages: [String: Int] = [:]
     private var publishedArtworkSource: String?
+    private var publishedArtworkOriginalReady = false
     private var remoteCommandTargets: [(command: MPRemoteCommand, target: Any)] = []
     private let queueEngine = NativeQueueEngine()
     private let sourceResolver = NativeSourceResolver()
@@ -231,6 +236,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     deinit {
+        coverDownloadTask?.cancel()
         if Self.activeInstance === self {
             Self.activeInstance = nil
         }
@@ -2540,6 +2546,9 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func updateNowPlayingInfo() {
+        if coverDownloadArtId != currentNowPlayingCoverArtId() {
+            cancelCoverDownload()
+        }
         artworkPublishedStages.removeAll()
         nowPlayingRevision += 1
         artworkGeneration.update(nowPlayingRevision)
@@ -2563,7 +2572,9 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
             info.removeValue(forKey: MPMediaItemPropertyArtwork)
             removeImmersiveArtwork(from: &info)
             publishedArtworkSource = nil
+            publishedArtworkOriginalReady = false
         }
+        if !publishedArtworkOriginalReady { removeImmersiveArtwork(from: &info) }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
 
@@ -2626,7 +2637,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
         guard
             let artworkUrl = currentMetadata.artworkUrl,
             let components = URLComponents(string: artworkUrl),
-            components.scheme == "aonsoku-media"
+            (components.scheme == "aonsoku-media" || URL(string: artworkUrl)?.lastPathComponent == "getCoverArt")
         else {
             return nil
         }
@@ -2686,9 +2697,10 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
         coverArtId explicitCoverArtId: String?,
         revision: Int
     ) {
+        let needsOriginal = LockScreenArtworkController.supported && LockScreenArtworkSettings.shared.value.immersiveEnabled
         var coverArtId = explicitCoverArtId
         if let components = URLComponents(string: urlString),
-           components.scheme == "aonsoku-media",
+           (components.scheme == "aonsoku-media" || URL(string: urlString)?.lastPathComponent == "getCoverArt"),
            let queryItems = components.queryItems {
             coverArtId = coverArtId ?? queryItems.first(where: { $0.name == "id" })?.value
         }
@@ -2704,59 +2716,21 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
 
             if let coverArtId, !coverArtId.isEmpty {
                 let imageCache = ImageCacheManager(db: DatabaseManager.shared.dbPool)
-                if let localURL = imageCache.resolveCoverImage(coverArtId: coverArtId) {
-                    do {
-                        let data = try Data(contentsOf: localURL)
-                        if let image = LockScreenArtworkRenderer.decode(data) {
-                            NativeLogger.shared.info(
-                                "cache hit revision=\(revision) coverArtId=\(coverArtId) bytes=\(data.count)",
-                                source: "NowPlayingArtwork"
-                            )
-                            self.publishNowPlayingArtwork(
-                                image, data: data, source: urlString, revision: revision
-                            )
-                            return
-                        } else {
-                            NativeLogger.shared.warn(
-                                "cache image decode failed revision=\(revision) coverArtId=\(coverArtId) bytes=\(data.count)",
-                                source: "NowPlayingArtwork"
-                            )
-                        }
-                    } catch {
-                        NativeLogger.shared.warn(
-                            "cache image read failed revision=\(revision) coverArtId=\(coverArtId): \(error.localizedDescription)",
-                            source: "NowPlayingArtwork"
-                        )
-                    }
-                }
-
-                NativeLogger.shared.info(
-                    "cache miss revision=\(revision) coverArtId=\(coverArtId)",
-                    source: "NowPlayingArtwork"
-                )
-
-                if URL(string: urlString)?.scheme == "aonsoku-media" {
+                if let cached = imageCache.readCoverImage(coverArtId: coverArtId),
+                   CoverImageQuality.dimensions(cached.data) != nil,
+                   let image = LockScreenArtworkRenderer.decode(cached.data) {
+                    let ready = CoverImageQuality.isOriginal(cached.quality)
                     NativeLogger.shared.info(
-                        "starting native artwork download revision=\(revision) coverArtId=\(coverArtId)",
-                        source: "NowPlayingArtwork"
-                    )
-                    Task {
-                        do {
-                            _ = try await ImageCacheManager(db: DatabaseManager.shared.dbPool)
-                                .downloadCoverImage(coverArtId: coverArtId, size: "800")
-                            NativeLogger.shared.info(
-                                "native artwork download completed revision=\(revision) coverArtId=\(coverArtId)",
-                                source: "NowPlayingArtwork"
-                            )
-                        } catch {
-                            NativeLogger.shared.warn(
-                                "native artwork download failed revision=\(revision) coverArtId=\(coverArtId): \(error.localizedDescription)",
-                                source: "NowPlayingArtwork"
-                            )
-                        }
-                    }
-                    return
+                        "cache hit revision=\(revision) quality=\(cached.quality ?? "unknown") pixels=\(image.width)x\(image.height) immersiveReady=\(ready)",
+                        source: "NowPlayingArtwork")
+                    self.publishNowPlayingArtwork(image, data: cached.data, source: urlString,
+                        revision: revision, originalReady: ready)
+                    if ready || !needsOriginal { return }
                 }
+                // Small/unknown caches remain ordinary Now Playing previews only.
+                // One unrestricted request survives same-cover metadata/cache updates.
+                self.downloadNowPlayingCover(coverArtId: coverArtId, revision: revision, original: needsOriginal)
+                return
             }
 
             guard let url = URL(string: urlString) else {
@@ -2767,7 +2741,8 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
 
-            let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            let originalURL = CoverImageQuality.unrestrictedURL(url)
+            let task = URLSession.shared.dataTask(with: originalURL) { [weak self] data, response, error in
                 guard let self else { return }
                 if let error {
                     NativeLogger.shared.warn(
@@ -2776,38 +2751,29 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                     )
                     return
                 }
-                guard let data else {
+                guard let response = response as? HTTPURLResponse,
+                      (200..<300).contains(response.statusCode), let data else {
                     NativeLogger.shared.warn(
                         "network artwork returned no data revision=\(revision)",
                         source: "NowPlayingArtwork"
                     )
                     return
                 }
-                guard let image = LockScreenArtworkRenderer.decode(data) else {
+                guard CoverImageQuality.dimensions(data) != nil,
+                      let image = LockScreenArtworkRenderer.decode(data) else {
                     NativeLogger.shared.warn(
                         "network artwork decode failed revision=\(revision) bytes=\(data.count)",
                         source: "NowPlayingArtwork"
                     )
                     return
                 }
-                let statusCode = (response as? HTTPURLResponse)?.statusCode
+                let statusCode = response.statusCode
                 NativeLogger.shared.info(
-                    "network artwork loaded revision=\(revision) status=\(statusCode.map(String.init) ?? "nil") bytes=\(data.count)",
+                    "network artwork loaded revision=\(revision) status=\(statusCode) bytes=\(data.count)",
                     source: "NowPlayingArtwork"
                 )
-                if let coverArtId, !coverArtId.isEmpty {
-                    let contentType = (response as? HTTPURLResponse)?
-                        .value(forHTTPHeaderField: "Content-Type") ?? "image/jpeg"
-                    _ = try? ImageCacheManager(db: DatabaseManager.shared.dbPool)
-                        .storeCoverImage(
-                            coverArtId: coverArtId,
-                            data: data,
-                            contentType: contentType,
-                            coverSize: "800"
-                        )
-                }
                 self.publishNowPlayingArtwork(
-                    image, data: data, source: urlString, revision: revision
+                    image, data: data, source: urlString, revision: revision, originalReady: true
                 )
             }
 
@@ -2818,6 +2784,57 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
                 self.artworkTask = task
                 task.resume()
+            }
+        }
+    }
+
+    private func cancelCoverDownload() {
+        coverDownloadTask?.cancel()
+        coverDownloadTask = nil
+        coverDownloadArtId = nil
+        coverDownloadSize = nil
+        coverDownloadRequestID = nil
+    }
+
+    private func downloadNowPlayingCover(coverArtId: String, revision: Int, original: Bool) {
+        let size = original ? CoverImageQuality.original : "800"
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.nowPlayingRevision == revision else { return }
+            guard self.coverDownloadArtId != coverArtId || self.coverDownloadSize != size || self.coverDownloadTask == nil else { return }
+            self.cancelCoverDownload()
+            let requestID = UUID()
+            self.coverDownloadRequestID = requestID
+            self.coverDownloadArtId = coverArtId
+            self.coverDownloadSize = size
+            if original {
+                for format in ["1:1", "3:4"] {
+                    LockScreenArtworkDiagnostics.shared.update(format,
+                        ["sourceQuality": "waitingForOriginal", "publishedBackend": "ordinary-preview",
+                         "sourcePixels": "not ready", "sourceRequest": "getCoverArt without size"])
+                }
+            }
+            NativeLogger.shared.info("cover request started revision=\(revision) quality=\(size)", source: "NowPlayingArtwork")
+            self.coverDownloadTask = Task { [weak self] in
+                do {
+                    _ = try await ImageCacheManager(db: DatabaseManager.shared.dbPool)
+                        .downloadCoverImage(coverArtId: coverArtId, size: size)
+                    NativeLogger.shared.info("cover cached quality=\(size); awaiting current-cover refresh", source: "NowPlayingArtwork")
+                } catch {
+                    NativeLogger.shared.warn("cover request failed quality=\(size): \(error.localizedDescription)", source: "NowPlayingArtwork")
+                    if original && !Task.isCancelled {
+                        for format in ["1:1", "3:4"] {
+                            LockScreenArtworkDiagnostics.shared.update(format,
+                                ["sourceQuality": "originalUnavailable", "sourceRequest": "retry on foreground/cache/metadata update"])
+                        }
+                    }
+                }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, self.coverDownloadRequestID == requestID else { return }
+                    self.coverDownloadTask = nil
+                    self.coverDownloadArtId = nil
+                    self.coverDownloadSize = nil
+                    self.coverDownloadRequestID = nil
+                }
             }
         }
     }
@@ -2864,8 +2881,9 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func publishNowPlayingArtwork(
-        _ image: CGImage, data: Data, source: String, revision: Int
+        _ image: CGImage, data: Data, source: String, revision: Int, originalReady: Bool
     ) {
+        let sourceDimensions = CoverImageQuality.dimensions(data)
         let staticImage = UIImage(cgImage: image)
         let artwork = MPMediaItemArtwork(boundsSize: staticImage.size) { _ in staticImage }
         DispatchQueue.main.async { [weak self] in
@@ -2873,9 +2891,18 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                 var info = MPNowPlayingInfoCenter.default().nowPlayingInfo
             else { return }
             info[MPMediaItemPropertyArtwork] = artwork
+            if !originalReady { self.removeImmersiveArtwork(from: &info) }
             self.publishedArtworkSource = source
+            self.publishedArtworkOriginalReady = originalReady
             MPNowPlayingInfoCenter.default().nowPlayingInfo = info
-            self.logNowPlayingArtworkDiagnostics("static-published")
+            self.logNowPlayingArtworkDiagnostics("ordinary-published")
+            for format in ["1:1", "3:4"] {
+                LockScreenArtworkDiagnostics.shared.update(format,
+                    ["sourceQuality": originalReady ? "originalReady" : "waitingForOriginal",
+                     "sourcePixels": "\(sourceDimensions?.width ?? image.width)×\(sourceDimensions?.height ?? image.height)",
+                     "decodedPixels": "\(image.width)×\(image.height) (max 1200px)"])
+            }
+            guard originalReady else { return }
 
             #if compiler(>=6.2)
                 if #available(iOS 26.0, *) {
@@ -3034,12 +3061,14 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     #endif
 
     private func clearNowPlayingInfo() {
+        cancelCoverDownload()
         artworkPublishedStages.removeAll()
         nowPlayingRevision += 1
         artworkGeneration.update(nowPlayingRevision)
         artworkTask?.cancel()
         artworkTask = nil
         publishedArtworkSource = nil
+        publishedArtworkOriginalReady = false
         remotePlaybackProjection = nil
         currentMetadata = NativeAudioMetadata()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil

@@ -189,3 +189,8 @@ xcrun devicectl device copy from \
   统一处理已有本地/网络图片，先发布普通封面，再按系统能力发布 3:4/1:1。
 - `scripts/ios/lock-screen-artwork-tests.swift` 与
   `scripts/ios/test-lock-screen-artwork.mjs` 提供可重复的原生资源验证。
+
+
+## 原图准入补充（2026-10-14）
+
+静态沉浸视频也必须等待最终来源。数字 `coverSize`（100/300/700/800 等）和未知质量缓存仅用于普通锁屏封面；原生无 `size` 的 `getCoverArt` 请求完整成功并验证图片后标记为 `original`，随后才允许渲染/应用沉浸静态视频及继续动态阶段。等待或失败时不安装缩略图对应的沉浸对象。原图缓存跨实例防降级，旧缩略图视频按内容摘要隔离；原图仍经过最多 1200px 的受限解码，不改变输出视频规格和音频会话。来源判定、Debug 字段及回归详见 `motion_cover.md` 第 13 节。

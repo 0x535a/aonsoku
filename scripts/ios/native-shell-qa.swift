@@ -58,7 +58,11 @@ final class ShellQAController: UIViewController {
             shell.layoutIfNeeded()
             let compact = idiom == .phone || width < 768
             precondition(measurements.2 == compact, "Incorrect adaptive layout: \(name)")
-            precondition(compact ? measurements.0 == 0 : measurements.0 >= 64)
+            precondition(measurements.0 == 0, "Native navigation must not reserve the top header")
+            if !compact {
+                precondition(shell.hitTest(CGPoint(x: width / 2, y: 90), with: nil) == nil,
+                    "Wide windows must leave the Web navigation interactive")
+            }
             precondition(measurements.1 >= 68, "Missing player reservation")
             let renderer = UIGraphicsImageRenderer(size: shell.bounds.size)
             let image = renderer.image { _ in

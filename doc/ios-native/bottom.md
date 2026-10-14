@@ -85,7 +85,7 @@
 
 实际工程：React + Capacitor 8，iOS/iPadOS 最低版本 15，UIKit 外壳和单个 WKWebView；原生音频服务、队列、系统媒体控制与离线数据层继续沿用现有实现。
 
-- `NativeBottomShellView.swift` 提供 UIKit 原生导航与迷你播放器。iPhone 横竖屏和小于 768pt 的 iPad 窗口使用原生 `UITabBar`；常规 iPad 窗口使用顶部 `UISegmentedControl` 导航，播放器在底部居中且最大宽度 640pt，避免放大手机底栏。iPhone 工程同时开放横屏方向。
+- `NativeBottomShellView.swift` 提供 UIKit 原生导航与迷你播放器。iPhone 横竖屏和小于 768pt 的 iPad 窗口使用原生 `UITabBar`；常规 iPad 窗口按 2026-10-15 的用户调整恢复原有 Web 顶栏/侧栏导航，播放器在底部居中且最大宽度 640pt。iPhone 工程同时开放横屏方向。
 - iOS 26+ 使用公开 `UIGlassEffect`；旧系统回退系统材质。减少透明度时使用不透明系统背景；减少动态效果时禁用交互式玻璃动效。控件提供 VoiceOver 描述、动态字体、指针交互和 Command+1/2/3 导航快捷键。
 - 原生播放器复用共享 Player 已计算好的本地歌曲、电台、遥控投影，展示歌曲封面、标题、艺人、播放/暂停、下一首、进度。歌曲可打开已有完整播放器；电台保留播放控制，沿用原有未提供电台完整播放器的边界。原生动作回到已有 actions，没有新的音频实例、会话、队列或网络请求。
 - 路由由 React Router 保持唯一所有权，原生选择同步页面跳转与返回。Tab 保存各自最后的位置并复用 KeepAlive 页面，完整播放器入口使用现有历史机制。改变窗口形态只重新布局原生控件，既有页面和音频仍保持挂载。
@@ -111,3 +111,12 @@
 此前独立 UIKit 测试和 Cypress 模拟桥测试没有覆盖 Capacitor 真实创建顺序，这部分验收存在缺口。新增 `test-native-shell-bridge.mjs`：使用实际 Debug Simulator App 和生产 AonsokuViewController，确认最终 WK handler 存在、真实 JS 状态消息启用原生控件、布局尺寸回传；已挂载 React 页面时同时验证 Web 导航和播放器确实隐藏。测试只在显式 Debug QA 环境变量开启时注入展示状态，不改变认证、队列或播放动作，Release 没有该测试路径。
 
 验证结果写入 `exp/native-shell-bridge-qa/results.json`；真实外壳截图留在 `/tmp/aonsoku-native-shell-bridge-qa/capacitor-shell.png`，不将 Simulator 已有账户的页面内容提交仓库。修复涉及原生二进制，需重新构建并安装 iOS App。此次验证使用 Simulator，没有更新真机。
+
+
+## 宽窗口恢复原导航（2026-10-15）
+
+用户确认原生栏生效后，要求大屏/横屏模式恢复之前的菜单设计，保留新的收起播放器。现按实际窗口宽度处理：iPad 窗口达到 768pt 时移除原生顶部导航，显示原有 Web 顶栏（搜索、账户、侧栏切换）及响应式侧栏，恢复对应内容左侧偏移和顶栏安全区；底部继续显示居中、最多 640pt 的原生迷你播放器。iPad 窗口小于 768pt 时仍使用原生底部 Tab；iPhone 仍保持原生底部 Tab。
+
+侧栏下沿跟随原生播放器预留高度，避免最后一项被播放器覆盖。宽窄窗口切换仅改变控件布局和 CSS，不重建页面、队列或播放实例。UIKit 夹具补验宽窗口顶部不保留原生导航高度且不截获 Web 顶栏触摸；截图和测量结果随本次更新覆盖 `exp/native-shell-qa/`。
+
+本次验证：UIKit 宽/窄窗口、顶部命中、播放器控制及空状态测试通过；Cypress 3 项桥接/布局测试通过，其中宽窗口确认顶栏与侧栏可见、保留 280px 内容偏移及播放器留白，再切到窄窗口确认导航隐藏和内容偏移释放。移动端构建、lint、iOS Release 编译通过；未向真机安装。

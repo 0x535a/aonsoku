@@ -31,6 +31,30 @@ describe("iOS native shell integration", () => {
     cy.get('[data-testid="path"]').should("have.text", "/library/albums/album-1");
   });
 
+  it("restores wide-window navigation and content offsets while retaining the native player", () => {
+    cy.viewport(1366, 900);
+    cy.mount(<>
+      <Fixture />
+      <header data-native-web-header className="hidden md:flex fixed top-0 h-header">
+        <div><button type="button">Toggle sidebar</button></div>
+      </header>
+      <aside data-native-web-sidebar className="hidden xl:flex fixed top-header bottom-0 pb-player w-sidebar" />
+      <main data-native-main className="md:pl-mini-sidebar xl:pl-sidebar pt-header" />
+      <footer data-native-web-player />
+    </>);
+    cy.window().then((win) => win.dispatchEvent(new CustomEvent("aonsoku-native-shell", { detail: { type: "layout", top: 0, bottom: 100, compact: false } })));
+    cy.get('[data-native-web-header]').should("be.visible");
+    cy.contains("button", "Toggle sidebar").should("be.visible");
+    cy.get('[data-native-web-sidebar]').should("be.visible").and("have.css", "bottom", "100px");
+    cy.get('[data-native-main]').should("have.css", "padding-left", "280px");
+    cy.get('[data-native-web-player]').should("have.css", "display", "none");
+    cy.viewport(600, 900);
+    cy.window().then((win) => win.dispatchEvent(new CustomEvent("aonsoku-native-shell", { detail: { type: "layout", top: 0, bottom: 180, compact: true } })));
+    cy.get('[data-native-web-header]').should("have.css", "display", "none");
+    cy.get('[data-native-web-sidebar]').should("have.css", "display", "none");
+    cy.get('[data-native-main]').should("have.css", "padding-left", "0px");
+  });
+
   it("gets out of the way of dialogs and fullscreen, then restores the controls", () => {
     cy.mount(<StrictMode><Fixture /></StrictMode>);
     cy.document().then((doc) => doc.body.setAttribute("data-scroll-locked", "1"));

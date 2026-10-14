@@ -266,8 +266,8 @@ location from inside a cached subtree unless the freeze above is extended.
 
 `ios/App/App/NativeBottomShellView.swift` is a UIKit overlay on the existing
 single Capacitor WKWebView. iPhone (including landscape) and iPad windows below
-768pt use a native bottom UITabBar; regular iPad windows use top segmented
-navigation and a centered, width-limited native player. iOS 26+ uses public
+768pt use a native bottom UITabBar; regular iPad windows restore the established Web header/sidebar navigation
+with a centered, width-limited native player. iOS 26+ uses public
 UIGlassEffect; older systems use material blur. Reduce Transparency and Reduce
 Motion are respected. Empty playback releases the player space; keyboard,
 fullscreen and modal states hide the obstructing controls.
@@ -284,8 +284,11 @@ small app-local result; normal launches and Release contain no fixture behavior.
 Artwork is a bounded 128px copy of the existing loaded image, sent separately;
 stale track IDs are ignored. Native controls dispatch existing React Router and
 player actions, preserving fullscreen history and tab locations. Measured native
-insets feed root CSS variables; the old Web chrome hides only with this host
-capability, so Web, Android and desktop keep their existing UI. Window changes
+insets feed root CSS variables; Web playback chrome hides with this host
+capability, while header/sidebar navigation hides only in compact windows.
+Regular iPad pages retain the established sidebar offsets and header safe area;
+the sidebar ends above the native player reservation. Web, Android and desktop
+keep their existing UI. Window changes
 never replace the WebView or audio service. Native shell state is scene-local;
 the app still advertises a single scene. See `doc/ios-native/bottom.md`.
 

@@ -9,9 +9,6 @@ final class NativeBottomShellView: UIView, UITabBarDelegate {
     var obscured = false { didSet { setNeedsLayout() } }
     var keyboardVisible = false { didSet { setNeedsLayout() } }
     private let tabBar = UITabBar()
-    private let topMaterial = UIVisualEffectView()
-    private let topTabs = UISegmentedControl(items: ["", "", ""])
-    private let backButton = UIButton(type: .system)
     private let playerMaterial = UIVisualEffectView()
     private let infoButton = UIButton(type: .system)
     private let artwork = UIImageView()
@@ -41,19 +38,13 @@ final class NativeBottomShellView: UIView, UITabBarDelegate {
         let safe = safeAreaInsets
         let rowHeight: CGFloat = traitCollection.preferredContentSizeCategory.isAccessibilityCategory ? 88 : 68
         let tabHeight = max(72, tabBar.sizeThatFits(CGSize(width: bounds.width, height: 100)).height)
-        let topInset: CGFloat = compact ? 0 : safe.top + 64
+        let topInset: CGFloat = 0
         let bottomInset = compact
             ? safe.bottom + tabHeight + (hasContent ? rowHeight + 16 : 0)
             : (hasContent ? safe.bottom + rowHeight + 24 : 0)
-        topMaterial.isHidden = !enabled || obscured || compact
         tabBar.isHidden = !enabled || obscured || keyboardVisible || !compact
         playerMaterial.isHidden = !enabled || obscured || keyboardVisible || !hasContent
         let availableWidth = bounds.width - safe.left - safe.right
-        let topWidth = min(availableWidth - 24, 620)
-        topMaterial.frame = CGRect(x: safe.left + (availableWidth - topWidth) / 2,
-                                   y: safe.top + 6, width: topWidth, height: 52)
-        backButton.frame = CGRect(x: 4, y: 4, width: 44, height: 44)
-        topTabs.frame = CGRect(x: 52, y: 6, width: topWidth - 64, height: 40)
         tabBar.frame = CGRect(x: safe.left, y: bounds.height - safe.bottom - tabHeight,
                               width: availableWidth, height: tabHeight)
         let playerWidth = min(availableWidth - 24, compact ? availableWidth - 24 : 640)
@@ -95,7 +86,6 @@ final class NativeBottomShellView: UIView, UITabBarDelegate {
         nextButton.accessibilityLabel = state["nextLabel"] as? String
         infoButton.accessibilityLabel = state["openPlayerLabel"] as? String
         infoButton.accessibilityValue = state["trackLabel"] as? String
-        backButton.accessibilityLabel = state["backLabel"] as? String
         title.text = state["title"] as? String
         subtitle.text = state["artist"] as? String
         progress.progress = Float(state["progressFraction"] as? Double ?? 0)
@@ -104,12 +94,10 @@ final class NativeBottomShellView: UIView, UITabBarDelegate {
             lastLabels = labels
             let symbols = ["house", "square.grid.2x2", "magnifyingglass"]
             tabBar.items = labels.enumerated().map { index, label in
-                topTabs.setTitle(label, forSegmentAt: index)
                 return UITabBarItem(title: label, image: UIImage(systemName: symbols[index]), tag: index)
             }
         }
         let selection = min(2, max(0, state["activeIndex"] as? Int ?? 0))
-        topTabs.selectedSegmentIndex = selection
         tabBar.selectedItem = tabBar.items?[selection]
         setNeedsLayout()
     }
@@ -134,11 +122,9 @@ final class NativeBottomShellView: UIView, UITabBarDelegate {
 
     private func build() {
         backgroundColor = .clear
-        for material in [topMaterial, playerMaterial] { material.clipsToBounds = true }
-        topMaterial.layer.cornerRadius = 26
+        playerMaterial.clipsToBounds = true
         playerMaterial.layer.cornerRadius = 24
-        addSubview(topMaterial); addSubview(tabBar); addSubview(playerMaterial)
-        topMaterial.contentView.addSubview(backButton); topMaterial.contentView.addSubview(topTabs)
+        addSubview(tabBar); addSubview(playerMaterial)
         for control in [infoButton, playButton, nextButton, progress] { playerMaterial.contentView.addSubview(control) }
         for child in [artwork, title, subtitle] {
             infoButton.addSubview(child)
@@ -162,14 +148,11 @@ final class NativeBottomShellView: UIView, UITabBarDelegate {
         title.lineBreakMode = .byTruncatingTail; subtitle.lineBreakMode = .byTruncatingTail
         progress.isAccessibilityElement = false
         progress.tintColor = .systemBlue
-        topTabs.addTarget(self, action: #selector(selectTopTab), for: .valueChanged)
         tabBar.delegate = self; tabBar.tintColor = .systemBlue
-        backButton.setImage(UIImage(systemName: "chevron.backward"), for: .normal)
         nextButton.setImage(UIImage(systemName: "forward.end.fill"), for: .normal)
-        for button in [backButton, playButton, nextButton, infoButton] {
+        for button in [playButton, nextButton, infoButton] {
             button.addInteraction(UIPointerInteraction(delegate: nil))
         }
-        backButton.addTarget(self, action: #selector(goBack), for: .touchUpInside)
         infoButton.addTarget(self, action: #selector(openPlayer), for: .touchUpInside)
         playButton.addTarget(self, action: #selector(togglePlayback), for: .touchUpInside)
         nextButton.addTarget(self, action: #selector(nextTrack), for: .touchUpInside)
@@ -181,7 +164,7 @@ final class NativeBottomShellView: UIView, UITabBarDelegate {
     }
 
     @objc private func updateMaterial() {
-        for view in [topMaterial, playerMaterial] {
+        for view in [playerMaterial] {
             if UIAccessibility.isReduceTransparencyEnabled {
                 view.effect = nil; view.backgroundColor = .secondarySystemBackground
             } else {
@@ -195,8 +178,6 @@ final class NativeBottomShellView: UIView, UITabBarDelegate {
         }
     }
 
-    @objc private func selectTopTab() { onEvent?(["type": "tab", "index": topTabs.selectedSegmentIndex]) }
-    @objc private func goBack() { onEvent?(["type": "back"]) }
     @objc private func openPlayer() { onEvent?(["type": "openPlayer"]) }
     @objc private func togglePlayback() { onEvent?(["type": "control", "action": "togglePlayPause"]) }
     @objc private func nextTrack() { onEvent?(["type": "control", "action": "playNextSong"]) }

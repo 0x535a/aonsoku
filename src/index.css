@@ -88,9 +88,6 @@
   :root.native-ios-shell {
     --player-height: 0px;
     --bottom-nav-height: var(--native-shell-bottom, 0px);
-    --sidebar-base-width: 0px;
-    --mini-sidebar-base-width: 0px;
-    --header-height: calc(var(--native-shell-top, 0px) + 44px);
   }
 
   :root.native-ios-shell.native-ios-compact {
@@ -100,22 +97,18 @@
 
   .native-ios-shell [data-native-web-bottom-nav],
   .native-ios-shell [data-native-web-player],
-  .native-ios-shell [data-native-web-sidebar],
+  .native-ios-compact [data-native-web-sidebar],
   .native-ios-compact [data-native-web-header] {
     display: none;
   }
 
-  .native-ios-shell [data-native-web-header] {
-    top: var(--native-shell-top, 0px);
-    height: 44px;
-    padding-top: 0px;
+  /* Wide iPad windows keep the established header/sidebar geometry. */
+  .native-ios-shell [data-native-web-sidebar] {
+    bottom: var(--native-shell-bottom, 0px);
+    padding-bottom: 0px;
   }
 
-  .native-ios-shell [data-native-web-header] > div:first-child {
-    visibility: hidden;
-  }
-
-  .native-ios-shell [data-native-main] {
+  .native-ios-compact [data-native-main] {
     padding-left: var(--safe-area-left);
     padding-right: var(--safe-area-right);
     padding-top: var(--header-height);

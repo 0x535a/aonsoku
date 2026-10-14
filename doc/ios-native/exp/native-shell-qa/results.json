@@ -18,13 +18,13 @@
       "bottom" : 126,
       "case" : "ipad-portrait",
       "compact" : false,
-      "top" : 126
+      "top" : 0
     },
     {
       "bottom" : 92,
       "case" : "ipad-landscape",
       "compact" : false,
-      "top" : 126
+      "top" : 0
     },
     {
       "bottom" : 201,

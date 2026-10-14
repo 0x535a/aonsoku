@@ -7,6 +7,11 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "AonsokuNativePreferencesPlugin"
     public let jsName = "AonsokuNativePreferences"
     public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "getLockScreenArtworkState", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "configureLockScreenArtwork", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "downloadLockScreenArtworkModel", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "cancelLockScreenArtworkDownload", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "deleteLockScreenArtworkModel", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getAllPreferences", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setPreferences", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setPreference", returnType: CAPPluginReturnPromise),
@@ -20,6 +25,61 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private var db: DatabasePool { DatabaseManager.shared.dbPool }
     private var prefs: PreferencesManager { PreferencesManager.shared }
+
+    @objc func getLockScreenArtworkState(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            _ = LockScreenArtworkMotionPolicy.shared
+            DispatchQueue.global(qos: .utility).async { call.resolve(LockScreenArtworkController.snapshot()) }
+        }
+    }
+
+    @objc func configureLockScreenArtwork(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            do {
+                let old = LockScreenArtworkSettings.shared.value
+                var options: [String: Any] = [:]
+                for key in ["immersiveEnabled", "dynamicEnabled", "quality", "wifiOnly"] {
+                    if let value = call.getValue(key) { options[key] = value }
+                }
+                try LockScreenArtworkSettings.shared.configure(options)
+                let updated = LockScreenArtworkSettings.shared.value
+                if !updated.immersiveEnabled || !updated.dynamicEnabled {
+                    LockScreenArtworkModelManager.shared.stopAutomaticGeneration()
+                }
+                if old.wifiOnly != updated.wifiOnly {
+                    LockScreenArtworkModelManager.shared.preferencesChanged()
+                }
+                call.resolve(LockScreenArtworkController.snapshot())
+            } catch { call.reject("Invalid artwork settings", nil, error) }
+        }
+    }
+
+    @objc func downloadLockScreenArtworkModel(_ call: CAPPluginCall) {
+        guard let raw = call.getString("tier"), let tier = LockScreenArtworkTier(rawValue: raw) else {
+            call.reject("Unknown DAV2 tier"); return
+        }
+        DispatchQueue.main.async {
+            guard LockScreenArtworkController.supported else { call.reject("Immersive artwork requires iOS 26+"); return }
+            LockScreenArtworkModelManager.shared.request(tier)
+            call.resolve()
+        }
+    }
+
+    @objc func cancelLockScreenArtworkDownload(_ call: CAPPluginCall) {
+        guard let raw = call.getString("tier"), let tier = LockScreenArtworkTier(rawValue: raw) else {
+            call.reject("Unknown DAV2 tier"); return
+        }
+        LockScreenArtworkModelManager.shared.cancel(tier)
+        call.resolve()
+    }
+
+    @objc func deleteLockScreenArtworkModel(_ call: CAPPluginCall) {
+        guard let raw = call.getString("tier"), let tier = LockScreenArtworkTier(rawValue: raw) else {
+            call.reject("Unknown DAV2 tier"); return
+        }
+        LockScreenArtworkModelManager.shared.remove(tier)
+        call.resolve()
+    }
 
     // MARK: - Preferences
 

@@ -1,0 +1,171 @@
+# Aonsoku — 本地 AI 动态专辑封面需求文档
+
+## 1. 项目背景与目标
+
+项目仓库：https://gitlab.com/stephenzeng/aonsoku
+
+Aonsoku 是个人自用的音乐播放器，音乐与封面主要来自 Navidrome/Subsonic。希望在现有 iOS 音频播放和锁屏 Now Playing 功能基础上，将普通静态封面转化为具有轻微运动、空间感和氛围感的沉浸式封面。重点是「让封面灵动起来」，而不是实现完整 Live2D、视频生成模型或真正的三维重建。
+
+核心约束：**AI 推理必须在 iPhone 本地完成，尽可能降低模型体积、峰值内存、功耗和存储占用；不依赖按次付费的云端推理服务。** 具体实现由本地 Agent 调研、设计与落实。
+
+## 2. 预期视觉效果
+
+- 从现有专辑封面自动生成柔和、克制、可无缝循环的动画，例如轻微空间视差、镜头移动、呼吸感缩放及局部光影变化。
+- 根据封面内容选择适合的运动方式；人物、风景、抽象图形、文字封面不必使用相同动画。
+- 尽量保持原图主体、构图、文字和风格；避免人物变形、文字扭曲、画面撕裂、遮挡空洞及明显的 AI 伪影。
+- 继续支持此前确定的 **3:4 竖版沉浸式封面**：对原始 1:1 或其他宽高比的图片，以边缘内容延伸、模糊和自然过渡的方式扩展画布，保持视觉连续；**不要简单地把一张清晰方形封面作为卡片叠在模糊背景上**。
+- 动画质量不足或不适合处理时，自动降级为简单的程序化运动或静态封面，不强求每张封面都呈现 3D 效果。
+
+## 3. 技术方向与选择原则
+
+- 以 **轻量级端侧深度估计 + 2.5D 渲染** 为首选研究方向；可评估 Depth Anything V2 Small 的 Core ML 版本及其 8-bit / 4-bit 等压缩方案。
+- 按需研究 Apple Vision 的系统级前景分割能力与 Metal / Core Image 渲染，避免为每一个效果额外引入大型模型。
+- 分层、局部网格变形、Gaussian Splatting / SHARP 等可作为实验增强路线，**不作为第一版的强制依赖**；优先比较真实画质收益与内存、计算成本。
+- 以专辑封面为单位进行一次性分析与生成；日常播放直接复用处理结果，不要求模型常驻内存或实时推理。
+- 模型体积与内存优化的优先级高于复杂动画效果。量化后必须评估实际图像质量及真机运行内存，不能把磁盘模型大小等同于 RAM 占用。
+
+## 4. 播放、系统集成与缓存
+
+- 复用 Aonsoku 现有音频引擎、专辑封面获取、Now Playing 元数据与缓存逻辑；不要求音乐服务器提供额外动态封面素材或歌曲元数据。
+- AI 分析、图像扩展、动画渲染和视频编码应异步进行，不能阻塞播放、切歌、锁屏控制等核心功能。
+- 针对 iOS 26+，探索通过系统公开的动态封面接口提供 **3:4 本地循环视频**。锁屏是否展开为沉浸式布局由 iOS 决定，不能将其视为 App 可强制控制的效果。
+- 为尚未生成动画、系统不支持或处理失败的情况保留原有静态封面回退；旧版 iOS 的播放体验不得退化。
+- 同一封面应尽量跨歌曲复用动画缓存，具备合理的缓存清理与版本更新机制；可以考虑在用户主动播放或 App 前台空闲时准备资源。
+- 在锁屏显示阶段尽可能只交付已生成的文件，避免触发高负载推理或视频编码。
+
+## 5. 性能与资源目标
+
+以下数值是**初始实验目标，不是已经验证的承诺**，可由 Agent 在真机基准测试后调整：
+
+| 指标 | 初始目标 |
+| --- | --- |
+| 推理位置 | 完全在设备端；无云端推理依赖 |
+| 模型体积 | 优先尝试约 15–30 MB 的量化模型，按画质和兼容性调整 |
+| 额外推理峰值内存 | 尽量控制在 250 MB 以内；必须真机实测 |
+| 并发推理 | 同一时刻最多一个封面任务 |
+| 初始视频规格 | 720 × 960、24 FPS、约 6–8 秒无缝循环，后续按质量调整 |
+| 常态播放 | 不常驻 AI 模型；尽量只读取缓存后的动画资源 |
+| 生成策略 | 低电量、发热、内存紧张时可延后或跳过生成 |
+
+应分别测量模型加载、推理、图像处理、视频编码阶段的峰值内存与耗时，避免同时持有大型中间缓冲区。
+
+## 6. 验收目标
+
+1. 不需用户手动制作动画或修改 Navidrome/Subsonic 服务器，即可为适合的封面自动生成自然的动态效果。
+2. 1:1 等常见比例封面可自然扩展到 3:4，主体不拉伸，延伸区域无突兀拼接。
+3. 动画幅度克制、循环平滑，且不显著损害原始封面的艺术表现。
+4. AI 推理与视频生成全部在本地完成；首次生成后可以使用缓存，播放时不必加载模型。
+5. 真机测试确认内存、发热、电量、缓存体积和生成耗时在可接受范围；效果不理想时可靠降级。
+6. 保留现有音频播放、离线播放、后台行为、锁屏控制及旧系统兼容性。
+
+## 7. 交给本地 Agent 的工作边界
+
+请先阅读现有 Aonsoku iOS 原生音频和封面相关代码，调研可行模型、授权与系统 API，**自行制定详细技术方案、实验指标和实施步骤**。本文件只定义产品目标、偏好、约束和验收标准，不预设必须采用某一模型、渲染器或分层算法。
+
+优先产出效果自然、完全本地、内存可控且易于降级的最小可用版本，再逐步增强画质。
+
+## 8. 当前交付方案（DAV2 三档，2026-10-14）
+
+本节是最终实现状态，后面的第 9 节仅保留实验经过，不代表当前产品方案。按用户最后要求：**只使用 DAV2 Small FP16/P8/P6，先完成 Mac 验证并推送 origin，当前版本不安装、不测试真机。** YOLO、P4、Vision 前景分割和真机对比 UI 均不进入产品或维护脚本。
+
+### 8.1 设置与自动档位
+
+设置 → 音频 → 锁屏封面：独立的「沉浸封面」（默认开）与「沉浸动态封面」（默认关）、自动/FP16/P8/P6 档位、仅 Wi-Fi 下载开关、模型下载/进度/等待/重试/取消/删除。iOS 26 以下或系统未公布动态封面能力时不可启用，普通封面仍可用。设置保存在现有原生 PreferencesManager；其他平台不显示此分组，不扩展共用音频接口。
+
+| 设备内存 | 自动默认 | 下载大小 |
+| --- | --- | --- |
+| 4 GB 及以下 | P6 | 19.04 MB |
+| 6 GB | P8 | 25.25 MB |
+| 8 GB 及以上 | FP16 | 49.82 MB |
+
+物理内存按 OS 报告字节选择：≤4 GiB / ≤6 GiB / >6 GiB 分别对应以上档位（8 GB 设备的系统报告可能略小于营销容量）。P8/P6 是权重调色板压缩、FP16 激活，不宣称全 INT8 推理。手动档位同样受资源限制。
+
+- thermal=fair 降一档，serious/critical 暂停；低电量、减弱动态效果、后台暂停生成。
+- 内存 warning/critical 或 UIApplication 内存警告后暂停 60 秒，180 秒内以 P6 恢复；清理内存中的小型分析/文字缓存。
+- `os_proc_available_memory()` <96 MiB 暂停，<192 MiB 上限 P6，<320 MiB 上限 P8；这些是可调整的保守生成阈值，尚待后续真机验证。
+- 已生成的视频优先复用，无须再次加载模型；需要降低质量时优先使用已下载低档。高档缺失且有低档可用时，使用低档并按需准备目标档；用户取消/删除后不立即自动重新下载，可手动下载恢复。
+
+### 8.2 下载、推理与渲染
+
+模型来自 Apple 官方 Hugging Face 仓库的固定 revision `cfef6f6f2a70783dedc0bfae40cecbc2052285d3`，三个 package 的每个文件都有大小与 SHA-256 清单。原生 URLSession 流式下载到临时目录，HTTP/校验/磁盘失败显示错误，可手动重试；同一时间只下载一个档位。默认仅允许非计费、非受限网络，关闭 Wi-Fi 限制后允许蜂窝网络。下载不携带音乐服务器凭证，不上传封面，不调用云端推理。模型权重不随安装包分发。
+
+文件全部校验后本机 `MLModel.compileModel`，编译/加载/推理/删除共用一条互斥串行队列。**同一时间只保留一个 MLModel，生产每次只做一次预测**；autoreleasepool 在视频编码前结束，不缓存模型实例。模型加载与 prediction 是同步系统 API，不能硬中断；在调用前后及每帧检查 revision/资源状态，停止后续工作。OS 的内部模型缓存不由 App 强制回收。模型文件在备份排除的 Application Support，附 Apache-2.0 LICENSE/NOTICE；ready 标记最后写入，启动清理中断下载，退出后保留已成功准备的模型。
+
+统一输入 518×392、输出相对逆深度，归一化 2%–98% 分位为 256×256 标量图；不做灰度 gamma 转换。使用 Metal stitchable Core Image kernel 直接按 `(2d-1)` 采样偏移，不使用只影响梯度的 `CIDisplacementDistortion`。最大水平 ±10px、垂直 ±4px，深度模式整体镜头只移约 1.5px，4% overscan 避免裸露像素。Vision 文字区域（含检测到但低置信度的字行）局部置中性深度并平滑保护；无有效深度、小图/极端比例退为整体镜头运动。保留此前边缘延伸算法，输出 1:1 / 3:4 的 6 秒 24 FPS 无声 H.264。
+
+静止与动态视频都在发布前异步准备。MediaPlayer 请求只在独立文件队列取现成文件，**不加载模型、不运行推理、不编码**，不会被长时间模型分析排队阻塞。下载/生成未完成或失败时使用既有静止沉浸式封面，旧系统仍用普通封面。缓存键为 `motion-v4-<backend>-<width>x<height>-<SHA256>`；保持 12 文件/24 MiB LRU 与活跃对象保护，不同档位/比例独立，跨歌曲共用同图。删除模型不删除生成视频。
+
+### 8.3 验证与产物
+
+- Mac 原生测试已覆盖两个比例的保图/边缘/EXIF、预生成/并发复用、无声/时长/FPS、循环接缝、深度平面前后景约 20px 相对位移、中性深度（误差约 0.03px）、不露空洞、文字保护、过期取消、缓存与失败回退、RAM/thermal/可用内存档位、开关独立、下载校验。
+- `AONSOKU_TEST_MODEL_DOWNLOAD=1 node scripts/ios/test-lock-screen-artwork.mjs` 在 Mac 使用**生产下载管理器**成功流式下载 P6、校验、本地编译、统一接口推理、低档回退及删除；该额外测试需要网络。
+- 三档 Mac 实验使用用户提供 `doc/ios-lock-screen/cover.png`。当前产物：`doc/ios-lock-screen/exp/dav2-product-mac/`，包含原始 `.f32` 与元数据、归一化深度 PNG、两个画布位移场、关键帧、无声循环视频、结果 JSON、阶段日志。`exp/index.html` 为本地三档比较页面；模型来源/版本/校验和在 `exp/model-manifest.json`。历史实验保留本地用于诊断，不打包发布，也不作为最终画质验收。
+- 阶段日志记录编译、加载、输入、首次预测、深度映射、编码；Debug 10ms 采样进程 footprint 的基线/峰值/增量。只有显式实验模式增加三次预热预测与原始输出导出；Release 无额外实验计算/I/O。WebView 属另一个进程，Mac 和前期 iPad 顺序实验数据均不能代表最终设备总 RAM 或最终产品真机结果。
+- 当前验证通过：Mac 原生/下载集成测试、iOS generic Release 编译、Web 与 mobile 构建、TypeScript、Biome，以及 iOS 设置桥接/其他平台隔离的 11 项 Vitest 检查。构建无真机部署；bundle size 提示是现有构建警告。
+- 前期 iPad 测过的旧渲染版本未达到分层观感，已通过 Mac 实验找出并修复内置滤镜语义与深度颜色转换问题；**最终 DAV2 三档下载/设置版本尚未真机验收**。后续需分别在 iPad、13 mini 验证冷启动、离线缓存、内存警告、低电量/温度、文字保真与播放控制，以及发热/耗电。
+
+复现命令：
+
+```bash
+node scripts/ios/test-lock-screen-artwork.mjs
+AONSOKU_TEST_MODEL_DOWNLOAD=1 node scripts/ios/test-lock-screen-artwork.mjs
+# Python 环境只需 coremltools + Xcode；不再依赖 torch/ultralytics
+python scripts/ios/prepare-motion-models.py /tmp/aonsoku-depth-models
+node scripts/ios/run-motion-cover-experiment.mjs /tmp/aonsoku-depth-models doc/ios-lock-screen/cover.png doc/ios-lock-screen/exp/dav2-product-mac
+python scripts/ios/summarize-motion-experiment.py doc/ios-lock-screen/exp
+```
+
+## 9. 历史实验记录（已被第 8 节替代）
+
+### 8.1 调研与选择
+
+- Depth Anything V2 Small：24.8M 参数，Apache-2.0 授权；Base/Large/Giant 为 CC-BY-NC-4.0，不混用授权。Apple 发布的 Core ML F16 约 49.8 MB，官方目录还提供 P8 权重约 24.83 MB、P6 约 18.62 MB（另加约 0.42 MB 的模型描述）。量化版本的磁盘大小符合实验范围，但不代表峰值 RAM，也不能沿用 F16 的画质/延迟指标。
+- 第一版选择 **Apple Vision 系统本地前景分割 + Core Image 2.5D 小幅位移**，不附带、不下载额外深度模型；本地文字识别决定是否禁用局部形变。系统模型由 OS 管理，App 不保留 Vision request / handler，不承诺 OS 内部模型立即卸载或首次调用绝对离线可用；不可用时使用程序化镜头运动。
+- 此路线是二层前景近似，并非单目深度重建。暂不引入 Core ML 深度模型、局部光照、生成式补洞、Live2D、SHARP 或 Gaussian Splatting。后续只有在相同封面真机对比确有收益后，才加入量化深度模型。
+
+调研来源（2026-10-14）：
+
+- https://github.com/DepthAnything/Depth-Anything-V2 （参数量、授权与 Core ML 链接）
+- https://huggingface.co/apple/coreml-depth-anything-v2-small （F16 评估与模型目录；量化变体未有同等完整评估）
+- https://developer.apple.com/documentation/vision/vngenerateforegroundinstancemaskrequest （系统前景分割，iOS 17+）
+- https://developer.apple.com/documentation/vision/vnrecognizetextrequest （本地文字识别）
+- https://developer.apple.com/documentation/mediaplayer/providing-animated-artwork-for-media-items （iOS 26+ 的公开动态封面接口）
+
+### 8.2 实施方案
+
+原有音频引擎、普通封面、缓存读取、远程播放投影与 Now Playing 控制保持现有所有权。功能仅在 iOS 原生封面管线内实现，不改变其他平台的音频/队列行为。
+
+1. **立即发布普通静态封面**，异步在 utility 队列扩展画布。继续采用此前已验收的边缘延伸算法，支持系统公布的 3:4（720×960）与 1:1（720×720）。不能把 3:4 理解为 iPad 要竖屏；已测 iPad 只公布 1:1。
+2. **一次性本地分析**：输入最大边 512；先运行自动语言检测的文字识别（准确模式；至少两个非空白字符、置信度 ≥0.5），识别到文字则使用整体镜头运动。其余图片使用系统前景分割。小于 64px、过宽/过高、前景占比不在 4%–85%、边界前景占比超过 25%、无主体或 Vision 出错，均退回整体镜头运动。
+3. **克制的运动**：掩码压缩为 256×256，并在目标画布平滑化（24px Gaussian blur）；逆向采样、连续的不到 4px 位移，不拆层、不生成隐藏区域，避免裸露空洞。整体镜头采用约 2.5%–5% 的 overscan、周期性呼吸与 4–6px 移动（首版幅度过小，按用户反馈上调）。文字封面禁用掩码位移并降低平移量。
+4. **生成视频**：6 秒、24 FPS、144 帧、无音轨 H.264；帧相位使用 frameIndex/144，第 143 帧后自然接回第 0 帧，运动位置/速度周期连续。逐帧 Core Image 渲染后提交 AVAssetWriter，最多六个像素缓冲，不累计所有帧。
+5. **提前准备**：仅在前台、非低电量、thermal < serious、未启用减弱动态效果、未处于内存警告冷却期时生成。后台/压力变化可中止编码。动态对象在预生成结束后交给 MediaPlayer；后台也可直接复用已有动态缓存；预生成延后或失败则发布既有静止沉浸式对象，系统 video URL handler 仅返回已有文件；动态文件缺失时返回 nil，由系统使用静态预览，不在锁屏回调运行 AI 或多帧编码。原有静止视频兼容路径仍保留。
+6. **复用与版本**：SHA-256(原图内容) + motion-v2 + 输出尺寸作为动态视频键，和 edge-v1 静止视频隔离。格式之间复用小型分析结果（最多八张封面）；一次只运行一个视频任务，等待队列最多四项。缓存继续使用 12 文件 / 24 MiB LRU、备份排除、原子写入与活跃对象文件保护。活跃对象可以暂时超过预算。
+7. **切歌与恢复**：线程安全 revision token 丢弃过期任务并取消后续帧；保留既有发布 revision 检查。在 App 再次 active 时重试当前封面，使用既有封面缓存。旧 OS/SDK 不创建动态对象；失败保持普通静态封面。
+
+新增源文件：`Audio/LockScreenArtworkMotion.swift`（分析、渲染、策略、取消 token）、`Audio/LockScreenArtworkMeasurement.swift`（阶段内存/耗时诊断）。更新 `LockScreenArtworkStore.swift`、`LockScreenArtworkVideo.swift` 与原生音频插件的动态对象发布入口。
+
+### 8.3 实验指标与验证记录
+
+- 图像扩展、文字识别、Vision 分割、完整分析、动态编码分别记录耗时与进程 footprint；Debug 每 10ms 采样峰值，日志包含 baselineMiB、peakMiB、deltaMiB。采样可能漏掉短于周期的瞬时峰值。
+- Vision 不公开内部模型加载/推理的分界，模型加载与推理暂以同一次 Vision perform 总耗时/峰值呈现。Core Image 渲染与编码流水进行，不把其总峰值拆成可相加的独立值。
+- 真机需记录冷启动/复用耗时、额外峰值内存（初始目标 <250 MiB）、文件大小、系统请求延迟、thermal、低电量/减弱动态效果/后台/内存压力的降级，并人工观察文字与主体、循环接缝和锁屏控制。
+- 验证命令沿用 `node scripts/ios/test-lock-screen-artwork.mjs`，新增动态视频规格、循环接缝、精确周期、无空洞、掩码实际生效、文字保护、取消过期任务、系统回调不补生成等测试；产物输出 `/tmp/aonsoku-artwork-qa/motion-720.mp4`、`motion-960.mp4` 与 parallax PNG。
+- Debug 真机使用 `AONSOKU_ARTWORK_TRACE=1`，从 app 容器导出 `Documents/lock-screen-artwork-debug.jsonl`；视频位于 `Library/Application Support/AonsokuLockScreenArtwork/`。不提交设备原始日志、含通知的截图或用户封面素材。
+
+当前状态：实现已接入，自动化验证与真机基准进行中；先在 iPad 验证，再使用用户授权的 iPhone 13 mini。未将模拟器/macOS 数据视为 iPhone 内存、电量或发热验收。
+
+
+### 8.4 iPad 模型比较扩展（进行中）
+
+用户反馈首版动画几乎不可见，已将整体运动与视差上调，并更新 `motion-v2` 缓存版本。用户要求新增 **YOLO26n-depth INT8 / YOLO26s-depth INT8**，先在 iPad 对比各候选的内存与速度，由用户比较画质与观感，再使用 iPhone 13 mini。
+
+候选：Apple Vision（基线）、Depth Anything V2 Small F16 / P8 / P6 / 本地 P4 实验、YOLO26n-depth / YOLO26s-depth 的 signed linear symmetric **W8A16**（INT8 权重 + FP16 激活）。不称为全 INT8/W8A8。Ultralytics 官方 Core ML `quantize=8` 默认使用 8-bit kmeans 调色板，因此这里先导出 F16，再用 coremltools 显式线性 INT8 权重量化，记录量化方式。YOLO 输入先采用 512×512，DAV2 采用官方固定输入尺寸；这是实际部署方案比较，并非同 FLOPs 的网络研究基准。
+
+- YOLO 官方来源：https://github.com/ultralytics/yolo26 、https://docs.ultralytics.com/tasks/depth/ 、https://github.com/ultralytics/ultralytics 。n/s 约 6.3M / 13.2M 参数；官方 TensorRT/服务器 CPU 指标不用于推算 iPad 延迟。
+- 授权：YOLO 官方 AGPL-3.0，作为外置 Debug 候选；不把第三方模型或 Ultralytics 代码复制进 MIT 产品发行包。DAV2 Small 为 Apache-2.0。是否进入正式产品待此次实测与授权决策。
+- `scripts/ios/prepare-motion-models.py` 在隔离 Python 环境下载固定 Apple revision、校验权重 SHA256、转换/量化/编译模型，输出 manifest（版本、输入输出、精度、授权、大小、校验和）。模型放在仓库外，通过 devicectl 复制进 Debug App 的 `Documents/motion-models`；App 内无下载或云端推理。
+- `LockScreenArtworkDepthModel.swift` 仅 DEBUG 编译；同一原始封面本地 Core ML `.all`，分别采样加载、输入准备、首次预测、三次预热预测、深度图映射、整段模型过程。模型引用在编码前释放；系统是否留存内部缓存不作保证。批量运行的首次预测不等于全新进程/全新 OS 的冷启动，基线内存一并记录。
+- YOLO 米制深度先转 1/depth，DAV2 使用其相对逆深度，统一按 2%–98% 分位归一化为 256×256 位移场。同一渲染器、画布、时长与运动幅度；实验候选使用深度图观察失真风险，正式 Vision 路径仍执行文字保护。
+- Debug 入口：摇动设备打开原生 Debug → **Artwork** → **Run all**，保持前台；生成完成后点选候选，再关闭 Debug、锁屏展开封面。选项只改变封面后端，音乐播放与系统控制的所有权不变。批量任务共享已有串行管线，换封面或资源条件变化会中止；系统请求不重新跑模型。
+- 调试环境：`AONSOKU_MOTION_BACKEND=<候选 ID>` 可指定启动后端；`AONSOKU_MOTION_BENCHMARK=1` 可自动对当前封面批量比较；日志仍通过 `AONSOKU_ARTWORK_TRACE=1` 导出。首批待模型转换、真机运行与用户观感核验，不能将候选名称或磁盘体积当作已通过验收。

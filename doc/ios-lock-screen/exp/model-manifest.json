@@ -1,0 +1,62 @@
+{
+  "coremltools": "9.0",
+  "models": [
+    {
+      "id": "dav2-f16",
+      "path": "DepthAnythingV2SmallF16.mlmodelc",
+      "precision": "W16A16",
+      "license": "Apache-2.0",
+      "source": "https://huggingface.co/apple/coreml-depth-anything-v2-small/tree/cfef6f6f2a70783dedc0bfae40cecbc2052285d3",
+      "sha256": {
+        "Data/com.apple.CoreML/model.mlmodel": "44ac97a3efcfd52113183fb2862ff59cd0368e9ec2e30a90a54980dd11407042",
+        "Data/com.apple.CoreML/weights/weight.bin": "fa60d9b6a155734f59029ebb882fd54e549bfaee3539c1a9cbd2cbbab64a0fed",
+        "Manifest.json": "2883ae290c48fe916dc5ececac03a7d847fa277165a49ef5652fa1d2b9cb55f7"
+      },
+      "input": "image",
+      "output": "depth",
+      "width": 518,
+      "height": 392,
+      "metricDepth": false,
+      "packageBytes": 49819122,
+      "compiledBytes": 49887454
+    },
+    {
+      "id": "dav2-p8",
+      "path": "DepthAnythingV2SmallF16P8.mlmodelc",
+      "precision": "palette-W8A16",
+      "license": "Apache-2.0",
+      "source": "https://huggingface.co/apple/coreml-depth-anything-v2-small/tree/cfef6f6f2a70783dedc0bfae40cecbc2052285d3",
+      "sha256": {
+        "Data/com.apple.CoreML/model.mlmodel": "da3f4c6a8be93a439b1bc56ba57074c09f270b3d28052d798bc106d1259e5a1d",
+        "Data/com.apple.CoreML/weights/weight.bin": "660a57cf7becfeac080a9bb02a263be59fd57b5c4d17ff8912833bc8b6edae04",
+        "Manifest.json": "5530317f2a7c4318b34efd9855694480a78122d8be89e703278b0f7b9337dbdc"
+      },
+      "input": "image",
+      "output": "depth",
+      "width": 518,
+      "height": 392,
+      "metricDepth": false,
+      "packageBytes": 25247952,
+      "compiledBytes": 25325931
+    },
+    {
+      "id": "dav2-p6",
+      "path": "DepthAnythingV2SmallF16P6.mlmodelc",
+      "precision": "palette-W6A16",
+      "license": "Apache-2.0",
+      "source": "https://huggingface.co/apple/coreml-depth-anything-v2-small/tree/cfef6f6f2a70783dedc0bfae40cecbc2052285d3",
+      "sha256": {
+        "Data/com.apple.CoreML/model.mlmodel": "ee53b8f7e1682a66857b5a3d54cf04a97d89a98cf7b5979b5d726aaf9c24ad70",
+        "Data/com.apple.CoreML/weights/weight.bin": "3e9bcccc9e35ae6f9759551f481a3b77226510bd74536e059ee9780dda618381",
+        "Manifest.json": "70e469c0359c89851bde4cdc1d89bf13fa06d4fccd8907b9b5f744e548ecaadf"
+      },
+      "input": "image",
+      "output": "depth",
+      "width": 518,
+      "height": 392,
+      "metricDepth": false,
+      "packageBytes": 19038993,
+      "compiledBytes": 19116934
+    }
+  ]
+}

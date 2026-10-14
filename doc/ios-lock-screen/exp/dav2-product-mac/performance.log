@@ -1,0 +1,33 @@
+phase=experiment-encode backend=camera elapsedMs=637 baselineMiB=144 peakMiB=180 deltaMiB=36 format=1:1
+phase=experiment-encode backend=camera elapsedMs=312 baselineMiB=165 peakMiB=205 deltaMiB=39 format=3:4
+phase=model-load backend=dav2-f16 elapsedMs=80 baselineMiB=200 peakMiB=200 deltaMiB=0 packageBytes=49819122 compiledBytes=49887454
+phase=model-input backend=dav2-f16 elapsedMs=8 baselineMiB=169 peakMiB=171 deltaMiB=1 size=518x392
+phase=model-predict-cold backend=dav2-f16 elapsedMs=28 baselineMiB=171 peakMiB=173 deltaMiB=1 firstPrediction=true
+phase=model-predict-warm backend=dav2-f16 elapsedMs=25 baselineMiB=173 peakMiB=173 deltaMiB=0 run=1
+phase=model-predict-warm backend=dav2-f16 elapsedMs=23 baselineMiB=172 peakMiB=172 deltaMiB=0 run=2
+phase=model-predict-warm backend=dav2-f16 elapsedMs=25 baselineMiB=172 peakMiB=172 deltaMiB=0 run=3
+phase=model-depth-map backend=dav2-f16 elapsedMs=3 baselineMiB=172 peakMiB=172 deltaMiB=0 valid=true
+phase=model-total backend=dav2-f16 elapsedMs=206 baselineMiB=202 peakMiB=202 deltaMiB=0 precision=W16A16 computeUnits=all
+phase=experiment-encode backend=dav2-f16 elapsedMs=451 baselineMiB=220 peakMiB=232 deltaMiB=12 format=1:1
+phase=experiment-encode backend=dav2-f16 elapsedMs=560 baselineMiB=247 peakMiB=267 deltaMiB=20 format=3:4
+phase=model-load backend=dav2-p8 elapsedMs=98 baselineMiB=255 peakMiB=255 deltaMiB=0 packageBytes=25247952 compiledBytes=25325931
+phase=model-input backend=dav2-p8 elapsedMs=5 baselineMiB=237 peakMiB=238 deltaMiB=1 size=518x392
+phase=model-predict-cold backend=dav2-p8 elapsedMs=77 baselineMiB=238 peakMiB=256 deltaMiB=17 firstPrediction=true
+phase=model-predict-warm backend=dav2-p8 elapsedMs=24 baselineMiB=256 peakMiB=256 deltaMiB=0 run=1
+phase=model-predict-warm backend=dav2-p8 elapsedMs=24 baselineMiB=256 peakMiB=256 deltaMiB=0 run=2
+phase=model-predict-warm backend=dav2-p8 elapsedMs=24 baselineMiB=256 peakMiB=256 deltaMiB=0 run=3
+phase=model-depth-map backend=dav2-p8 elapsedMs=3 baselineMiB=256 peakMiB=256 deltaMiB=0 valid=true
+phase=model-total backend=dav2-p8 elapsedMs=266 baselineMiB=255 peakMiB=257 deltaMiB=1 precision=palette-W8A16 computeUnits=all
+phase=experiment-encode backend=dav2-p8 elapsedMs=392 baselineMiB=262 peakMiB=284 deltaMiB=22 format=1:1
+phase=experiment-encode backend=dav2-p8 elapsedMs=455 baselineMiB=262 peakMiB=288 deltaMiB=25 format=3:4
+phase=model-load backend=dav2-p6 elapsedMs=47 baselineMiB=278 peakMiB=278 deltaMiB=0 packageBytes=19038993 compiledBytes=19116934
+phase=model-input backend=dav2-p6 elapsedMs=6 baselineMiB=251 peakMiB=252 deltaMiB=1 size=518x392
+phase=model-predict-cold backend=dav2-p6 elapsedMs=33 baselineMiB=252 peakMiB=266 deltaMiB=13 firstPrediction=true
+phase=model-predict-warm backend=dav2-p6 elapsedMs=25 baselineMiB=266 peakMiB=267 deltaMiB=0 run=1
+phase=model-predict-warm backend=dav2-p6 elapsedMs=24 baselineMiB=267 peakMiB=267 deltaMiB=0 run=2
+phase=model-predict-warm backend=dav2-p6 elapsedMs=25 baselineMiB=267 peakMiB=267 deltaMiB=0 run=3
+phase=model-depth-map backend=dav2-p6 elapsedMs=3 baselineMiB=267 peakMiB=267 deltaMiB=0 valid=true
+phase=model-total backend=dav2-p6 elapsedMs=171 baselineMiB=278 peakMiB=278 deltaMiB=0 precision=palette-W6A16 computeUnits=all
+phase=experiment-encode backend=dav2-p6 elapsedMs=405 baselineMiB=273 peakMiB=293 deltaMiB=19 format=1:1
+phase=experiment-encode backend=dav2-p6 elapsedMs=458 baselineMiB=262 peakMiB=288 deltaMiB=25 format=3:4
+Experiment complete: /Users/stephenzeng/Repo/aonsoku/doc/ios-lock-screen/exp/dav2-product-mac

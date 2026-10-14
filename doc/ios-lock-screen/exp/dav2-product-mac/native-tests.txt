@@ -1,0 +1,33 @@
+Frame motion MAE=0.0, preview MAE=3.117834563078704
+3:4 motion MAE=1.4553960503472223, loop seam MAE=0.7356604456018518
+1:1 motion MAE=1.5391661844135802, loop seam MAE=0.686640625
+neutral center error=0.03368616736304375
+phase=image-extension elapsedMs=6 baselineMiB=262 peakMiB=262 deltaMiB=0 format=3:4
+phase=static-encode backend=camera elapsedMs=303 baselineMiB=262 peakMiB=263 deltaMiB=0 success=true
+phase=image-extension elapsedMs=5 baselineMiB=245 peakMiB=247 deltaMiB=2 format=1:1
+phase=static-encode backend=camera elapsedMs=50 baselineMiB=247 peakMiB=248 deltaMiB=0 success=true
+phase=image-extension elapsedMs=7 baselineMiB=243 peakMiB=246 deltaMiB=2 format=3:4
+phase=static-encode backend=camera elapsedMs=36 baselineMiB=246 peakMiB=247 deltaMiB=0 success=true
+phase=image-extension elapsedMs=5 baselineMiB=244 peakMiB=254 deltaMiB=9 format=3:4
+phase=static-encode backend=camera elapsedMs=40 baselineMiB=254 peakMiB=254 deltaMiB=0 success=true
+phase=image-extension elapsedMs=6 baselineMiB=222 peakMiB=224 deltaMiB=2 format=3:4
+phase=static-encode backend=camera elapsedMs=42 baselineMiB=224 peakMiB=227 deltaMiB=2 success=true
+phase=image-extension elapsedMs=5 baselineMiB=222 peakMiB=224 deltaMiB=2 format=3:4
+phase=static-encode backend=camera elapsedMs=35 baselineMiB=224 peakMiB=225 deltaMiB=0 success=true
+phase=image-extension elapsedMs=7 baselineMiB=225 peakMiB=225 deltaMiB=0 format=3:4
+phase=image-extension elapsedMs=6 baselineMiB=224 peakMiB=224 deltaMiB=0 format=3:4
+Synthetic Vision analysis: camera, camera-fallback-no-depth
+phase=image-extension elapsedMs=7 baselineMiB=233 peakMiB=236 deltaMiB=2 format=3:4
+phase=analysis backend=camera elapsedMs=0 baselineMiB=236 peakMiB=236 deltaMiB=0 mode=camera reason=camera-fallback-no-depth
+phase=motion-encode backend=camera elapsedMs=299 baselineMiB=236 peakMiB=279 deltaMiB=43 success=true
+phase=image-extension elapsedMs=5 baselineMiB=251 peakMiB=251 deltaMiB=0 format=1:1
+phase=motion-encode backend=camera elapsedMs=255 baselineMiB=251 peakMiB=282 deltaMiB=31 success=true
+phase=model-compile backend=dav2-p6 elapsedMs=206 baselineMiB=106 peakMiB=131 deltaMiB=25 ready=true
+phase=model-load backend=dav2-p6 elapsedMs=4487 baselineMiB=97 peakMiB=125 deltaMiB=28 packageBytes=19038993 compiledBytes=0
+phase=model-input backend=dav2-p6 elapsedMs=64 baselineMiB=125 peakMiB=199 deltaMiB=73 size=518x392
+phase=model-predict-cold backend=dav2-p6 elapsedMs=287 baselineMiB=199 peakMiB=224 deltaMiB=25 firstPrediction=true
+phase=model-depth-map backend=dav2-p6 elapsedMs=5 baselineMiB=224 peakMiB=224 deltaMiB=0 valid=true
+phase=model-total backend=dav2-p6 elapsedMs=4861 baselineMiB=97 peakMiB=224 deltaMiB=127 precision=palette-W6A16 computeUnits=all
+PASS: streamed P6 download, pinned checksums, local Core ML compile/inference, tier fallback, removal
+PASS: 3:4 + 1:1 preservation, seams, decode/EXIF, prewarmed/coalesced video, cache reuse/eviction, live-file protection, failure fallback, smooth motion, filled/flat-depth parallax, neutral depth, text protection, cancellation, RAM/thermal tiers, settings, integrity
+Native validation completed in 24.55s. QA artifacts: /tmp/aonsoku-artwork-qa

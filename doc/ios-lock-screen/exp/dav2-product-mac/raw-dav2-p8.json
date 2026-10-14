@@ -1,0 +1,8 @@
+{
+  "dtype" : "float32-little-endian",
+  "height" : 392,
+  "normalization" : "none; raw model output before inverse\/percentile mapping",
+  "order" : "row-major",
+  "units" : "model-relative-inverse-depth-image",
+  "width" : 518
+}

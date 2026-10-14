@@ -146,6 +146,8 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     private var routeChangeObserver: NSObjectProtocol?
     private var didEnterBackgroundObserver: NSObjectProtocol?
     private var willEnterForegroundObserver: NSObjectProtocol?
+    private var artworkSettingsObserver: NSObjectProtocol?
+    private var artworkModelObserver: NSObjectProtocol?
     private var didBecomeActiveObserver: NSObjectProtocol?
     private var coverImageCachedObserver: NSObjectProtocol?
     private let loadQueue = DispatchQueue(label: "com.aonsoku.NativeAudio.load", qos: .userInitiated)
@@ -166,6 +168,8 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     private var loadedDurationSeconds: Double?
     private var artworkTask: URLSessionDataTask?
     private var nowPlayingRevision = 0
+    private var artworkResourceObservers: [NSObjectProtocol] = []
+    private let artworkGeneration = LockScreenArtworkGeneration()
     private var publishedArtworkSource: String?
     private var remoteCommandTargets: [(command: MPRemoteCommand, target: Any)] = []
     private let queueEngine = NativeQueueEngine()
@@ -2094,6 +2098,52 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         }
 
+        if artworkSettingsObserver == nil {
+            artworkSettingsObserver = center.addObserver(forName: LockScreenArtworkSettings.changed,
+                object: nil, queue: .main) { [weak self] _ in
+                guard let self else { return }
+                if var info = MPNowPlayingInfoCenter.default().nowPlayingInfo {
+                    self.removeImmersiveArtwork(from: &info)
+                    MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+                }
+                self.updateNowPlayingInfo()
+            }
+        }
+        if artworkModelObserver == nil {
+            artworkModelObserver = center.addObserver(forName: LockScreenArtworkModelManager.ready,
+                object: nil, queue: .main) { [weak self] _ in
+                guard let self, self.currentMetadata.artworkUrl != nil else { return }
+                self.updateNowPlayingInfo()
+            }
+        }
+        if artworkResourceObservers.isEmpty {
+            // Initialize the policy observer before publication observers so its
+            // worker snapshots reflect the new accessibility/resource state.
+            _ = LockScreenArtworkMotionPolicy.shared
+            for name in [UIAccessibility.reduceMotionStatusDidChangeNotification,
+                         Notification.Name.NSProcessInfoPowerStateDidChange,
+                         ProcessInfo.thermalStateDidChangeNotification,
+                         LockScreenArtworkMotionPolicy.resourcesChanged,
+                         UIApplication.didReceiveMemoryWarningNotification] {
+                artworkResourceObservers.append(center.addObserver(forName: name, object: nil,
+                    queue: .main) { [weak self] note in
+                    guard let self else { return }
+                    if note.name == UIApplication.didReceiveMemoryWarningNotification {
+                        if var info = MPNowPlayingInfoCenter.default().nowPlayingInfo {
+                            self.removeImmersiveArtwork(from: &info)
+                            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+                        }
+                    } else if self.currentMetadata.artworkUrl != nil {
+                        if var info = MPNowPlayingInfoCenter.default().nowPlayingInfo {
+                            self.removeImmersiveArtwork(from: &info)
+                            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+                        }
+                        LockScreenArtworkModelManager.shared.resumeDeferred()
+                        self.updateNowPlayingInfo()
+                    }
+                })
+            }
+        }
         if didBecomeActiveObserver == nil {
             didBecomeActiveObserver = center.addObserver(
                 forName: UIApplication.didBecomeActiveNotification,
@@ -2102,12 +2152,24 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
             ) { [weak self] _ in
                 self?.logNowPlayingArtworkDiagnostics("active")
                 self?.handleDidBecomeActive()
+                LockScreenArtworkModelManager.shared.resumeDeferred()
+                // Retry artwork prewarming after a background/pressure deferral.
+                // Fetching still uses the existing local cover cache.
+                if self?.currentMetadata.artworkUrl != nil {
+                    self?.updateNowPlayingInfo()
+                }
             }
         }
     }
 
     private func removeLifecycleObservers() {
         let center = NotificationCenter.default
+        for observer in artworkResourceObservers { center.removeObserver(observer) }
+        artworkResourceObservers.removeAll()
+        if let observer = artworkSettingsObserver { center.removeObserver(observer) }
+        if let observer = artworkModelObserver { center.removeObserver(observer) }
+        artworkSettingsObserver = nil
+        artworkModelObserver = nil
 
         for observer in [
             interruptionObserver,
@@ -2478,6 +2540,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private func updateNowPlayingInfo() {
         nowPlayingRevision += 1
+        artworkGeneration.update(nowPlayingRevision)
         let revision = nowPlayingRevision
         artworkTask?.cancel()
         artworkTask = nil
@@ -2814,6 +2877,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
 
             #if compiler(>=6.2)
                 if #available(iOS 26.0, *) {
+                    guard LockScreenArtworkSettings.shared.value.immersiveEnabled else { return }
                     let keys = MPNowPlayingInfoCenter.supportedAnimatedArtworkKeys
                     let variants: [(LockScreenArtworkFormat, String)] = [
                         (.tall, MPNowPlayingInfoProperty3x4AnimatedArtwork),
@@ -2846,7 +2910,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
             _ image: CGImage, data: Data, format: LockScreenArtworkFormat, key: String,
             revision: Int
         ) {
-            LockScreenArtworkStore.shared.prepare(data: data, source: image, format: format) {
+            let prepared: (LockScreenArtworkAsset?) -> Void = {
                 [weak self] asset in
                 guard let asset else {
                     NativeLogger.shared.warn(
@@ -2899,14 +2963,35 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                     NativeLogger.shared.info(
                         "\(format.label) artwork published revision=\(revision)",
                         source: "NowPlayingArtwork")
+                    NativeLogger.shared.info("backend=\(asset.backend) motion=\(asset.motion) analysis=\(asset.analysisReason ?? "cached")", source: "NowPlayingArtwork")
                     self.logNowPlayingArtworkDiagnostics("\(format.label)-published")
                 }
             }
+            let options = LockScreenArtworkSettings.shared.value
+            let policy = LockScreenArtworkMotionPolicy.shared
+            let target = policy.effectiveTier ?? LockScreenArtworkTier.automatic(memory: ProcessInfo.processInfo.physicalMemory)
+            var tier = target
+            if options.dynamicEnabled && !LockScreenArtworkStore.shared.hasReadyVideo(data: data, format: format, backend: target.backend),
+                let available = LockScreenArtworkModelManager.shared.availableTier(upTo: target) {
+                tier = available
+            }
+            let motion = options.dynamicEnabled && policy.allowsPlayback && policy.effectiveTier != nil
+            let backend = tier.backend
+            if motion && policy.allowsGeneration
+                && LockScreenArtworkModelManager.shared.modelURL(target) == nil
+                && !LockScreenArtworkStore.shared.hasReadyVideo(data: data, format: format, backend: target.backend) {
+                LockScreenArtworkModelManager.shared.request(target, automatic: true)
+            }
+            LockScreenArtworkStore.shared.prepare(data: data, source: image, format: format,
+                motion: motion, backend: backend,
+                shouldContinue: { [artworkGeneration] in artworkGeneration.contains(revision) },
+                completion: prepared)
         }
     #endif
 
     private func clearNowPlayingInfo() {
         nowPlayingRevision += 1
+        artworkGeneration.update(nowPlayingRevision)
         artworkTask?.cancel()
         artworkTask = nil
         publishedArtworkSource = nil

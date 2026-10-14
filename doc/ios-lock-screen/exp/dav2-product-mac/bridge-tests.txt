@@ -1,0 +1,9 @@
+$ vitest run src/native/audio/lock-screen-artwork.test.ts src/native/preferences/facade.test.ts
+
+ RUN  v4.1.5 /Users/stephenzeng/Repo/aonsoku
+
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  11:00:38
+   Duration  152ms (transform 68ms, setup 90ms, import 38ms, tests 6ms, environment 0ms)

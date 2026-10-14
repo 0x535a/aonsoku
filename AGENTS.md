@@ -55,7 +55,10 @@ cd android && ./gradlew :aonsoku-capacitor-native:compileDebugKotlin
 cd android && ./gradlew :aonsoku-capacitor-native:testDebugUnitTest
 
 # iOS lock-screen artwork (macOS + Xcode, no server/device required)
-node scripts/ios/test-lock-screen-artwork.mjs # Native renderer/video/cache tests + QA PNGs in /tmp/aonsoku-artwork-qa
+node scripts/ios/test-lock-screen-artwork.mjs # Native static/motion/Vision/video/cache tests + QA PNGs/MP4s in /tmp/aonsoku-artwork-qa
+AONSOKU_TEST_MODEL_DOWNLOAD=1 node scripts/ios/test-lock-screen-artwork.mjs # Optional network test: production P6 download/verify/compile/infer/delete on Mac
+python scripts/ios/prepare-motion-models.py /tmp/aonsoku-depth-models # Mac experiment models, isolated Python + coremltools
+node scripts/ios/run-motion-cover-experiment.mjs /tmp/aonsoku-depth-models # DAV2 intermediate maps/frames/videos under doc/ios-lock-screen/exp
 
 # Electron desktop native audio
 pnpm native-audio:build   # Build the Node-API libmpv addon
@@ -353,8 +356,22 @@ Key files:
   `LockScreenArtworkStore.swift` prepares it on a utility queue and reuses
   content-addressed videos (12 files / 24 MiB, with live assets protected from
   eviction) in a backup-excluded Application Support directory.
-  `LockScreenArtworkVideo.swift` lazily encodes a silent, motionless H.264 clip
-  when MediaPlayer requests it. On iOS 26+,
+  `LockScreenArtworkDepthModel.swift` owns the shared Core ML boundary for DAV2
+  Small FP16/P8/P6. One exclusive queue serializes model compilation, inference,
+  and deletion; model/handler buffers leave an autorelease pool before encoding.
+  `LockScreenArtworkMotion.swift` samples scalar depth with a stitchable Metal
+  Core Image kernel for six-second 24fps motion. Vision identifies text regions
+  for neutral displacement; invalid depth/sources use camera motion. Static and
+  dynamic clips are prewarmed before publication; MediaPlayer URL callbacks only
+  read files on a separate queue, never infer or encode. Missing videos retain
+  the static preview. The original single-frame clip remains the static path.
+  `LockScreenArtworkVideo.swift` streams frames through a bounded pixel pool.
+  Analysis is shared by content (eight entries); generation is serialized with
+  four pending requests, revision cancellation and lifecycle/resource guards
+  (background, low power, serious thermal state, Reduce Motion, memory warning).
+  `LockScreenArtworkMeasurement.swift` records per-phase time/process footprint;
+  Debug samples peaks every 10ms. Motion IDs use `motion-v4` and remain isolated
+  from static `edge-v1` assets. On iOS 26+,
   `AonsokuNativeAudioPlugin` adds `MPMediaItemAnimatedArtwork` alongside the
   ordinary artwork for each key in `supportedAnimatedArtworkKeys` (3:4 and/or
   1:1), with revision checks for local and remote playback. Do not infer aspect
@@ -366,7 +383,27 @@ Key files:
   retrieval; ordinary launches and release builds do not write this trace.
   System layout/expansion remains OS-controlled; older iOS/SDKs and processing
   failures retain ordinary static artwork. No extra audio player/session is
-  created. See `doc/ios-lock-screen/overall.md` for the design and device checks.
+  created. See `doc/ios-lock-screen/overall.md` for the static design and device
+  checks, and `doc/ios-lock-screen/motion_cover.md` for motion decisions/benchmarks.
+  `LockScreenArtworkSettings.swift` persists independent immersive/motion switches
+  and auto/FP16/P8/P6 quality in native preferences. Motion is opt-in. Auto uses
+  P6 for <=4 GiB physical RAM, P8 for <=6 GiB, and FP16 above that; available
+  process memory, thermal state and pressure may cap/pause generation. Memory
+  warnings pause for 60s and limit recovery to P6 for 180s. Audio settings UI
+  calls iOS-only methods on `AonsokuNativePreferencesPlugin`, keeping shared
+  playback/preferences contracts for other runtimes unchanged.
+  `LockScreenArtworkModelManager.swift` streams pinned Apache-2.0 Apple packages
+  on demand, enforces Wi-Fi/cellular preferences, verifies exact bytes/SHA256,
+  compiles locally and stores backup-excluded models in Application Support.
+  Download/status/cancel/retry/delete are exposed in audio settings; removing a
+  model preserves cached videos. Model license/notice is bundled as a SwiftPM
+  resource; weights are not bundled. Background/resource conditions defer
+  compilation and generation; existing lower tiers/videos remain reusable.
+  `scripts/ios/prepare-motion-models.py` prepares only those three DAV2 tiers for
+  Mac experiments. `run-motion-cover-experiment.mjs` uses the production Core ML
+  and rendering sources; intermediates live under `doc/ios-lock-screen/exp`.
+  Debug exports raw depth only for explicit Mac/benchmark experiments; Release
+  performs one prediction with no experiment UI, raw exports or warm repeats.
 - `electron/preload/native-audio.ts` and `electron/main/native/audio/` —
   desktop bridge IPC plus a minimal Node.js `NativeAudioService`
   implementing the base `@aonsoku/audio-contract` playback methods through an

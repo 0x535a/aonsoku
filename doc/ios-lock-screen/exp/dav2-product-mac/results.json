@@ -1,0 +1,66 @@
+[
+  {
+    "backend" : "camera",
+    "format" : "1:1",
+    "height" : 720,
+    "mode" : "camera",
+    "reason" : "camera-fallback-no-depth",
+    "videoBytes" : 1522167
+  },
+  {
+    "backend" : "camera",
+    "format" : "3:4",
+    "height" : 960,
+    "mode" : "camera",
+    "reason" : "camera-fallback-no-depth",
+    "videoBytes" : 1517326
+  },
+  {
+    "backend" : "dav2-f16",
+    "format" : "1:1",
+    "height" : 720,
+    "mode" : "parallax",
+    "reason" : "dav2-f16",
+    "videoBytes" : 1521289
+  },
+  {
+    "backend" : "dav2-f16",
+    "format" : "3:4",
+    "height" : 960,
+    "mode" : "parallax",
+    "reason" : "dav2-f16",
+    "videoBytes" : 1490847
+  },
+  {
+    "backend" : "dav2-p8",
+    "format" : "1:1",
+    "height" : 720,
+    "mode" : "parallax",
+    "reason" : "dav2-p8",
+    "videoBytes" : 1522121
+  },
+  {
+    "backend" : "dav2-p8",
+    "format" : "3:4",
+    "height" : 960,
+    "mode" : "parallax",
+    "reason" : "dav2-p8",
+    "videoBytes" : 1491802
+  },
+  {
+    "backend" : "dav2-p6",
+    "format" : "1:1",
+    "height" : 720,
+    "mode" : "parallax",
+    "reason" : "dav2-p6",
+    "videoBytes" : 1520797
+  },
+  {
+    "backend" : "dav2-p6",
+    "format" : "3:4",
+    "height" : 960,
+    "mode" : "parallax",
+    "reason" : "dav2-p6",
+    "videoBytes" : 1488043
+  }
+]

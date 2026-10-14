@@ -54,6 +54,7 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside>
       <div
+        data-native-web-sidebar
         className={cn(
           "hidden flex-col min-w-sidebar max-w-sidebar border-r fixed top-header left-0 bottom-0 pb-player bg-background z-30",
           isCollapsed ? "xl:hidden" : "xl:flex",

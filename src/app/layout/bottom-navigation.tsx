@@ -51,6 +51,7 @@ export function BottomNavigation() {
 
   return (
     <nav
+      data-native-web-bottom-nav
       className="md:hidden fixed left-0 right-0 z-30 bg-background border-t h-[--bottom-nav-height] bottom-0 pb-[var(--safe-area-bottom)]"
       style={{
         paddingLeft: "var(--safe-area-left)",

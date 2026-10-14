@@ -17,6 +17,7 @@
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		A1B2C3D42026050100AABB01 /* AonsokuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D32026050100AABB01 /* AonsokuViewController.swift */; };
 		A1B2C3D62026050100AABB02 /* MediaSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D52026050100AABB02 /* MediaSchemeHandler.swift */; };
+		A1B2C3D82026101400AABB03 /* NativeBottomShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D72026101400AABB03 /* NativeBottomShellView.swift */; };
 		A1B2C3D82026050100AABB03 /* MediaKeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D72026050100AABB03 /* MediaKeychainHelper.swift */; };
 		A1B2C3DA2026050100AABB04 /* ObjCExceptionCatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D92026050100AABB04 /* ObjCExceptionCatcher.m */; };
 		A1B2C3E22026050100AABB08 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3E12026050100AABB08 /* SceneDelegate.swift */; };
@@ -35,6 +36,7 @@
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		A1B2C3D32026050100AABB01 /* AonsokuViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AonsokuViewController.swift; sourceTree = "<group>"; };
 		A1B2C3D52026050100AABB02 /* MediaSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSchemeHandler.swift; sourceTree = "<group>"; };
+		A1B2C3D72026101400AABB03 /* NativeBottomShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeBottomShellView.swift; sourceTree = "<group>"; };
 		A1B2C3D72026050100AABB03 /* MediaKeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaKeychainHelper.swift; sourceTree = "<group>"; };
 		A1B2C3D92026050100AABB04 /* ObjCExceptionCatcher.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCExceptionCatcher.m; sourceTree = "<group>"; };
 		A1B2C3DB2026050100AABB05 /* ObjCExceptionCatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCExceptionCatcher.h; sourceTree = "<group>"; };
@@ -79,6 +81,7 @@
 				A1B2C3E12026050100AABB08 /* SceneDelegate.swift */,
 				A1B2C3D32026050100AABB01 /* AonsokuViewController.swift */,
 				A1B2C3D52026050100AABB02 /* MediaSchemeHandler.swift */,
+				A1B2C3D72026101400AABB03 /* NativeBottomShellView.swift */,
 				A1B2C3D72026050100AABB03 /* MediaKeychainHelper.swift */,
 				A1B2C3DB2026050100AABB05 /* ObjCExceptionCatcher.h */,
 				A1B2C3D92026050100AABB04 /* ObjCExceptionCatcher.m */,
@@ -177,6 +180,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				A1B2C3D42026050100AABB01 /* AonsokuViewController.swift in Sources */,
 				A1B2C3D62026050100AABB02 /* MediaSchemeHandler.swift in Sources */,
+				A1B2C3D82026101400AABB03 /* NativeBottomShellView.swift in Sources */,
 				A1B2C3D82026050100AABB03 /* MediaKeychainHelper.swift in Sources */,
 				A1B2C3DA2026050100AABB04 /* ObjCExceptionCatcher.m in Sources */,
 				A1B2C3E22026050100AABB08 /* SceneDelegate.swift in Sources */,

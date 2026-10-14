@@ -1,0 +1,37 @@
+{
+  "controls" : "passed",
+  "empty" : "passed",
+  "layouts" : [
+    {
+      "bottom" : 171,
+      "case" : "iphone-portrait",
+      "compact" : true,
+      "top" : 0
+    },
+    {
+      "bottom" : 167,
+      "case" : "iphone-landscape",
+      "compact" : true,
+      "top" : 0
+    },
+    {
+      "bottom" : 126,
+      "case" : "ipad-portrait",
+      "compact" : false,
+      "top" : 126
+    },
+    {
+      "bottom" : 92,
+      "case" : "ipad-landscape",
+      "compact" : false,
+      "top" : 126
+    },
+    {
+      "bottom" : 201,
+      "case" : "ipad-narrow-window",
+      "compact" : true,
+      "top" : 0
+    }
+  ],
+  "modalAndKeyboard" : "passed"
+}

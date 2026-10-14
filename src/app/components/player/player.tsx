@@ -2,23 +2,24 @@ import { Loader2, Pause, Play, SkipForward } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
-import { PlayerDeviceButton } from "@/app/components/remote-control/device-button";
-import { DevicePanel } from "@/app/components/remote-control/device-panel";
-import { useDevicePlaybackActions } from "@/app/components/remote-control/use-device-playback-actions";
-import { HandoffConfirmationDialog } from "@/app/components/remote-control/handoff-confirmation-dialog";
-import { useRemotePlaybackProjection } from "@/app/components/remote-control/use-remote-playback-projection";
 import { MiniPlayerButton } from "@/app/components/mini-player/button";
 import { RadioInfo } from "@/app/components/player/radio-info";
 import { TrackInfo } from "@/app/components/player/track-info";
+import { PlayerDeviceButton } from "@/app/components/remote-control/device-button";
+import { DevicePanel } from "@/app/components/remote-control/device-panel";
+import { HandoffConfirmationDialog } from "@/app/components/remote-control/handoff-confirmation-dialog";
+import { useDevicePlaybackActions } from "@/app/components/remote-control/use-device-playback-actions";
+import { useRemotePlaybackProjection } from "@/app/components/remote-control/use-remote-playback-projection";
 import { Button } from "@/app/components/ui/button";
 import { useAudioSource } from "@/app/hooks/use-audio-source";
 import { useCoordinationReconnectOnOpen } from "@/app/hooks/use-coordination-reconnect-on-open";
+import { useNativeForegroundSync } from "@/app/hooks/use-native-foreground-sync";
 import { usePlayHistory } from "@/app/hooks/use-play-history";
 import { usePlayerBreakpoint } from "@/app/hooks/use-player-breakpoint";
 import { usePreloadAudio } from "@/app/hooks/use-preload-audio";
 import { useScrobble } from "@/app/hooks/use-scrobble";
 import { useSleepTimer } from "@/app/hooks/use-sleep-timer";
-import { useNativeForegroundSync } from "@/app/hooks/use-native-foreground-sync";
+import { NativeIOSShell } from "@/app/layout/native-ios-shell";
 import {
   getAudioDurationSeconds,
   getAudioProgressSnapshot,
@@ -26,6 +27,11 @@ import {
   type PlaybackMetadata,
 } from "@/player/playback";
 import { openFullscreenPlayerWithHistory } from "@/routes/fullscreenRouter";
+import {
+  type AudioSourceDescriptor,
+  audioSourceResolver,
+  getAudioSourceUrl,
+} from "@/service/cache";
 import {
   useIsRemoteControlActive,
   usePlayerActions,
@@ -41,17 +47,12 @@ import {
 } from "@/store/player.store";
 import { LoopState } from "@/types/playerContext";
 import { hasMiniPlayerSupport } from "@/utils/browser";
-import { logger } from "@/utils/logger";
 import { getCoverArtUrlFromSongPreference } from "@/utils/coverArt";
+import { logger } from "@/utils/logger";
 import {
   type ReplayGainParams,
   resolveReplayGainParams,
 } from "@/utils/replayGain";
-import {
-  audioSourceResolver,
-  getAudioSourceUrl,
-  type AudioSourceDescriptor,
-} from "@/service/cache";
 import { AudioPlayer } from "./audio";
 import { PlayerClearQueueButton } from "./clear-queue-button";
 import { PlayerControls } from "./controls";
@@ -389,6 +390,7 @@ export function Player() {
 
   return (
     <footer
+      data-native-web-player
       className="border-t h-[--player-height] w-full flex items-center fixed bottom-[--bottom-nav-height] left-0 right-0 z-40 bg-background"
       style={{
         paddingLeft: "var(--safe-area-left)",
@@ -396,6 +398,34 @@ export function Player() {
       }}
       onClick={handleFooterClick}
     >
+      <NativeIOSShell
+        trackId={
+          remoteProjection.active || isSong
+            ? (displaySong?.id ?? "")
+            : (radio?.id ?? "")
+        }
+        title={
+          remoteProjection.active || isSong
+            ? (displaySong?.title ?? "")
+            : (radio?.name ?? "")
+        }
+        artist={
+          remoteProjection.active || isSong
+            ? (displaySong?.artist ?? "")
+            : radioLabel
+        }
+        isPlaying={displayIsPlaying}
+        hasNext={displayHasNext || displayLoopState === LoopState.All}
+        progress={
+          remoteProjection.active ? remoteProjection.progress : undefined
+        }
+        duration={
+          remoteProjection.active ? remoteProjection.duration : undefined
+        }
+        canOpenPlayer={
+          Boolean(displaySong) && (remoteProjection.active || isSong)
+        }
+      />
       <div className="w-full h-full grid grid-cols-[1fr_auto] gap-3 px-3 md:grid-cols-player md:gap-2 md:px-4">
         {/* Track Info */}
         <div className="flex items-center gap-1 w-full min-w-0 md:gap-2">

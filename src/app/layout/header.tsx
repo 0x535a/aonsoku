@@ -94,6 +94,7 @@ export function Header() {
 
   return (
     <header
+      data-native-web-header
       className="w-full hidden md:flex md:grid md:grid-cols-header items-center justify-between h-header pt-[var(--safe-area-top)] fixed top-0 right-0 left-0 z-20 bg-background border-b electron-drag"
       onMouseDown={(event) => {
         if (!hasTauriOverlayTitleBar || event.button !== 0) return;

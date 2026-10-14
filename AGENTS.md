@@ -54,6 +54,9 @@ cd coordination-server && cargo run --bin aonsoku-coordination-server
 cd android && ./gradlew :aonsoku-capacitor-native:compileDebugKotlin
 cd android && ./gradlew :aonsoku-capacitor-native:testDebugUnitTest
 
+# iOS navigation/player UI (macOS + Xcode, booted iOS Simulator, no server/device)
+node scripts/ios/test-native-shell.mjs # Standalone UIKit layout/control fixtures + PNGs in /tmp/aonsoku-native-shell-qa
+
 # iOS lock-screen artwork (macOS + Xcode, no server/device required)
 node scripts/ios/test-lock-screen-artwork.mjs # Native static/motion/Vision/video/cache tests + QA PNGs/MP4s in /tmp/aonsoku-artwork-qa
 AONSOKU_TEST_MODEL_DOWNLOAD=1 node scripts/ios/test-lock-screen-artwork.mjs # Optional network test: production P6 download/verify/compile/infer/delete on Mac
@@ -256,6 +259,27 @@ saved per cached route and restored on return; fresh pages scroll to the top
 and an LRU cap; when adding new routes that must always remount, add their id to
 `exclude`, and avoid `useSearchParams`/`useLocation`/`useMatch` reading the live
 location from inside a cached subtree unless the freeze above is extended.
+
+### iOS / iPadOS Native Navigation and Mini Player
+
+`ios/App/App/NativeBottomShellView.swift` is a UIKit overlay on the existing
+single Capacitor WKWebView. iPhone (including landscape) and iPad windows below
+768pt use a native bottom UITabBar; regular iPad windows use top segmented
+navigation and a centered, width-limited native player. iOS 26+ uses public
+UIGlassEffect; older systems use material blur. Reduce Transparency and Reduce
+Motion are respected. Empty playback releases the player space; keyboard,
+fullscreen and modal states hide the obstructing controls.
+
+`src/app/layout/native-ios-shell.tsx` is mounted inside the shared Player and
+reuses its local/radio/remote projection. It sends deduplicated metadata/progress
+and app theme/localized labels via the iOS-only `aonsokuShell` WK message handler.
+Artwork is a bounded 128px copy of the existing loaded image, sent separately;
+stale track IDs are ignored. Native controls dispatch existing React Router and
+player actions, preserving fullscreen history and tab locations. Measured native
+insets feed root CSS variables; the old Web chrome hides only with this host
+capability, so Web, Android and desktop keep their existing UI. Window changes
+never replace the WebView or audio service. Native shell state is scene-local;
+the app still advertises a single scene. See `doc/ios-native/bottom.md`.
 
 ### Component Patterns
 

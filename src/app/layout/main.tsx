@@ -22,6 +22,7 @@ export function MainRoutes() {
   // scrolls fresh pages to the top.
   return (
     <main
+      data-native-main
       className={cn(
         "relative min-h-screen pt-0 md:pt-header pb-[calc(var(--player-height)+var(--bottom-nav-height))]",
         "pl-safe-left pr-safe-right md:pl-0",

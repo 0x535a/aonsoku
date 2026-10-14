@@ -18,6 +18,7 @@ import FullscreenMode from "@/app/components/fullscreen/page";
 
 import { useIsMobile } from "@/app/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { nativeShellHandler } from "@/native/ios-shell";
 import { openFullscreenPlayerWithHistory } from "@/routes/fullscreenRouter";
 import { ROUTES } from "@/routes/routesList";
 import { useFullscreenPlayerState, useSongColor } from "@/store/player.store";
@@ -154,11 +155,13 @@ export function TrackInfo({ song }: { song: ISong | undefined }) {
 
   return (
     <Fragment>
-      <div className="group relative">
+      <div className="group relative" data-native-song-id={song.id}>
         <div className="w-12 h-12 md:w-[70px] md:h-[70px] md:min-w-[70px] md:max-w-[70px] aspect-square bg-cover bg-center bg-skeleton rounded overflow-hidden shadow-md">
           <CachedImage
             key={song.id}
             id="track-song-image"
+            loading={nativeShellHandler() ? "eager" : undefined}
+            visibleByDefault={Boolean(nativeShellHandler())}
             coverArtId={song.coverArt}
             coverArtType="song"
             albumId={song.albumId}

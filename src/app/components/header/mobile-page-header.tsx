@@ -11,11 +11,11 @@ import { useNavigate } from "react-router-dom";
 import { UserDropdown } from "@/app/components/header/user-dropdown";
 import { Button } from "@/app/components/ui/button";
 import { cn } from "@/lib/utils";
-import { blendColors, hslToHex, isDarkHex } from "@/utils/getAverageColor";
 import {
   registerHeaderBackHandler,
   unregisterHeaderBackHandler,
 } from "@/utils/back-button-registry";
+import { blendColors, hslToHex, isDarkHex } from "@/utils/getAverageColor";
 
 type MobilePageHeaderVariant = "root" | "sub";
 
@@ -171,6 +171,7 @@ function StickyHeader({
 
   return (
     <div
+      data-native-mobile-header="sticky"
       className={cn(
         "fixed top-0 left-0 right-0 z-30 md:hidden flex items-center gap-1 h-11 box-content transition-[background-color,backdrop-filter,color] duration-200",
         !showFullBar && "bg-transparent",
@@ -247,6 +248,7 @@ export function MobilePageHeader({
   if (variant === "root") {
     return (
       <div
+        data-native-mobile-header="root"
         className={cn("md:hidden px-4 pt-[var(--safe-area-top)]", className)}
       >
         <div className="flex items-center justify-between py-4">
@@ -271,6 +273,7 @@ export function MobilePageHeader({
     <>
       {showSpacer && (
         <div
+          data-native-mobile-header="spacer"
           className="h-11 md:hidden"
           style={{ marginTop: "var(--safe-area-top)" }}
         />

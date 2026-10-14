@@ -37,6 +37,41 @@ struct LockScreenArtworkOptions: Codable {
   var dynamicEnabled = false
   var quality = "auto"
   var wifiOnly = true
+  var motionAmplitude = 1.0
+  var motionSpeed = 1.0
+  var motionParameters: LockScreenArtworkMotionParameters {
+    .init(amplitude: motionAmplitude, speed: motionSpeed)
+  }
+  init() {}
+  private enum CodingKeys: String, CodingKey {
+    case immersiveEnabled, dynamicEnabled, quality, wifiOnly, motionAmplitude, motionSpeed
+  }
+  init(from decoder: Decoder) throws {
+    let values = try decoder.container(keyedBy: CodingKeys.self)
+    immersiveEnabled = try values.decodeIfPresent(Bool.self, forKey: .immersiveEnabled) ?? true
+    dynamicEnabled = try values.decodeIfPresent(Bool.self, forKey: .dynamicEnabled) ?? false
+    quality = try values.decodeIfPresent(String.self, forKey: .quality) ?? "auto"
+    wifiOnly = try values.decodeIfPresent(Bool.self, forKey: .wifiOnly) ?? true
+    let amplitude = try values.decodeIfPresent(Double.self, forKey: .motionAmplitude) ?? 1
+    let speed = try values.decodeIfPresent(Double.self, forKey: .motionSpeed) ?? 1
+    let parameters = LockScreenArtworkMotionParameters(amplitude: amplitude, speed: speed)
+    motionAmplitude = parameters.amplitude
+    motionSpeed = parameters.speed
+  }
+}
+
+/// One complete loop at 24fps. All speeds stay within Apple's <30s guidance.
+struct LockScreenArtworkMotionParameters {
+  static let speeds: [Double] = [0.5, 0.75, 1, 1.5, 2]
+  let amplitude: Double
+  let speed: Double
+  init(amplitude: Double = 1, speed: Double = 1) {
+    self.amplitude = amplitude.isFinite ? (min(2, max(0.5, amplitude)) * 100).rounded() / 100 : 1
+    self.speed = Self.speeds.contains(speed) ? speed : 1
+  }
+  var frameCount: Int { Int((144 / speed).rounded()) }
+  var duration: Double { Double(frameCount) / 24 }
+  var cacheKey: String { "a\(Int((amplitude * 100).rounded()))-s\(Int((speed * 100).rounded()))" }
 }
 
 final class LockScreenArtworkSettings {
@@ -72,6 +107,18 @@ final class LockScreenArtworkSettings {
         throw NSError(domain: "ArtworkSettings", code: 1)
       }
       next.quality = quality
+    }
+    if let amplitude = update["motionAmplitude"] as? Double {
+      guard amplitude.isFinite, (0.5...2).contains(amplitude) else {
+        throw NSError(domain: "ArtworkSettings", code: 2)
+      }
+      next.motionAmplitude = (amplitude * 100).rounded() / 100
+    }
+    if let speed = update["motionSpeed"] as? Double {
+      guard LockScreenArtworkMotionParameters.speeds.contains(speed) else {
+        throw NSError(domain: "ArtworkSettings", code: 3)
+      }
+      next.motionSpeed = speed
     }
     let data = try JSONEncoder().encode(next)
     lock.lock()

@@ -10,6 +10,7 @@ final class LockScreenArtworkAsset {
   let preview: CGImage
   let motion: Bool
   let backend: String
+  let parameters: LockScreenArtworkMotionParameters
   var analysisReason: String?
   var retainedStaticAsset: LockScreenArtworkAsset?
   let format: LockScreenArtworkFormat
@@ -20,7 +21,7 @@ final class LockScreenArtworkAsset {
   fileprivate init(
     id: String, preview: CGImage, source: CGImage?,
     format: LockScreenArtworkFormat, motion: Bool, backend: String = "camera",
-    store: LockScreenArtworkStore
+    store: LockScreenArtworkStore, parameters: LockScreenArtworkMotionParameters = .init()
   ) {
     self.id = id
     self.preview = preview
@@ -28,6 +29,7 @@ final class LockScreenArtworkAsset {
     self.format = format
     self.motion = motion
     self.backend = backend
+    self.parameters = parameters
     self.store = store
   }
 
@@ -86,6 +88,10 @@ final class LockScreenArtworkStore {
     shouldContinue: @escaping () -> Bool = { true },
     completion: @escaping (LockScreenArtworkAsset?) -> Void
   ) {
+    let parameters =
+      backend == "camera"
+      ? LockScreenArtworkMotionParameters()
+      : LockScreenArtworkSettings.shared.value.motionParameters
     queue.async {
       autoreleasepool {
         guard shouldContinue() else {
@@ -97,7 +103,9 @@ final class LockScreenArtworkStore {
         // or server/album identifier is stored on disk.
         let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
         let id =
-          "\(motion ? "motion-v5-" + backend : "edge-v1")-\(format.width)x\(format.height)-\(digest)"
+          motion
+          ? Self.motionID(digest: digest, format: format, backend: backend, parameters: parameters)
+          : "edge-v1-\(format.width)x\(format.height)-\(digest)"
         LockScreenArtworkDiagnostics.shared.update(
           format.label,
           [
@@ -125,7 +133,7 @@ final class LockScreenArtworkStore {
         }
         let asset = LockScreenArtworkAsset(
           id: id, preview: preview, source: motion ? source : nil,
-          format: format, motion: motion, backend: backend, store: self)
+          format: format, motion: motion, backend: backend, store: self, parameters: parameters)
         renderMeasurement.finish("format=\(format.label)")
         asset.shouldContinue = shouldContinue
         self.assets[id] = WeakAsset(value: asset)
@@ -206,9 +214,19 @@ final class LockScreenArtworkStore {
 
   func hasReadyVideo(data: Data, format: LockScreenArtworkFormat, backend: String) -> Bool {
     let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-    let id = "motion-v5-\(backend)-\(format.width)x\(format.height)-\(digest)"
+    let parameters = LockScreenArtworkSettings.shared.value.motionParameters
+    let id = Self.motionID(digest: digest, format: format, backend: backend, parameters: parameters)
     return (try? videoURL(for: id).resourceValues(forKeys: [.fileSizeKey]).fileSize).map { $0 > 0 }
       ?? false
+  }
+
+  static func motionID(
+    digest: String, format: LockScreenArtworkFormat, backend: String,
+    parameters: LockScreenArtworkMotionParameters
+  ) -> String {
+    let prefix =
+      backend == "camera" ? "motion-v5-camera" : "motion-v6-\(backend)-\(parameters.cacheKey)"
+    return "\(prefix)-\(format.width)x\(format.height)-\(digest)"
   }
 
   func retireCameraVideo(for depthAsset: LockScreenArtworkAsset) {
@@ -415,7 +433,7 @@ final class LockScreenArtworkStore {
       #endif
       LockScreenArtworkVideo.write(
         image: request.asset.preview, to: temporary, queue: queue,
-        motion: request.asset.motion, depth: depth,
+        motion: request.asset.motion, depth: depth, parameters: request.asset.parameters,
         shouldContinue: { self.canContinue(request.asset) }
       ) {
         result in

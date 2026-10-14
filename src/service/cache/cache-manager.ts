@@ -86,6 +86,8 @@ export interface CachedItemDetail {
     | "immersive-static"
     | "immersive-dynamic";
   protected?: boolean;
+  motionAmplitude?: number;
+  motionSpeed?: number;
   source: CacheMetaSource;
   name: string;
   subtitle?: string;
@@ -1102,8 +1104,11 @@ class CacheManager {
     if (isLockScreenArtworkAvailable()) {
       const videos = await lockScreenArtwork.listVideos();
       results.push(
-        ...videos.map(
-          (video): CachedItemDetail => ({
+        ...videos.map((video): CachedItemDetail => {
+          const descriptor = video.id.match(
+            /^motion-v\d+-(.+?)(?:-a(\d+)-s(\d+))?-720x(?:720|960)-/,
+          );
+          return {
             key: `immersive-video:${video.id}`,
             id: video.id,
             type:
@@ -1112,13 +1117,19 @@ class CacheManager {
                 : "immersive-dynamic",
             source: "lru",
             name: `#${video.id.split("-").at(-1)?.slice(0, 8) ?? ""}`,
-            subtitle: `${video.format} · ${video.id.match(/^motion-v\d+-(.*)-720x(?:720|960)-/)?.[1] ?? "static"}`,
+            subtitle: `${video.format} · ${descriptor?.[1] ?? "static"}`,
+            motionAmplitude: descriptor?.[2]
+              ? Number(descriptor[2]) / 100
+              : undefined,
+            motionSpeed: descriptor?.[3]
+              ? Number(descriptor[3]) / 100
+              : undefined,
             sizeBytes: video.sizeBytes,
             cachedAt: video.cachedAt,
             lastAccessedAt: video.lastAccessedAt,
             protected: video.protected,
-          }),
-        ),
+          };
+        }),
       );
     }
     return results;

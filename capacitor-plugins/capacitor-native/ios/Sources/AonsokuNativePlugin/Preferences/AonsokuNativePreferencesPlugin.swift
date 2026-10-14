@@ -67,7 +67,7 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
             do {
                 let old = LockScreenArtworkSettings.shared.value
                 var options: [String: Any] = [:]
-                for key in ["immersiveEnabled", "dynamicEnabled", "quality", "wifiOnly"] {
+                for key in ["immersiveEnabled", "dynamicEnabled", "quality", "wifiOnly", "motionAmplitude", "motionSpeed"] {
                     if let value = call.getValue(key) { options[key] = value }
                 }
                 try LockScreenArtworkSettings.shared.configure(options)

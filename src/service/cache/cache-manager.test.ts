@@ -239,6 +239,15 @@ describe("cacheManager", () => {
         lastAccessedAt: 20,
         protected: true,
       },
+      {
+        id: "motion-v6-dav2-f16-a150-s75-720x720-abcd1234",
+        kind: "dynamic",
+        format: "1:1",
+        sizeBytes: 1_000_000,
+        cachedAt: 10,
+        lastAccessedAt: 20,
+        protected: false,
+      },
     ]);
     const { cacheManager } = await import("./cache-manager");
     const rows = await cacheManager.listCachedItems();
@@ -248,6 +257,14 @@ describe("cacheManager", () => {
         type: "immersive-static",
         sizeBytes: 42000,
         protected: true,
+      }),
+    );
+    expect(rows).toContainEqual(
+      expect.objectContaining({
+        type: "immersive-dynamic",
+        subtitle: "1:1 · dav2-f16",
+        motionAmplitude: 1.5,
+        motionSpeed: 0.75,
       }),
     );
   });

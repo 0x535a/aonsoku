@@ -17,6 +17,8 @@ export interface ArtworkOptions {
   dynamicEnabled: boolean;
   quality: "auto" | ArtworkTier;
   wifiOnly: boolean;
+  motionAmplitude: number;
+  motionSpeed: number;
 }
 export type ArtworkModelStatus =
   | "notDownloaded"

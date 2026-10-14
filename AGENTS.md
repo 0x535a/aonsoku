@@ -370,7 +370,8 @@ Key files:
   four pending requests, revision cancellation and lifecycle/resource guards
   (background, low power, serious thermal state, Reduce Motion, memory warning).
   `LockScreenArtworkMeasurement.swift` records per-phase time/process footprint;
-  Debug samples peaks every 10ms. Motion IDs use `motion-v5` and remain isolated
+  Debug samples peaks every 10ms. DAV2 motion IDs use `motion-v6` with amplitude/
+  speed keys; quick-camera clips keep `motion-v5`. Both remain isolated
   from static `edge-v1` assets. On iOS 26+,
   `AonsokuNativeAudioPlugin` adds `MPMediaItemAnimatedArtwork` alongside the
   ordinary artwork for each key in `supportedAnimatedArtworkKeys` (3:4 and/or
@@ -390,7 +391,13 @@ Key files:
   P6 for <=4 GiB physical RAM, P8 for <=6 GiB, and FP16 above that; available
   process memory, thermal state and pressure may cap/pause generation. Memory
   warnings pause for 60s and limit recovery to P6 for 180s. Audio settings UI
-  calls iOS-only methods on `AonsokuNativePreferencesPlugin`, keeping shared
+  exposes DAV2 motion amplitude (0.5–2x) and speed presets (0.5/0.75/1/1.5/2x),
+  preserving the default 6s trajectory at 1x. Encoding uses 24fps with a complete
+  3–12s loop; amplitude scales parallax/camera/overscan/ROI together. Parameters
+  are frozen per asset and included in cache/artwork IDs; static and quick-camera
+  fallbacks are unchanged. Old preferences decode missing controls as 1x without
+  resetting existing options, and native validation rejects out-of-range values.
+  The UI calls iOS-only methods on `AonsokuNativePreferencesPlugin`, keeping shared
   playback/preferences contracts for other runtimes unchanged.
   `LockScreenArtworkModelManager.swift` streams pinned Apache-2.0 Apple packages
   on demand, enforces Wi-Fi/cellular preferences, verifies exact bytes/SHA256,

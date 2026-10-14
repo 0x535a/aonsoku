@@ -7,7 +7,7 @@ enum LockScreenArtworkError: Error {
   case encodingFailed
 }
 
-/// Silent system artwork: one held static frame or a six-second 24fps loop.
+/// Silent system artwork: one held static frame or a bounded 24fps loop.
 /// Frames are streamed through a bounded pool, never accumulated in memory.
 enum LockScreenArtworkVideo {
   private final class Request {
@@ -29,6 +29,7 @@ enum LockScreenArtworkVideo {
   static func write(
     image: CGImage, to url: URL, queue: DispatchQueue,
     motion: Bool = false, depth: CIImage? = nil,
+    parameters: LockScreenArtworkMotionParameters = .init(),
     shouldContinue: @escaping () -> Bool = { true },
     completion: @escaping (Result<URL, Error>) -> Void
   ) {
@@ -65,10 +66,10 @@ enum LockScreenArtworkVideo {
       let context = CIContext(options: [.cacheIntermediates: false])
       let bounds = CGRect(x: 0, y: 0, width: image.width, height: image.height)
       let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
-      let frameCount = motion ? LockScreenArtworkMotion.frameCount : 1
+      let frameCount = motion ? (depth == nil ? 144 : parameters.frameCount) : 1
       let request = Request(completion)
-      // Finish before MediaPlayer's approximately 30-second request
-      // timeout even if an encoder stops requesting more input.
+      // Bound preparation if the encoder stalls. System URL callbacks only
+      // receive already completed files and do not wait on this encoder.
       queue.asyncAfter(deadline: .now() + (motion ? 60 : 20)) { [weak request, weak writer] in
         guard let request, request.completion != nil, let writer else { return }
         writer.cancelWriting()
@@ -94,7 +95,7 @@ enum LockScreenArtworkVideo {
               motion
               ? LockScreenArtworkMotion.frame(
                 image, depth: depth,
-                phase: Double(request.frameIndex) / Double(frameCount))
+                phase: Double(request.frameIndex) / Double(frameCount), parameters: parameters)
               : CIImage(cgImage: image)
             context.render(frame, to: buffer, bounds: bounds, colorSpace: colorSpace)
             let time =
@@ -112,7 +113,9 @@ enum LockScreenArtworkVideo {
         if request.frameIndex == frameCount {
           request.submitted = true
           input.markAsFinished()
-          writer.endSession(atSourceTime: CMTime(value: motion ? 6 : 2, timescale: 1))
+          writer.endSession(
+            atSourceTime: motion
+              ? CMTime(value: Int64(frameCount), timescale: 24) : CMTime(value: 2, timescale: 1))
           writer.finishWriting {
             queue.async {
               context.clearCaches()

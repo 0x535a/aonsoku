@@ -368,6 +368,9 @@ function CacheList({ items, loading, onDelete }: CacheListProps) {
                   {item.subtitle && (
                     <span className="text-xs text-muted-foreground truncate">
                       {item.subtitle}
+                      {item.motionAmplitude &&
+                        item.motionSpeed &&
+                        ` · ${t("settings.storage.cacheManager.motionParameters", { amplitude: item.motionAmplitude, speed: item.motionSpeed })}`}
                       {item.type.startsWith("immersive-") &&
                         ` · ${formatBytes(item.sizeBytes)}${item.protected ? ` · ${t("settings.storage.cacheManager.inUse")}` : ""}`}
                     </span>

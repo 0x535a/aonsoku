@@ -607,7 +607,12 @@
           "compiling": "正在为本机准备模型",
           "ready": "已下载",
           "error": "下载或准备失败"
-        }
+        },
+        "motionAmplitude": "Motion 运动幅度",
+        "motionAmplitudeInfo": "调节 DAV2 视差与镜头移动幅度（0.5×–2×），保留当前运动轨迹。",
+        "motionSpeed": "Motion 运动速度",
+        "motionSpeedInfo": "24 FPS 无缝循环：0.5× / 0.75× / 1× / 1.5× / 2× 对应 12 / 8 / 6 / 4 / 3 秒。静态与快速整体运动回退保持原样。",
+        "motionDefault": "当前默认"
       }
     },
     "content": {
@@ -883,7 +888,8 @@
         "refresh": "刷新",
         "clearVideos": "清理沉浸封面视频",
         "videoCleared": "已删除 {{deleted}} 个视频，保留 {{retained}} 个使用中的文件。",
-        "inUse": "使用中"
+        "inUse": "使用中",
+        "motionParameters": "幅度 {{amplitude}}× · 速度 {{speed}}×"
       },
       "coverArt": {
         "clear": "清除封面图缓存",

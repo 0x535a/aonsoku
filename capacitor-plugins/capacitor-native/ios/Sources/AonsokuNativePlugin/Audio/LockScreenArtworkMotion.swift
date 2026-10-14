@@ -132,15 +132,19 @@ enum LockScreenArtworkMotion {
 
   /// The function is periodic in phase; the next frame after 143 is frame 0.
   /// A tiny overscan hides displaced borders without stretching the subject.
-  static func frame(_ image: CGImage, depth: CIImage?, phase: Double) -> CIImage {
+  static func frame(
+    _ image: CGImage, depth: CIImage?, phase: Double,
+    parameters: LockScreenArtworkMotionParameters = .init()
+  ) -> CIImage {
     let bounds = CGRect(x: 0, y: 0, width: image.width, height: image.height)
     let input = CIImage(cgImage: image).clampedToExtent()
     let angle = phase * 2 * Double.pi
-    let amplitude = depth == nil ? 4.0 : 1.5
+    let factor = depth == nil ? 1 : parameters.amplitude
+    let amplitude = (depth == nil ? 4.0 : 1.5) * factor
     let scale =
       depth == nil
       ? 1.025 + 0.0125 * (1 - cos(angle))
-      : 1.04 + 0.004 * (1 - cos(angle))
+      : 1 + 0.04 * factor + 0.004 * factor * (1 - cos(angle))
     let transform = CGAffineTransform(
       translationX: bounds.midX + amplitude * sin(angle),
       y: bounds.midY + amplitude * sin(2 * angle) * 0.5
@@ -151,10 +155,12 @@ enum LockScreenArtworkMotion {
     if let depth, let kernel,
       let warped = kernel.apply(
         extent: bounds,
-        roiCallback: { index, rect in index == 0 ? rect.insetBy(dx: -14, dy: -14) : rect },
+        roiCallback: { index, rect in
+          index == 0 ? rect.insetBy(dx: -14 * factor, dy: -14 * factor) : rect
+        },
         arguments: [
           camera, depth,
-          CIVector(x: 10 * sin(angle), y: 4 * sin(2 * angle)),
+          CIVector(x: 10 * factor * sin(angle), y: 4 * factor * sin(2 * angle)),
         ])
     {
       return warped.cropped(to: bounds)

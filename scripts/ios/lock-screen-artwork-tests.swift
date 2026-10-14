@@ -476,6 +476,76 @@ struct ArtworkTests {
     try require(stale == nil, "stale revision generated artwork")
 
     let gib: UInt64 = 1024 * 1024 * 1024
+    let oldOptions = try JSONDecoder().decode(
+      LockScreenArtworkOptions.self,
+      from: Data(
+        "{\"immersiveEnabled\":false,\"dynamicEnabled\":true,\"quality\":\"p8\",\"wifiOnly\":false}"
+          .utf8))
+    try require(
+      oldOptions.dynamicEnabled && !oldOptions.immersiveEnabled && oldOptions.quality == "p8"
+        && oldOptions.motionAmplitude == 1 && oldOptions.motionSpeed == 1,
+      "adding motion controls reset existing native preferences")
+    let defaultID = LockScreenArtworkStore.motionID(
+      digest: "fixture", format: .square,
+      backend: "dav2-f16", parameters: .init())
+    let adjustedID = LockScreenArtworkStore.motionID(
+      digest: "fixture", format: .square,
+      backend: "dav2-f16", parameters: .init(amplitude: 1.5, speed: 0.75))
+    try require(defaultID != adjustedID, "motion parameters reused stale DAV2 video")
+    try require(
+      LockScreenArtworkStore.motionID(
+        digest: "fixture", format: .square, backend: "camera", parameters: .init())
+        == LockScreenArtworkStore.motionID(
+          digest: "fixture", format: .square, backend: "camera",
+          parameters: .init(amplitude: 2, speed: 0.5)),
+      "motion controls changed the quick camera fallback cache")
+    for speed in LockScreenArtworkMotionParameters.speeds {
+      let parameters = LockScreenArtworkMotionParameters(amplitude: 2, speed: speed)
+      let movieURL = output.appendingPathComponent("controls-\(Int(speed * 100)).mp4")
+      try? FileManager.default.removeItem(at: movieURL)
+      let result: Result<URL, Error> = await withCheckedContinuation { continuation in
+        LockScreenArtworkVideo.write(
+          image: layerCanvas, to: movieURL,
+          queue: DispatchQueue(label: "test.controls"), motion: true,
+          depth: mappedNeutral, parameters: parameters
+        ) { continuation.resume(returning: $0) }
+      }
+      let clip = AVURLAsset(url: try result.get())
+      let duration = try await clip.load(.duration)
+      let tracks = try await clip.loadTracks(withMediaType: .video)
+      let fps = try await tracks[0].load(.nominalFrameRate)
+      let audio = try await clip.loadTracks(withMediaType: .audio)
+      try require(
+        abs(duration.seconds - 6 / speed) < 0.01 && duration.seconds < 30
+          && abs(fps - 24) < 0.01 && audio.isEmpty,
+        "speed preset exceeded artwork limits or broke frame timing")
+    }
+    for format in [LockScreenArtworkFormat.tall, .square] {
+      let canvas = LockScreenArtworkRenderer.render(scene, format: format)!
+      let bounds = CGRect(x: 0, y: 0, width: format.width, height: format.height)
+      let parameters = LockScreenArtworkMotionParameters(amplitude: 2)
+      let near = ci.createCGImage(
+        LockScreenArtworkMotion.frame(
+          canvas,
+          depth: CIImage(color: .white), phase: 0.25, parameters: parameters), from: bounds)!
+      let far = ci.createCGImage(
+        LockScreenArtworkMotion.frame(
+          canvas,
+          depth: CIImage(color: .black), phase: 0.25, parameters: parameters), from: bounds)!
+      try require(
+        abs(abs(subjectCenterX(near) - subjectCenterX(far)) - 40) < 1,
+        "2x amplitude did not double the foreground/background displacement")
+      for phase in [0.0, 0.125, 0.25, 0.5, 0.75, 1.0] {
+        let frame = ci.createCGImage(
+          LockScreenArtworkMotion.frame(
+            canvas,
+            depth: CIImage(color: .white), phase: phase, parameters: parameters), from: bounds)!
+        let bytes = pixels(frame)
+        try require(
+          stride(from: 3, to: bytes.count, by: 4).allSatisfy { bytes[$0] == 255 },
+          "maximum amplitude exposed transparent edges")
+      }
+    }
     try require(
       !LockScreenArtworkMotionAnalysis(mask: nil, reason: "generation-deferred").canCache,
       "deferred inference must not poison the DAV2 video cache")
@@ -528,6 +598,11 @@ struct ArtworkTests {
       rejectedTier = true
     }
     try require(rejectedTier, "invalid model tier accepted")
+    for bad in [["motionAmplitude": 2.1], ["motionAmplitude": Double.nan], ["motionSpeed": 0.25]] {
+      var rejected = false
+      do { try LockScreenArtworkSettings.shared.configure(bad) } catch { rejected = true }
+      try require(rejected, "invalid motion controls bypassed native bounds")
+    }
     let corrupt = scratch.appendingPathComponent("corrupt-weight.bin")
     try Data([1, 2, 3]).write(to: corrupt)
     var rejectedBytes = false

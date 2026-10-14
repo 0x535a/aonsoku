@@ -170,6 +170,72 @@ export function LockScreenArtworkSettings() {
             </ContentItemForm>
           </ContentItem>
           <ContentItem>
+            <ContentItemTitle info={t(`${prefix}.motionAmplitudeInfo`)}>
+              {t(`${prefix}.motionAmplitude`)}
+            </ContentItemTitle>
+            <ContentItemForm>
+              <Select
+                value={String(state.options.motionAmplitude ?? 1)}
+                disabled={
+                  disabled ||
+                  !state.options.immersiveEnabled ||
+                  !state.options.dynamicEnabled
+                }
+                onValueChange={(value) =>
+                  configure.mutate({ motionAmplitude: Number(value) })
+                }
+              >
+                <SelectTrigger
+                  className="h-8"
+                  aria-label={t(`${prefix}.motionAmplitude`)}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((value) => (
+                    <SelectItem key={value} value={String(value)}>
+                      {value}×
+                      {value === 1 ? ` (${t(`${prefix}.motionDefault`)})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ContentItemForm>
+          </ContentItem>
+          <ContentItem>
+            <ContentItemTitle info={t(`${prefix}.motionSpeedInfo`)}>
+              {t(`${prefix}.motionSpeed`)}
+            </ContentItemTitle>
+            <ContentItemForm>
+              <Select
+                value={String(state.options.motionSpeed ?? 1)}
+                disabled={
+                  disabled ||
+                  !state.options.immersiveEnabled ||
+                  !state.options.dynamicEnabled
+                }
+                onValueChange={(value) =>
+                  configure.mutate({ motionSpeed: Number(value) })
+                }
+              >
+                <SelectTrigger
+                  className="h-8"
+                  aria-label={t(`${prefix}.motionSpeed`)}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[0.5, 0.75, 1, 1.5, 2].map((value) => (
+                    <SelectItem key={value} value={String(value)}>
+                      {value}× · {6 / value}s
+                      {value === 1 ? ` (${t(`${prefix}.motionDefault`)})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ContentItemForm>
+          </ContentItem>
+          <ContentItem>
             <ContentItemTitle info={t(`${prefix}.wifiInfo`)}>
               {t(`${prefix}.wifiOnly`)}
             </ContentItemTitle>

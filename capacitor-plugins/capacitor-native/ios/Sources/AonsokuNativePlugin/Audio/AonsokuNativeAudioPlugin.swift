@@ -2973,6 +2973,9 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                         ["publishedRevision": "\(revision)", "publishedBackend": asset.backend,
                          "publishedMode": asset.motion ? "motion" : "static",
                          "publishedReason": asset.analysisReason ?? "disk-cache",
+                         "motionAmplitude": "\(asset.parameters.amplitude)×",
+                         "motionSpeed": "\(asset.parameters.speed)×",
+                         "loopDuration": "\(asset.motion ? asset.parameters.duration : 2) s",
                          "asset": String(asset.id.prefix(45))])
                     MPNowPlayingInfoCenter.default().nowPlayingInfo = info
                     NativeLogger.shared.info(

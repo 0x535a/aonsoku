@@ -170,6 +170,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     private var nowPlayingRevision = 0
     private var artworkResourceObservers: [NSObjectProtocol] = []
     private let artworkGeneration = LockScreenArtworkGeneration()
+    private var artworkPublishedStages: [String: Int] = [:]
     private var publishedArtworkSource: String?
     private var remoteCommandTargets: [(command: MPRemoteCommand, target: Any)] = []
     private let queueEngine = NativeQueueEngine()
@@ -2539,6 +2540,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func updateNowPlayingInfo() {
+        artworkPublishedStages.removeAll()
         nowPlayingRevision += 1
         artworkGeneration.update(nowPlayingRevision)
         let revision = nowPlayingRevision
@@ -2927,6 +2929,10 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                             source: "NowPlayingArtwork")
                         return
                     }
+                    let stage = asset.motion ? (asset.backend == "camera" ? 1 : 2) : 0
+                    let stageKey = "\(revision)-\(format.label)"
+                    guard stage >= (self.artworkPublishedStages[stageKey] ?? -1) else { return }
+                    self.artworkPublishedStages[stageKey] = stage
                     let preview = UIImage(cgImage: asset.preview)
                     let animated = MPMediaItemAnimatedArtwork(
                         artworkID: asset.id,
@@ -2954,11 +2960,20 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                                 NativeLogger.shared.info(
                                     "\(format.label) video returned revision=\(revision) local=\(url?.isFileURL ?? false) bytes=\(bytes) elapsedMs=\(Int(Date().timeIntervalSince(started) * 1000))",
                                     source: "NowPlayingArtwork")
+                                LockScreenArtworkDiagnostics.shared.update(format.label,
+                                    ["systemVideo": url == nil ? "unavailable" : "delivered",
+                                     "systemBackend": asset.backend, "bytes": "\(bytes)",
+                                     "requestMs": "\(Int(Date().timeIntervalSince(started) * 1000)) ms"])
                                 completion(url)
                             }
                         }
                     )
                     info[key] = animated
+                    LockScreenArtworkDiagnostics.shared.update(format.label,
+                        ["publishedRevision": "\(revision)", "publishedBackend": asset.backend,
+                         "publishedMode": asset.motion ? "motion" : "static",
+                         "publishedReason": asset.analysisReason ?? "disk-cache",
+                         "asset": String(asset.id.prefix(45))])
                     MPNowPlayingInfoCenter.default().nowPlayingInfo = info
                     NativeLogger.shared.info(
                         "\(format.label) artwork published revision=\(revision)",
@@ -2977,19 +2992,46 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             let motion = options.dynamicEnabled && policy.allowsPlayback && policy.effectiveTier != nil
             let backend = tier.backend
+            LockScreenArtworkDiagnostics.shared.update(format.label,
+                ["targetTier": target.rawValue, "selectedTier": tier.rawValue,
+                 "policy": policy.generationReason])
             if motion && policy.allowsGeneration
                 && LockScreenArtworkModelManager.shared.modelURL(target) == nil
                 && !LockScreenArtworkStore.shared.hasReadyVideo(data: data, format: format, backend: target.backend) {
                 LockScreenArtworkModelManager.shared.request(target, automatic: true)
             }
-            LockScreenArtworkStore.shared.prepare(data: data, source: image, format: format,
-                motion: motion, backend: backend,
-                shouldContinue: { [artworkGeneration] in artworkGeneration.contains(revision) },
-                completion: prepared)
+            let current = { [artworkGeneration] in artworkGeneration.contains(revision) }
+            let store = LockScreenArtworkStore.shared
+            store.prepare(data: data, source: image, format: format,
+                shouldContinue: current) { staticAsset in
+                prepared(staticAsset)
+                guard motion, current() else { return }
+                let prepareDepth = {
+                    store.prepare(data: data, source: image, format: format,
+                        motion: true, backend: backend, shouldContinue: current) { depthAsset in
+                        guard let depthAsset, depthAsset.motion, depthAsset.backend != "camera" else { return }
+                        depthAsset.retainedStaticAsset = staticAsset
+                        prepared(depthAsset)
+                        store.retireCameraVideo(for: depthAsset)
+                    }
+                }
+                if store.hasReadyVideo(data: data, format: format, backend: backend) {
+                    prepareDepth()
+                    return
+                }
+                store.prepare(data: data, source: image, format: format,
+                    motion: true, backend: "camera", shouldContinue: current) { cameraAsset in
+                    cameraAsset?.retainedStaticAsset = staticAsset
+                    prepared(cameraAsset)
+                    guard current() else { return }
+                    prepareDepth()
+                }
+            }
         }
     #endif
 
     private func clearNowPlayingInfo() {
+        artworkPublishedStages.removeAll()
         nowPlayingRevision += 1
         artworkGeneration.update(nowPlayingRevision)
         artworkTask?.cancel()

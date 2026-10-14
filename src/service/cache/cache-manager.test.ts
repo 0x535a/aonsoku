@@ -1,9 +1,23 @@
 import { clear as idbClear } from "idb-keyval";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ArtworkCachedVideo } from "@/native/audio/lock-screen-artwork";
 import { isAudioCached, useCacheIndexStore } from "@/store/cache-index.store";
 import { cacheIndexStore } from "@/store/idb";
 import { _resetLibraryDbForTests, libraryDb } from "@/store/library-db";
 import { Priority } from "@/types/cache";
+
+const artworkCacheMock = vi.hoisted(() => ({
+  available: false,
+  listVideos: vi.fn<() => Promise<ArtworkCachedVideo[]>>(() =>
+    Promise.resolve([]),
+  ),
+  deleteVideo: vi.fn(() => Promise.resolve()),
+  clearVideos: vi.fn(() => Promise.resolve({ deleted: 0, retained: 0 })),
+}));
+vi.mock("@/native/audio/lock-screen-artwork", () => ({
+  isLockScreenArtworkAvailable: () => artworkCacheMock.available,
+  lockScreenArtwork: artworkCacheMock,
+}));
 
 const cacheStorageMock = {
   clear: vi.fn(),
@@ -127,6 +141,12 @@ vi.mock("@/store/player/store", () => ({
 
 describe("cacheManager", () => {
   beforeEach(async () => {
+    artworkCacheMock.available = false;
+    artworkCacheMock.listVideos.mockReset().mockResolvedValue([]);
+    artworkCacheMock.deleteVideo.mockReset().mockResolvedValue(undefined);
+    artworkCacheMock.clearVideos
+      .mockReset()
+      .mockResolvedValue({ deleted: 0, retained: 0 });
     cacheStorageMock.clear.mockReset();
     cacheStorageMock.clear.mockResolvedValue(undefined);
     cacheStorageMock.delete.mockReset();
@@ -205,6 +225,50 @@ describe("cacheManager", () => {
     const url = await cacheManager.getCachedCoverUrl("cover-1");
 
     expect(url).toBeTruthy();
+  });
+
+  it("lists immersive videos even with an empty browser cache index", async () => {
+    artworkCacheMock.available = true;
+    artworkCacheMock.listVideos.mockResolvedValue([
+      {
+        id: "edge-v1-720x720-abcd1234",
+        kind: "static",
+        format: "1:1",
+        sizeBytes: 42000,
+        cachedAt: 10,
+        lastAccessedAt: 20,
+        protected: true,
+      },
+    ]);
+    const { cacheManager } = await import("./cache-manager");
+    const rows = await cacheManager.listCachedItems();
+    expect(rows).toContainEqual(
+      expect.objectContaining({
+        key: "immersive-video:edge-v1-720x720-abcd1234",
+        type: "immersive-static",
+        sizeBytes: 42000,
+        protected: true,
+      }),
+    );
+  });
+
+  it("deletes an immersive item in the native store without touching browser blobs", async () => {
+    artworkCacheMock.available = true;
+    const { cacheManager } = await import("./cache-manager");
+    await cacheManager.evictItem(
+      "immersive-video:motion-v5-camera-720x720-abcd",
+    );
+    expect(artworkCacheMock.deleteVideo).toHaveBeenCalledWith(
+      "motion-v5-camera-720x720-abcd",
+    );
+    expect(cacheStorageMock.delete).not.toHaveBeenCalled();
+  });
+
+  it("clears derived videos together with cover assets", async () => {
+    artworkCacheMock.available = true;
+    const { cacheManager } = await import("./cache-manager");
+    await cacheManager.clearAssets();
+    expect(artworkCacheMock.clearVideos).toHaveBeenCalledOnce();
   });
 
   it("returns higher-quality cached covers for lower-size requests", async () => {

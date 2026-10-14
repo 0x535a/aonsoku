@@ -1,7 +1,14 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { AlertTriangle, HardDrive, Loader2, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  HardDrive,
+  Loader2,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
 import { shallow } from "zustand/shallow";
 import {
   Content,
@@ -28,6 +35,10 @@ import {
 } from "@/app/components/ui/select";
 import { SimpleTooltip } from "@/app/components/ui/simple-tooltip";
 import {
+  isLockScreenArtworkAvailable,
+  lockScreenArtwork,
+} from "@/native/audio/lock-screen-artwork";
+import {
   type CachedItemDetail,
   cacheManager,
 } from "@/service/cache/cache-manager";
@@ -39,6 +50,8 @@ type CacheFilter =
   | "all"
   | "audio"
   | "cover"
+  | "immersive-static"
+  | "immersive-dynamic"
   | "album"
   | "playlist"
   | "explicit"
@@ -53,6 +66,8 @@ export function CacheManagerSection() {
   const [deleteTarget, setDeleteTarget] = useState<CachedItemDetail | null>(
     null,
   );
+  const [clearVideosOpen, setClearVideosOpen] = useState(false);
+  const hasArtwork = isLockScreenArtworkAvailable();
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -79,7 +94,12 @@ export function CacheManagerSection() {
 
   const filteredItems = useMemo(() => {
     if (filter === "all") return items;
-    if (filter === "audio") return items.filter((i) => i.type === "audio");
+    if (
+      filter === "audio" ||
+      filter === "immersive-static" ||
+      filter === "immersive-dynamic"
+    )
+      return items.filter((i) => i.type === filter);
     if (filter === "cover") return items.filter((i) => i.type === "cover");
     if (filter === "album") return items.filter((i) => i.type === "album");
     if (filter === "playlist")
@@ -94,10 +114,31 @@ export function CacheManagerSection() {
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
-    await cacheManager.evictItem(deleteTarget.key);
-    setDeleteTarget(null);
-    await loadItems();
+    try {
+      await cacheManager.evictItem(deleteTarget.key);
+      setDeleteTarget(null);
+      await loadItems();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+    }
   }, [deleteTarget, loadItems]);
+
+  const clearVideos = async () => {
+    try {
+      const kind =
+        filter === "immersive-static"
+          ? "static"
+          : filter === "immersive-dynamic"
+            ? "dynamic"
+            : "all";
+      const result = await lockScreenArtwork.clearVideos(kind);
+      toast.info(t("settings.storage.cacheManager.videoCleared", result));
+      setClearVideosOpen(false);
+      await loadItems();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   return (
     <Root>
@@ -127,6 +168,9 @@ export function CacheManagerSection() {
                   "all",
                   "audio",
                   "cover",
+                  ...(hasArtwork
+                    ? ["immersive-static", "immersive-dynamic"]
+                    : []),
                   "album",
                   "playlist",
                   "explicit",
@@ -144,6 +188,35 @@ export function CacheManagerSection() {
       </Header>
 
       <Content>
+        {hasArtwork && (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              {t("settings.storage.cacheManager.videoInfo")}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => loadItems()}
+                disabled={loading}
+                aria-label={t("settings.storage.cacheManager.refresh")}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setClearVideosOpen(true)}
+                disabled={
+                  loading ||
+                  !items.some((item) => item.type.startsWith("immersive-"))
+                }
+              >
+                {t("settings.storage.cacheManager.clearVideos")}
+              </Button>
+            </div>
+          </div>
+        )}
         <CacheList
           items={filteredItems}
           loading={loading}
@@ -162,6 +235,15 @@ export function CacheManagerSection() {
 
       <ContentSeparator />
 
+      <ConfirmationDialog
+        open={clearVideosOpen}
+        onOpenChange={setClearVideosOpen}
+        title={t("settings.storage.cacheManager.clearVideos")}
+        description={t("settings.storage.cacheManager.videoInfo")}
+        onConfirm={clearVideos}
+        cancelLabel={t("generic.cancel")}
+        confirmLabel={t("settings.storage.cacheManager.list.delete")}
+      />
       <ConfirmationDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
@@ -278,12 +360,16 @@ function CacheList({ items, loading, onDelete }: CacheListProps) {
                       </SimpleTooltip>
                     )}
                     <span className="text-sm font-medium truncate">
-                      {item.name}
+                      {item.type.startsWith("immersive-")
+                        ? `${t(`settings.storage.cacheManager.list.type_${item.type}`)} ${item.name}`
+                        : item.name}
                     </span>
                   </div>
                   {item.subtitle && (
                     <span className="text-xs text-muted-foreground truncate">
                       {item.subtitle}
+                      {item.type.startsWith("immersive-") &&
+                        ` · ${formatBytes(item.sizeBytes)}${item.protected ? ` · ${t("settings.storage.cacheManager.inUse")}` : ""}`}
                     </span>
                   )}
                 </div>
@@ -324,6 +410,8 @@ function CacheList({ items, loading, onDelete }: CacheListProps) {
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover-supported:text-destructive"
                     onClick={() => onDelete(item)}
+                    disabled={item.protected}
+                    aria-label={t("settings.storage.cacheManager.list.delete")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

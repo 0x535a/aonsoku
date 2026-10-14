@@ -1,5 +1,9 @@
 import { Capacitor } from "@capacitor/core";
 import { getAvatarUrl, getCoverArtUrl } from "@/api/httpClient";
+import {
+  isLockScreenArtworkAvailable,
+  lockScreenArtwork,
+} from "@/native/audio/lock-screen-artwork";
 import { asyncPool } from "@/service/cache/concurrency";
 import { subsonic } from "@/service/subsonic";
 import { useCacheStore } from "@/store/cache.store";
@@ -74,7 +78,14 @@ function convertFileSrc(uri: string): string {
 export interface CachedItemDetail {
   key: string;
   id: string;
-  type: "audio" | "cover" | "album" | "playlist";
+  type:
+    | "audio"
+    | "cover"
+    | "album"
+    | "playlist"
+    | "immersive-static"
+    | "immersive-dynamic";
+  protected?: boolean;
   source: CacheMetaSource;
   name: string;
   subtitle?: string;
@@ -946,6 +957,10 @@ class CacheManager {
   }
 
   async evictItem(key: string): Promise<void> {
+    if (key.startsWith("immersive-video:")) {
+      await lockScreenArtwork.deleteVideo(key.slice("immersive-video:".length));
+      return;
+    }
     await this.deleteCachedStorageItem(key);
     getCacheIndexActions().removeItem(key);
 
@@ -1007,6 +1022,7 @@ class CacheManager {
 
   /** Clear every `type: "cover"` entry regardless of source. */
   async clearAssets(): Promise<void> {
+    if (isLockScreenArtworkAvailable()) await lockScreenArtwork.clearVideos();
     const items = getCacheIndexItems();
     const keysToDelete = Object.entries(items)
       .filter(([, meta]) => meta.type === "cover")
@@ -1032,7 +1048,6 @@ class CacheManager {
   async listCachedItems(): Promise<CachedItemDetail[]> {
     const items = getCacheIndexItems();
     const entries = Object.entries(items);
-    if (entries.length === 0) return [];
 
     const results: CachedItemDetail[] = [];
 
@@ -1084,6 +1099,28 @@ class CacheManager {
       });
     }
 
+    if (isLockScreenArtworkAvailable()) {
+      const videos = await lockScreenArtwork.listVideos();
+      results.push(
+        ...videos.map(
+          (video): CachedItemDetail => ({
+            key: `immersive-video:${video.id}`,
+            id: video.id,
+            type:
+              video.kind === "static"
+                ? "immersive-static"
+                : "immersive-dynamic",
+            source: "lru",
+            name: `#${video.id.split("-").at(-1)?.slice(0, 8) ?? ""}`,
+            subtitle: `${video.format} · ${video.id.match(/^motion-v\d+-(.*)-720x(?:720|960)-/)?.[1] ?? "static"}`,
+            sizeBytes: video.sizeBytes,
+            cachedAt: video.cachedAt,
+            lastAccessedAt: video.lastAccessedAt,
+            protected: video.protected,
+          }),
+        ),
+      );
+    }
     return results;
   }
 
@@ -1093,6 +1130,9 @@ class CacheManager {
     audioCacheService.cancelAll();
     syncService.cancel();
     const nativeClears: Promise<void>[] = [clearNativeAudioFilesIfAvailable()];
+    if (isLockScreenArtworkAvailable()) {
+      nativeClears.push(lockScreenArtwork.clearVideos().then(() => undefined));
+    }
 
     if (isNativeImageCacheAdapterAvailable()) {
       nativeClears.push(getNativeImageCacheAdapter().clearCoverImages());

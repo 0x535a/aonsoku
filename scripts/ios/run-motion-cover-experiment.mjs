@@ -43,6 +43,7 @@ try {
       "Video",
       "Motion",
       "Measurement",
+      "Diagnostics",
       "DepthModel",
       "Settings",
       "ModelCatalog",

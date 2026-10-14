@@ -1064,7 +1064,9 @@
           "playlist": "Playlist",
           "explicit": "Explicit",
           "smart": "Smart",
-          "lru": "LRU"
+          "lru": "LRU",
+          "immersive-static": "Immersive static",
+          "immersive-dynamic": "Immersive motion"
         },
         "list": {
           "name": "Name",
@@ -1080,12 +1082,19 @@
           "type_cover": "Cover",
           "type_album": "Album",
           "type_playlist": "Playlist",
-          "removedFromServer": "Removed from server"
+          "removedFromServer": "Removed from server",
+          "type_immersive-static": "Immersive static",
+          "type_immersive-dynamic": "Immersive motion"
         },
         "confirmDelete": {
           "title": "Delete cached item?",
           "description": "This will remove '{{name}}' from the cache. It can be re-downloaded later."
-        }
+        },
+        "videoInfo": "Immersive videos are separate from model files. Videos in use are protected; generated videos can be rebuilt.",
+        "refresh": "Refresh",
+        "clearVideos": "Clear immersive videos",
+        "videoCleared": "Deleted {{deleted}} videos; retained {{retained}} in-use files.",
+        "inUse": "In use"
       },
       "smart": {
         "group": "Smart Downloads",

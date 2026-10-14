@@ -11,6 +11,7 @@ final class LockScreenArtworkAsset {
   let motion: Bool
   let backend: String
   var analysisReason: String?
+  var retainedStaticAsset: LockScreenArtworkAsset?
   let format: LockScreenArtworkFormat
   fileprivate var source: CGImage?
   fileprivate var shouldContinue: () -> Bool = { true }
@@ -33,6 +34,8 @@ final class LockScreenArtworkAsset {
   func requestVideo(_ completion: @escaping (URL?) -> Void) {
     store.requestVideo(for: self, completion: completion)
   }
+
+  deinit { store.assetReleased() }
 }
 
 final class LockScreenArtworkStore {
@@ -46,6 +49,7 @@ final class LockScreenArtworkStore {
   private var assets: [String: WeakAsset] = [:]
   private var pending: [(asset: LockScreenArtworkAsset, callbacks: [(URL?) -> Void])] = []
   private var encodingID: String?
+  private var retiredCameraIDs: Set<String> = []
   private var pressureObserver: NSObjectProtocol?
   private var textRegions: [String: [CGRect]] = [:]
   private var analyses: [String: LockScreenArtworkMotionAnalysis] = [:]
@@ -93,7 +97,14 @@ final class LockScreenArtworkStore {
         // or server/album identifier is stored on disk.
         let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
         let id =
-          "\(motion ? "motion-v4-" + backend : "edge-v1")-\(format.width)x\(format.height)-\(digest)"
+          "\(motion ? "motion-v5-" + backend : "edge-v1")-\(format.width)x\(format.height)-\(digest)"
+        LockScreenArtworkDiagnostics.shared.update(
+          format.label,
+          [
+            "backend": backend,
+            "state": "preparing", "reason": "", "cache": "miss",
+            "mode": motion ? "pending" : "static",
+          ])
         if let existing = self.assets[id]?.value {
           existing.shouldContinue = shouldContinue
           if motion && existing.source == nil { existing.source = source }
@@ -142,6 +153,7 @@ final class LockScreenArtworkStore {
     let fallback = LockScreenArtworkAsset(
       id: id, preview: asset.preview, source: nil,
       format: asset.format, motion: false, store: self)
+    fallback.analysisReason = asset.analysisReason ?? "waiting-for-model-or-resources"
     fallback.shouldContinue = asset.shouldContinue
     assets[id] = WeakAsset(value: fallback)
     return fallback
@@ -168,6 +180,12 @@ final class LockScreenArtworkStore {
   private func enqueue(_ asset: LockScreenArtworkAsset, completion: @escaping (URL?) -> Void) {
     let url = videoURL(for: asset.id)
     if let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > 0 {
+      LockScreenArtworkDiagnostics.shared.update(
+        asset.format.label,
+        [
+          "cache": "hit", "state": "ready",
+          "mode": asset.motion ? "cached motion" : "static", "bytes": "\(size)",
+        ])
       asset.source = nil
       completion(url)
       return
@@ -188,9 +206,95 @@ final class LockScreenArtworkStore {
 
   func hasReadyVideo(data: Data, format: LockScreenArtworkFormat, backend: String) -> Bool {
     let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-    let id = "motion-v4-\(backend)-\(format.width)x\(format.height)-\(digest)"
+    let id = "motion-v5-\(backend)-\(format.width)x\(format.height)-\(digest)"
     return (try? videoURL(for: id).resourceValues(forKeys: [.fileSizeKey]).fileSize).map { $0 > 0 }
       ?? false
+  }
+
+  func retireCameraVideo(for depthAsset: LockScreenArtworkAsset) {
+    queue.async {
+      let digest = depthAsset.id.components(separatedBy: "-").last!
+      let id = "motion-v5-camera-\(depthAsset.format.width)x\(depthAsset.format.height)-\(digest)"
+      self.retiredCameraIDs.insert(id)
+      self.trim()
+      self.queue.asyncAfter(deadline: .now() + 5) { self.trim() }
+    }
+  }
+
+  fileprivate func assetReleased() { queue.async { self.trim() } }
+
+  func listVideos(_ completion: @escaping ([[String: Any]]) -> Void) {
+    queue.async {
+      let keys: Set<URLResourceKey> = [.fileSizeKey, .creationDateKey, .contentModificationDateKey]
+      let files =
+        (try? FileManager.default.contentsOfDirectory(
+          at: self.directory,
+          includingPropertiesForKeys: Array(keys))) ?? []
+      let items = files.filter {
+        $0.pathExtension == "mp4" && !$0.lastPathComponent.hasSuffix(".tmp.mp4")
+      }
+      .compactMap { url -> [String: Any]? in
+        let id = url.deletingPathExtension().lastPathComponent
+        let values = try? url.resourceValues(forKeys: keys)
+        guard let bytes = values?.fileSize, bytes > 0 else { return nil }
+        return [
+          "id": id, "kind": id.hasPrefix("edge-") ? "static" : "dynamic",
+          "format": id.contains("720x960") ? "3:4" : "1:1", "sizeBytes": bytes,
+          "cachedAt": Int((values?.creationDate ?? .distantPast).timeIntervalSince1970 * 1000),
+          "lastAccessedAt": Int(
+            (values?.contentModificationDate ?? .distantPast).timeIntervalSince1970 * 1000),
+          "protected": self.assets[id]?.value != nil,
+        ]
+      }
+      completion(
+        items.sorted { ($0["lastAccessedAt"] as? Int ?? 0) > ($1["lastAccessedAt"] as? Int ?? 0) })
+    }
+  }
+
+  func deleteVideo(id: String, completion: @escaping (Bool) -> Void) {
+    queue.async {
+      guard !id.isEmpty, id.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }),
+        self.assets[id]?.value == nil
+      else {
+        completion(false)
+        return
+      }
+      let url = self.videoURL(for: id)
+      guard FileManager.default.fileExists(atPath: url.path) else {
+        completion(true)
+        return
+      }
+      do {
+        try FileManager.default.removeItem(at: url)
+        completion(true)
+      } catch { completion(false) }
+    }
+  }
+
+  func clearVideos(kind: String, completion: @escaping (Int, Int) -> Void) {
+    queue.async {
+      let files =
+        (try? FileManager.default.contentsOfDirectory(
+          at: self.directory,
+          includingPropertiesForKeys: nil)) ?? []
+      var deleted = 0
+      var retained = 0
+      for file in files
+      where file.pathExtension == "mp4" && !file.lastPathComponent.hasSuffix(".tmp.mp4") {
+        let id = file.deletingPathExtension().lastPathComponent
+        let category = id.hasPrefix("edge-") ? "static" : "dynamic"
+        guard kind == "all" || kind == category else { continue }
+        guard self.assets[id]?.value == nil else {
+          retained += 1
+          continue
+        }
+        do {
+          try FileManager.default.removeItem(at: file)
+          deleted += 1
+        } catch { retained += 1 }
+      }
+      completion(deleted, retained)
+    }
   }
 
   private func videoURL(for id: String) -> URL {
@@ -203,6 +307,7 @@ final class LockScreenArtworkStore {
     guard request.asset.shouldContinue(),
       !request.asset.motion || canGenerate(request.asset)
     else {
+      request.asset.analysisReason = "generation-deferred: \(policy.generationReason)"
       finishEncoding(nil)
       return
     }
@@ -213,6 +318,7 @@ final class LockScreenArtworkStore {
         }),
         LockScreenArtworkModelManager.shared.modelURL(tier) == nil
       {
+        request.asset.analysisReason = "waiting-for-model"
         LockScreenArtworkModelManager.shared.request(tier, automatic: true)
         finishEncoding(nil)
         return
@@ -238,7 +344,7 @@ final class LockScreenArtworkStore {
               let model = LockScreenArtworkDepthModel.analyze(
                 source,
                 candidate: LockScreenArtworkDepthModel.candidate(tier), modelURL: modelURL,
-                shouldContinue: { self.canGenerate(request.asset) })
+                shouldContinue: { self.canContinue(request.asset) })
               let content = request.asset.id.components(separatedBy: "-").last!
               if textRegions[content] == nil && self.policy.allowsGeneration
                 && request.asset.shouldContinue()
@@ -258,10 +364,34 @@ final class LockScreenArtworkStore {
         #endif
         measured.finish("mode=\(result.mode) reason=\(result.reason)")
         if analyses.count >= 8 { analyses.removeAll() }
-        analyses[digest] = result
+        if result.canCache { analyses[digest] = result }
         return result
       }
       request.asset.analysisReason = analysis.reason
+      if request.asset.backend != "camera" {
+        LockScreenArtworkDiagnostics.shared.setDepth(analysis.mask)
+      }
+      LockScreenArtworkDiagnostics.shared.update(
+        request.asset.format.label,
+        [
+          "mode": analysis.mode, "reason": analysis.reason,
+          "textRegions": "\(analysis.protectedText.count)",
+        ])
+      guard analysis.canCache else {
+        finishEncoding(nil)
+        return
+      }
+      // The camera stage already covers procedural motion. A DAV2 namespace
+      // is reserved for completed depth, never a geometry/error fallback.
+      guard request.asset.backend == "camera" || analysis.mask != nil else {
+        finishEncoding(nil)
+        return
+      }
+      guard analysis.mask == nil || LockScreenArtworkMotion.parallaxAvailable else {
+        request.asset.analysisReason = "metal-kernel-unavailable"
+        finishEncoding(nil)
+        return
+      }
       depth = LockScreenArtworkMotion.depthImage(
         analysis, source: source, format: request.asset.format)
     }
@@ -286,7 +416,7 @@ final class LockScreenArtworkStore {
       LockScreenArtworkVideo.write(
         image: request.asset.preview, to: temporary, queue: queue,
         motion: request.asset.motion, depth: depth,
-        shouldContinue: { self.canGenerate(request.asset) }
+        shouldContinue: { self.canContinue(request.asset) }
       ) {
         result in
         self.queue.async {
@@ -334,6 +464,15 @@ final class LockScreenArtworkStore {
     let request = pending.removeFirst()
     encodingID = nil
     request.asset.source = nil
+    LockScreenArtworkDiagnostics.shared.update(
+      request.asset.format.label,
+      [
+        "state": url == nil ? "deferred/failed" : "ready",
+        "reason": request.asset.analysisReason ?? (url == nil ? "encoding-failed" : "static"),
+        "mode": request.asset.motion && url != nil
+          ? (request.asset.analysisReason == "camera-fallback-no-depth" ? "camera" : "parallax")
+          : "static",
+      ])
     for callback in request.callbacks { callback(url) }
     trim()
     encodeNext()
@@ -351,6 +490,24 @@ final class LockScreenArtworkStore {
     return true
   }
 
+  private func canContinue(_ asset: LockScreenArtworkAsset) -> Bool {
+    // The loaded model itself consumes headroom. Tier admission happens once,
+    // before loading; abort only for actual pause conditions while it is alive.
+    let active = asset.shouldContinue()
+    let allowed = policy.allowsGeneration
+    if !active || !allowed {
+      LockScreenArtworkDiagnostics.shared.update(
+        asset.format.label,
+        ["reason": active ? policy.generationReason : "stale-revision"])
+      #if os(iOS)
+        NativeLogger.shared.info(
+          "generation checkpoint backend=\(asset.backend) active=\(active) reason=\(policy.generationReason) tier=\(policy.effectiveTier?.rawValue ?? "paused")",
+          source: "NowPlayingArtwork")
+      #endif
+    }
+    return active && allowed
+  }
+
   private func trim() {
     assets = assets.filter { $0.value.value != nil }
     let keys: Set<URLResourceKey> = [.fileSizeKey, .contentModificationDateKey]
@@ -359,6 +516,10 @@ final class LockScreenArtworkStore {
         at: directory, includingPropertiesForKeys: Array(keys)
       )
     else { return }
+    for id in Array(retiredCameraIDs) where assets[id]?.value == nil {
+      try? FileManager.default.removeItem(at: videoURL(for: id))
+      retiredCameraIDs.remove(id)
+    }
     var entries = files.filter {
       $0.pathExtension == "mp4" && !$0.lastPathComponent.hasSuffix(".tmp.mp4")
     }

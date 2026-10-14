@@ -19,6 +19,9 @@ struct LockScreenArtworkMotionAnalysis {
     self.protectedText = protectedText
   }
   var mode: String { mask == nil ? "camera" : "parallax" }
+  var canCache: Bool {
+    mask != nil || reason == "unsafe-source-geometry" || reason == "camera-fallback-no-depth"
+  }
 }
 
 enum LockScreenArtworkMotion {
@@ -39,8 +42,17 @@ enum LockScreenArtworkMotion {
           return image.sample(image.transform(p + offset * (2.0 * d - 1.0)));
       }
       """
-    return (try? CIKernel.kernels(withMetalString: source))?.first
+    LockScreenArtworkDiagnostics.shared.setRenderer("compiling Metal kernel")
+    do {
+      let result = try CIKernel.kernels(withMetalString: source).first
+      LockScreenArtworkDiagnostics.shared.setRenderer(result == nil ? "unavailable" : "Metal ready")
+      return result
+    } catch {
+      LockScreenArtworkDiagnostics.shared.setRenderer("Metal failed: \(error.localizedDescription)")
+      return nil
+    }
   }()
+  static var parallaxAvailable: Bool { kernel != nil }
 
   /// Normalized Vision coordinates, origin at bottom-left. Never record text.
   static func textRegions(_ image: CGImage) -> [CGRect] {

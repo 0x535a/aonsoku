@@ -8,6 +8,9 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "AonsokuNativePreferences"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "getLockScreenArtworkState", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "listLockScreenArtworkVideos", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "deleteLockScreenArtworkVideo", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearLockScreenArtworkVideos", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "configureLockScreenArtwork", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "downloadLockScreenArtworkModel", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "cancelLockScreenArtworkDownload", returnType: CAPPluginReturnPromise),
@@ -25,6 +28,32 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private var db: DatabasePool { DatabaseManager.shared.dbPool }
     private var prefs: PreferencesManager { PreferencesManager.shared }
+
+    @objc func listLockScreenArtworkVideos(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            LockScreenArtworkStore.shared.listVideos { call.resolve(["videos": $0]) }
+        }
+    }
+
+    @objc func deleteLockScreenArtworkVideo(_ call: CAPPluginCall) {
+        guard let id = call.getString("id") else { call.reject("Missing video ID"); return }
+        DispatchQueue.main.async {
+            LockScreenArtworkStore.shared.deleteVideo(id: id) { deleted in
+                if deleted { call.resolve() }
+                else { call.reject("Video is in use or could not be deleted") }
+            }
+        }
+    }
+
+    @objc func clearLockScreenArtworkVideos(_ call: CAPPluginCall) {
+        let kind = call.getString("kind") ?? "all"
+        guard ["all", "static", "dynamic"].contains(kind) else { call.reject("Unknown video kind"); return }
+        DispatchQueue.main.async {
+            LockScreenArtworkStore.shared.clearVideos(kind: kind) { deleted, retained in
+                call.resolve(["deleted": deleted, "retained": retained])
+            }
+        }
+    }
 
     @objc func getLockScreenArtworkState(_ call: CAPPluginCall) {
         DispatchQueue.main.async {

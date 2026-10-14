@@ -856,7 +856,9 @@
           "explicit": "手动下载",
           "lru": "自动缓存",
           "playlist": "播放列表",
-          "smart": "智能下载"
+          "smart": "智能下载",
+          "immersive-static": "静态沉浸封面",
+          "immersive-dynamic": "动态沉浸封面"
         },
         "group": "缓存管理器",
         "list": {
@@ -873,8 +875,15 @@
           "type_album": "专辑",
           "type_audio": "音频",
           "type_cover": "封面",
-          "type_playlist": "播放列表"
-        }
+          "type_playlist": "播放列表",
+          "type_immersive-static": "静态沉浸封面",
+          "type_immersive-dynamic": "动态沉浸封面"
+        },
+        "videoInfo": "沉浸封面视频与模型文件独立管理。使用中的视频受保护；清理后可重新生成。",
+        "refresh": "刷新",
+        "clearVideos": "清理沉浸封面视频",
+        "videoCleared": "已删除 {{deleted}} 个视频，保留 {{retained}} 个使用中的文件。",
+        "inUse": "使用中"
       },
       "coverArt": {
         "clear": "清除封面图缓存",

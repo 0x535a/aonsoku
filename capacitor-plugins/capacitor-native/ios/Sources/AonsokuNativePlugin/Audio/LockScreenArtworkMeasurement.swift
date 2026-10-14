@@ -43,6 +43,9 @@ final class LockScreenArtworkMeasurement {
       "phase=\(phase) elapsedMs=\(Int(Date().timeIntervalSince(started) * 1000)) "
       + "baselineMiB=\(baseline / 1_048_576) peakMiB=\(maximum / 1_048_576) "
       + "deltaMiB=\((maximum > baseline ? maximum - baseline : 0) / 1_048_576) \(detail)"
+    LockScreenArtworkDiagnostics.shared.measure(
+      phase, elapsed: Int(Date().timeIntervalSince(started) * 1000),
+      baseline: baseline, peak: maximum, detail: detail)
     #if os(iOS)
       NativeLogger.shared.info(message, source: "NowPlayingArtwork")
     #else

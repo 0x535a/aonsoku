@@ -234,6 +234,26 @@ struct ArtworkTests {
       square.preview.width == 720 && square.preview.height == 720,
       "square preview ratio incorrect")
     let squareFile = await video(square)!
+    let listed: [[String: Any]] = await withCheckedContinuation { continuation in
+      store.listVideos { continuation.resume(returning: $0) }
+    }
+    try require(
+      listed.contains(where: {
+        ($0["id"] as? String) == square.id && ($0["protected"] as? Bool) == true
+      }),
+      "active static video not reported as protected")
+    let removedActive: Bool = await withCheckedContinuation { continuation in
+      store.deleteVideo(id: square.id) { continuation.resume(returning: $0) }
+    }
+    try require(!removedActive, "cache manager removed active artwork")
+    let cleared: (Int, Int) = await withCheckedContinuation { continuation in
+      store.clearVideos(kind: "all") { continuation.resume(returning: ($0, $1)) }
+    }
+    try require(cleared.0 == 0 && cleared.1 >= 2, "bulk clear did not protect current videos")
+    let traversal: Bool = await withCheckedContinuation { continuation in
+      store.deleteVideo(id: "../outside") { continuation.resume(returning: $0) }
+    }
+    try require(!traversal, "cache deletion accepted a filesystem path")
     try require(squareFile != file, "square video replaced tall video")
     let squareMovie = AVURLAsset(url: squareFile)
     let squareTracks = try await squareMovie.loadTracks(withMediaType: .video)
@@ -456,6 +476,15 @@ struct ArtworkTests {
     try require(stale == nil, "stale revision generated artwork")
 
     let gib: UInt64 = 1024 * 1024 * 1024
+    try require(
+      !LockScreenArtworkMotionAnalysis(mask: nil, reason: "generation-deferred").canCache,
+      "deferred inference must not poison the DAV2 video cache")
+    try require(
+      !LockScreenArtworkMotionAnalysis(mask: nil, reason: "model-failed").canCache,
+      "failed inference must not become a DAV2 camera video")
+    try require(
+      LockScreenArtworkMotionAnalysis(mask: scene, reason: "dav2-f16").canCache,
+      "completed depth must be cacheable")
     try require(LockScreenArtworkTier.automatic(memory: 4 * gib) == .p6, "4GB default tier wrong")
     try require(LockScreenArtworkTier.automatic(memory: 6 * gib) == .p8, "6GB default tier wrong")
     try require(LockScreenArtworkTier.automatic(memory: 8 * gib) == .fp16, "8GB default tier wrong")

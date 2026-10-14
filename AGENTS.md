@@ -370,7 +370,7 @@ Key files:
   four pending requests, revision cancellation and lifecycle/resource guards
   (background, low power, serious thermal state, Reduce Motion, memory warning).
   `LockScreenArtworkMeasurement.swift` records per-phase time/process footprint;
-  Debug samples peaks every 10ms. Motion IDs use `motion-v4` and remain isolated
+  Debug samples peaks every 10ms. Motion IDs use `motion-v5` and remain isolated
   from static `edge-v1` assets. On iOS 26+,
   `AonsokuNativeAudioPlugin` adds `MPMediaItemAnimatedArtwork` alongside the
   ordinary artwork for each key in `supportedAnimatedArtworkKeys` (3:4 and/or
@@ -399,6 +399,21 @@ Key files:
   model preserves cached videos. Model license/notice is bundled as a SwiftPM
   resource; weights are not bundled. Background/resource conditions defer
   compilation and generation; existing lower tiers/videos remain reusable.
+  Publication is progressive: pin the static clip, publish a quick camera-motion
+  clip, then upgrade to completed DAV2 depth. Cached depth skips regenerating
+  the camera stage; superseded camera files are retired only after live artwork
+  objects release them. A per-revision stage guard prevents delayed callbacks
+  from downgrading published depth. Deferred/failed inference must never populate
+  a DAV2 camera-video cache. Admit a tier before loading; in-flight work checks
+  actual pause/revision conditions rather than reacting to its own RAM usage.
+  `LockScreenArtworkDiagnostics.swift` keeps structured pipeline/phase snapshots
+  without waiting on Core ML. Native Debug has an Artwork tab with resource and
+  model readiness, published/system-delivered stages, fallback/cache reasons,
+  phase time/footprint and a normalized-depth preview (last completed analysis).
+  Storage's cache manager merges native immersive-static/immersive-dynamic rows
+  via iOS preferences extension methods; no derived-video entries are persisted
+  in the browser cache index. Individual/type clears and asset/all-cache clears
+  include these videos, skip live artwork files, and never delete model weights.
   `scripts/ios/prepare-motion-models.py` prepares only those three DAV2 tiers for
   Mac experiments. `run-motion-cover-experiment.mjs` uses the production Core ML
   and rendering sources; intermediates live under `doc/ios-lock-screen/exp`.

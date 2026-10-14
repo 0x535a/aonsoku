@@ -39,6 +39,7 @@ try {
       "LockScreenArtworkModelCatalog",
       "LockScreenArtworkModelManager",
       "LockScreenArtworkMeasurement",
+      "LockScreenArtworkDiagnostics",
     ].map((name) => join(source, `${name}.swift`)),
     join(root, "scripts/ios/lock-screen-artwork-tests.swift"),
     "-o",

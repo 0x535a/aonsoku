@@ -3,6 +3,15 @@ import { Capacitor } from "@capacitor/core";
 import { getRuntime } from "@/utils/capabilities";
 
 export type ArtworkTier = "fp16" | "p8" | "p6";
+export interface ArtworkCachedVideo {
+  id: string;
+  kind: "static" | "dynamic";
+  format: string;
+  sizeBytes: number;
+  cachedAt: number;
+  lastAccessedAt: number;
+  protected: boolean;
+}
 export interface ArtworkOptions {
   immersiveEnabled: boolean;
   dynamicEnabled: boolean;
@@ -37,6 +46,11 @@ export interface ArtworkState {
   modelRevision: string;
 }
 interface IOSArtworkPreferences {
+  listLockScreenArtworkVideos(): Promise<{ videos: ArtworkCachedVideo[] }>;
+  deleteLockScreenArtworkVideo(options: { id: string }): Promise<void>;
+  clearLockScreenArtworkVideos(options: {
+    kind: "all" | "static" | "dynamic";
+  }): Promise<{ deleted: number; retained: number }>;
   getLockScreenArtworkState(): Promise<ArtworkState>;
   configureLockScreenArtwork(
     options: Partial<ArtworkOptions>,
@@ -62,6 +76,10 @@ function plugin(): IOSArtworkPreferences {
   return AonsokuNativePreferences as unknown as IOSArtworkPreferences;
 }
 export const lockScreenArtwork = {
+  listVideos: async () => (await plugin().listLockScreenArtworkVideos()).videos,
+  deleteVideo: (id: string) => plugin().deleteLockScreenArtworkVideo({ id }),
+  clearVideos: (kind: "all" | "static" | "dynamic" = "all") =>
+    plugin().clearLockScreenArtworkVideos({ kind }),
   getState: () => plugin().getLockScreenArtworkState(),
   configure: (options: Partial<ArtworkOptions>) =>
     plugin().configureLockScreenArtwork(options),

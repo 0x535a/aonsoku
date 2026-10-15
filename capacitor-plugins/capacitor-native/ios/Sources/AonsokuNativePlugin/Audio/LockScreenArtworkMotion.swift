@@ -142,13 +142,14 @@ enum LockScreenArtworkMotion {
     let factor =
       (depth == nil ? 1 : parameters.amplitude) * Double(min(image.width, image.height)) / 720
     let amplitude = (depth == nil ? 4.0 : 1.5) * factor
-    // Cover only this frame's camera + depth displacement, with one pixel
-    // for interpolation. This is motion-only crop, never a generated border.
     let cameraX = amplitude * sin(angle)
     let cameraY = amplitude * sin(2 * angle) * 0.5
-    let padX = abs(cameraX) + (depth == nil ? 0 : abs(10 * factor * sin(angle))) + 1
-    let padY = abs(cameraY) + (depth == nil ? 0 : abs(4 * factor * sin(2 * angle))) + 1
-    let scale = 1 + max(2 * padX / bounds.width, 2 * padY / bounds.height)
+    // Restore the smooth periodic zoom. Zoom is dimensionless: only pixel
+    // displacement scales with output resolution, not the zoom percentage.
+    let zoomAmplitude = depth == nil ? 1 : parameters.amplitude
+    let scale = depth == nil
+      ? 1.025 + 0.0125 * (1 - cos(angle))
+      : 1 + 0.04 * zoomAmplitude + 0.004 * zoomAmplitude * (1 - cos(angle))
     let transform = CGAffineTransform(
       translationX: bounds.midX + cameraX,
       y: bounds.midY + cameraY

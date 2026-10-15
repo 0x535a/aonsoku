@@ -415,7 +415,8 @@ Key files:
   budgets and prepared VideoToolbox encoder support, logging actual dimensions
   and downgrade reasons. The producer decodes to that target; ordinary previews
   alone keep a separate 1200px budget. Matching ratios use a no-extension fast
-  path; motion overscan tracks actual displacement.
+  path; motion uses the restored smooth cosine zoom; only pixel displacement scales
+  with output resolution. Superseded non-smooth v7/v8 videos are not restored.
   `LockScreenArtworkStore.swift` prepares it on a utility queue and reuses
   content-addressed videos (12 files / 24 MiB, with live assets protected from
   eviction) in a backup-excluded Application Support directory.
@@ -433,8 +434,8 @@ Key files:
   four pending requests, revision cancellation and lifecycle/resource guards
   (background, low power, serious thermal state, Reduce Motion, memory warning).
   `LockScreenArtworkMeasurement.swift` records per-phase time/process footprint;
-  Debug samples peaks every 10ms. New DAV2 IDs use `motion-v8` with amplitude/
-  speed keys; camera clips use `motion-v7`, and static clips use `edge-v2`.
+  Debug samples peaks every 10ms. New DAV2 IDs use `motion-v10` with amplitude/
+  speed keys; camera clips use `motion-v9`, and static clips use `edge-v2`.
   Every ID includes actual dimensions. Original-hash/parameter-validated legacy
   v1/v5/v6 files remain explicitly readable without re-encoding. On iOS 26+,
   `AonsokuNativeAudioPlugin` adds `MPMediaItemAnimatedArtwork` alongside the

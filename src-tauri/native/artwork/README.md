@@ -28,7 +28,7 @@ another platform's files.
   memory and prepared hardware H.264 support, then decode only the needed pixels.
   Camera/depth share the static base geometry. Existing clips, including old
   portrait files, are reusable without a viewport threshold. New export IDs are
-  edge-v2/motion-v7/motion-v8.
+  edge-v2/motion-v9/motion-v10.
 - `ArtworkRenderer.swift`, `ArtworkVideo.swift`, `ArtworkStore.swift`: bounded
   decode/frame buffers, complete silent loops and a live-asset-protected LRU.
 - `DynamicCoverRegistry.swift`: publication and strong references for leases.
@@ -70,3 +70,5 @@ the library just produced by Cargo to avoid recompiling production Swift;
 Neither option is consumed by the application.
 
 Current geometry, demand and QA details: `doc/dynamic-cover/resolution.md`. The neutral resolution harness compiles both independent implementations only for contract checks; production code remains isolated.
+
+Motion uses the restored cosine zoom (dimensionless amplitude); pixel displacement scales with resolution. Intermediate v7/v8 clips are excluded from restore to avoid retaining the non-smooth curve.

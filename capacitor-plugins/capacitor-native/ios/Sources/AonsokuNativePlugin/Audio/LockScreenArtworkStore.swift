@@ -263,8 +263,8 @@ final class LockScreenArtworkStore {
           ?? "camera"
         let valid =
           id.hasPrefix("edge-v1-") || id.hasPrefix("edge-v2-")
-          || id.hasPrefix("motion-v5-camera-") || id.hasPrefix("motion-v7-camera-")
-          || ((id.hasPrefix("motion-v6-dav2-") || id.hasPrefix("motion-v8-dav2-"))
+          || id.hasPrefix("motion-v5-camera-") || id.hasPrefix("motion-v9-camera-")
+          || ((id.hasPrefix("motion-v6-dav2-") || id.hasPrefix("motion-v10-dav2-"))
             && id.contains("-\(options.motionParameters.cacheKey)-"))
         guard valid else { continue }
         if motion && backend != "camera",
@@ -311,7 +311,7 @@ final class LockScreenArtworkStore {
     parameters: LockScreenArtworkMotionParameters
   ) -> String {
     let prefix =
-      backend == "camera" ? "motion-v7-camera" : "motion-v8-\(backend)-\(parameters.cacheKey)"
+      backend == "camera" ? "motion-v9-camera" : "motion-v10-\(backend)-\(parameters.cacheKey)"
     return "\(prefix)-\(format.width)x\(format.height)-\(digest)"
   }
 
@@ -324,7 +324,7 @@ final class LockScreenArtworkStore {
       for file in files {
         let id = file.deletingPathExtension().lastPathComponent
         if id.hasSuffix("-\(digest)")
-          && (id.hasPrefix("motion-v5-camera-") || id.hasPrefix("motion-v7-camera-"))
+          && (id.hasPrefix("motion-v5-camera-") || id.hasPrefix("motion-v7-camera-") || id.hasPrefix("motion-v9-camera-"))
         {
           self.retiredCameraIDs.insert(id)
         }

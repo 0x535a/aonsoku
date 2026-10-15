@@ -879,6 +879,8 @@
         }
       },
       "lockScreenArtwork": {
+        "disableProtection": "Disable resource protection",
+        "disableProtectionInfo": "Allow generation and playback despite heat, Low Power Mode or memory pressure, without automatic model downgrades. This can increase heat and battery use and may cause iOS to terminate the app. System limits, background lifecycle and Reduce Motion still apply.",
         "macImmersiveInfo": "Prepare cover videos with continuously extended edges for reuse by the player.",
         "macWifiOnly": "Download models on unmetered networks only",
         "macWifiInfo": "Allow Wi-Fi and Ethernet without metered or constrained connections. Disable to allow metered networks.",

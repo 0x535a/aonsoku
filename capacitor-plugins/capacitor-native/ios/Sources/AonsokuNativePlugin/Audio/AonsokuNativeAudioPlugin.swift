@@ -2143,6 +2143,10 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                 artworkResourceObservers.append(center.addObserver(forName: name, object: nil,
                     queue: .main) { [weak self] note in
                     guard let self else { return }
+                    let resourceEvent = [Notification.Name.NSProcessInfoPowerStateDidChange,
+                        ProcessInfo.thermalStateDidChangeNotification, LockScreenArtworkMotionPolicy.resourcesChanged,
+                        UIApplication.didReceiveMemoryWarningNotification].contains(note.name)
+                    if resourceEvent && !LockScreenArtworkSettings.shared.value.resourceProtectionEnabled { return }
                     if note.name == UIApplication.didReceiveMemoryWarningNotification {
                         if var info = MPNowPlayingInfoCenter.default().nowPlayingInfo {
                             self.removeImmersiveArtwork(from: &info)

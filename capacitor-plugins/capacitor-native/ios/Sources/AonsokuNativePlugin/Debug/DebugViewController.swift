@@ -173,6 +173,7 @@ public final class DebugViewController: UIViewController {
             ("Immersive / Dynamic", "\(options.immersiveEnabled) / \(options.dynamicEnabled)"),
             ("Requested / Effective", "\(options.quality) / \(policy.effectiveTier?.rawValue ?? "paused")"),
             ("Resource Policy", policy.generationReason),
+            ("Resource Protection", options.resourceProtectionEnabled ? "on" : "off (user override)"),
             ("Motion amplitude / speed", "\(options.motionAmplitude)× / \(options.motionSpeed)×"),
             ("DAV2 loop", "\(options.motionParameters.duration) s · 24 fps"),
             ("Depth Renderer", LockScreenArtworkDiagnostics.shared.rendererState()),

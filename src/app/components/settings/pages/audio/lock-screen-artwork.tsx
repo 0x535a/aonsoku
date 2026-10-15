@@ -111,6 +111,23 @@ export function LockScreenArtworkSettings() {
               {t(`${prefix}.unsupported`)}
             </p>
           )}
+          {!mac && state.options.resourceProtectionEnabled !== undefined && (
+            <ContentItem>
+              <ContentItemTitle info={t(`${prefix}.disableProtectionInfo`)}>
+                {t(`${prefix}.disableProtection`)}
+              </ContentItemTitle>
+              <ContentItemForm>
+                <Switch
+                  aria-label={t(`${prefix}.disableProtection`)}
+                  checked={!state.options.resourceProtectionEnabled}
+                  disabled={configure.isPending}
+                  onCheckedChange={(off) =>
+                    configure.mutate({ resourceProtectionEnabled: !off })
+                  }
+                />
+              </ContentItemForm>
+            </ContentItem>
+          )}
           {!mac && (
             <>
               <ContentItem>

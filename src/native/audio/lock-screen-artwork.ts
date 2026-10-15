@@ -21,6 +21,8 @@ export interface ArtworkOptions {
   dynamicEnabled: boolean;
   quality: "auto" | ArtworkTier;
   wifiOnly: boolean;
+  /** iOS only; absent on other hosts. Missing values retain protection. */
+  resourceProtectionEnabled?: boolean;
   motionAmplitude: number;
   motionSpeed: number;
 }

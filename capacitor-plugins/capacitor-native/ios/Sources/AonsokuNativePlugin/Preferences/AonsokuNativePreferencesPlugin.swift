@@ -168,11 +168,14 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
             do {
                 let old = LockScreenArtworkSettings.shared.value
                 var options: [String: Any] = [:]
-                for key in ["immersiveEnabled", "dynamicEnabled", "quality", "wifiOnly", "motionAmplitude", "motionSpeed"] {
+                for key in ["immersiveEnabled", "dynamicEnabled", "quality", "wifiOnly", "motionAmplitude", "motionSpeed", "resourceProtectionEnabled"] {
                     if let value = call.getValue(key) { options[key] = value }
                 }
                 try LockScreenArtworkSettings.shared.configure(options)
                 let updated = LockScreenArtworkSettings.shared.value
+                if old.resourceProtectionEnabled != updated.resourceProtectionEnabled {
+                    LockScreenArtworkModelManager.shared.resumeDeferred()
+                }
                 if old.immersiveEnabled && old.dynamicEnabled && !(updated.immersiveEnabled && updated.dynamicEnabled) && !LockScreenArtworkDemand.shared.dynamicRequested {
                     LockScreenArtworkModelManager.shared.stopAutomaticGeneration()
                 }

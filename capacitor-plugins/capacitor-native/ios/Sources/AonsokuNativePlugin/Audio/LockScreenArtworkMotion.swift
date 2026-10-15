@@ -243,6 +243,10 @@ final class LockScreenArtworkMotionPolicy {
     let active = foreground
     let paused = Date() <= memoryPauseUntil
     lock.unlock()
+    if !LockScreenArtworkSettings.shared.value.resourceProtectionEnabled {
+      if !active { return "background" }
+      return allowsPlayback ? "ready" : "reduceMotion"
+    }
     if paused { return "memoryPressure" }
     if !active { return "background" }
     if ProcessInfo.processInfo.thermalState.rawValue >= 2 { return "thermal" }
@@ -252,31 +256,39 @@ final class LockScreenArtworkMotionPolicy {
     return "ready"
   }
   var effectiveTier: LockScreenArtworkTier? {
+    let options = LockScreenArtworkSettings.shared.value
+    if !options.resourceProtectionEnabled {
+      return LockScreenArtworkTier(rawValue: options.quality)
+        ?? LockScreenArtworkTier.automatic(memory: ProcessInfo.processInfo.physicalMemory)
+    }
     lock.lock()
     let pressured = Date() <= memoryPauseUntil
     let recovering = Date() <= memoryDowngradeUntil
     lock.unlock()
     return LockScreenArtworkTier.select(
-      quality: LockScreenArtworkSettings.shared.value.quality,
+      quality: options.quality,
       memory: ProcessInfo.processInfo.physicalMemory,
       thermal: ProcessInfo.processInfo.thermalState.rawValue,
       memoryPressure: pressured, recovering: recovering, availableMemory: availableMemory)
   }
 
   var allowsGeneration: Bool {
+    let protection = LockScreenArtworkSettings.shared.value.resourceProtectionEnabled
     lock.lock()
-    let allowed = foreground && Date() > memoryPauseUntil
+    let allowed = foreground && (!protection || Date() > memoryPauseUntil)
     lock.unlock()
     return allowed && allowsPlayback && effectiveTier != nil
-      && ProcessInfo.processInfo.thermalState.rawValue < 2
+      && (!protection || ProcessInfo.processInfo.thermalState.rawValue < 2)
   }
 
   var allowsPlayback: Bool {
     #if os(iOS)
       lock.lock()
-      let reduced = reduceMotion || Date() <= memoryPauseUntil
+      let reduced = reduceMotion
+      let pressured = Date() <= memoryPauseUntil
       lock.unlock()
-      return !reduced && !ProcessInfo.processInfo.isLowPowerModeEnabled
+      if !LockScreenArtworkSettings.shared.value.resourceProtectionEnabled { return !reduced }
+      return !reduced && !pressured && !ProcessInfo.processInfo.isLowPowerModeEnabled
         && ProcessInfo.processInfo.thermalState.rawValue < 2
     #else
       return true

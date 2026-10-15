@@ -37,6 +37,7 @@ struct LockScreenArtworkOptions: Codable {
   var dynamicEnabled = false
   var quality = "auto"
   var wifiOnly = true
+  var resourceProtectionEnabled = true
   var motionAmplitude = 1.0
   var motionSpeed = 1.0
   var motionParameters: LockScreenArtworkMotionParameters {
@@ -45,6 +46,7 @@ struct LockScreenArtworkOptions: Codable {
   init() {}
   private enum CodingKeys: String, CodingKey {
     case immersiveEnabled, dynamicEnabled, quality, wifiOnly, motionAmplitude, motionSpeed
+    case resourceProtectionEnabled
   }
   init(from decoder: Decoder) throws {
     let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -52,6 +54,8 @@ struct LockScreenArtworkOptions: Codable {
     dynamicEnabled = try values.decodeIfPresent(Bool.self, forKey: .dynamicEnabled) ?? false
     quality = try values.decodeIfPresent(String.self, forKey: .quality) ?? "auto"
     wifiOnly = try values.decodeIfPresent(Bool.self, forKey: .wifiOnly) ?? true
+    resourceProtectionEnabled =
+      try values.decodeIfPresent(Bool.self, forKey: .resourceProtectionEnabled) ?? true
     let amplitude = try values.decodeIfPresent(Double.self, forKey: .motionAmplitude) ?? 1
     let speed = try values.decodeIfPresent(Double.self, forKey: .motionSpeed) ?? 1
     let parameters = LockScreenArtworkMotionParameters(amplitude: amplitude, speed: speed)
@@ -102,6 +106,9 @@ final class LockScreenArtworkSettings {
     if let enabled = update["immersiveEnabled"] as? Bool { next.immersiveEnabled = enabled }
     if let enabled = update["dynamicEnabled"] as? Bool { next.dynamicEnabled = enabled }
     if let wifiOnly = update["wifiOnly"] as? Bool { next.wifiOnly = wifiOnly }
+    if let enabled = update["resourceProtectionEnabled"] as? Bool {
+      next.resourceProtectionEnabled = enabled
+    }
     if let quality = update["quality"] as? String {
       guard quality == "auto" || LockScreenArtworkTier(rawValue: quality) != nil else {
         throw NSError(domain: "ArtworkSettings", code: 1)

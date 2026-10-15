@@ -463,6 +463,15 @@ Key files:
   resetting existing options, and native validation rejects out-of-range values.
   The UI calls iOS-only methods on `AonsokuNativePreferencesPlugin`, keeping shared
   playback/preferences contracts for other runtimes unchanged.
+  iOS-only `resourceProtectionEnabled` defaults true (including old preferences).
+  The audio settings' "Disable resource protection" switch inverses it. When off,
+  generation/playback bypass app thermal/Low Power/memory pause/recovery and
+  headroom-based tier/canvas reductions; selected/physical-RAM tier selection
+  remains. Resource notifications do not retire artwork or cancel a live revision
+  in override mode; changing the option retries deferred compilation. Demand,
+  display settings, foreground lifecycle, Reduce Motion, physical capacity and
+  hardware/encoding bounds still apply; OS suspension/termination cannot be
+  overridden. The Debug Artwork board shows this option. No macOS counterpart.
   `LockScreenArtworkModelManager.swift` streams pinned Apache-2.0 Apple packages
   on demand, enforces Wi-Fi/cellular preferences, verifies exact bytes/SHA256,
   compiles locally and stores backup-excluded models in Application Support.

@@ -569,6 +569,8 @@
         "preAmp": "前置放大器（dB）"
       },
       "lockScreenArtwork": {
+        "disableProtection": "关闭资源保护",
+        "disableProtectionInfo": "忽略 App 对高温、低电量模式和内存压力的暂停及自动降档，继续生成和使用沉浸视频。可能增加发热、耗电或导致系统终止 App。系统强制限制、后台生命周期和“减少动态效果”仍然有效。",
         "macImmersiveInfo": "生成边缘连续延伸的封面视频，供播放器复用。",
         "macWifiOnly": "仅通过非计费网络下载模型",
         "macWifiInfo": "允许使用未标记为计费或受限的 Wi-Fi 与以太网。关闭后也可通过计费网络下载。",

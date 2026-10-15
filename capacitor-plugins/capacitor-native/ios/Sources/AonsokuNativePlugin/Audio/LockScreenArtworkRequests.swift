@@ -54,6 +54,11 @@ final class LockScreenArtworkRequests {
     )
   }
   static var budgetBytes: UInt64 {
+    // Physical/hardware capacity remains bounded; only pressure-based reduction
+    // is optional. Disabling protection does not promise an allocation succeeds.
+    if !LockScreenArtworkSettings.shared.value.resourceProtectionEnabled {
+      return ProcessInfo.processInfo.physicalMemory / 8
+    }
     let available = UInt64(os_proc_available_memory())
     return min(
       ProcessInfo.processInfo.physicalMemory / 8,

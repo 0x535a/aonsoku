@@ -181,6 +181,12 @@ WebGPU 能力检测需要实际申请适配器/设备并验证推理所需特性
 - **修复方案**：移除 `mobile-layout.tsx` 中 `playing-view` 的 `overflow-hidden overflow-clip`，使散景与高斯光晕能够顺滑贯穿顶部控制区并与全画幅环境漫反射（`FullscreenAmbientAtmosphere`）完全无缝融合，彻底消除刘海屏/灵动岛下方与小标题之间的切割痕迹。
 
 
+### 简化环境漫反射动效（2026-10-16）
+
+根据用户体验需求，移除了底层漫反射光晕的 7 秒慢呼吸缩放动效（`animate-dreamy-breathe` 与 `@keyframes dreamy-aura-breathe`），转为纯粹、稳重、优雅的静态高斯漫溢渲染（`opacity-65 scale-106`），既避免背景光芒持续起伏对歌词/封面观感的干扰，又降低了 GPU 持续合成消耗。
+
+
+
 
 
 ## Resource Policy：生成与播放分离

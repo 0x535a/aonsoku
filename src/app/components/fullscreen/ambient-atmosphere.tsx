@@ -1,7 +1,5 @@
-import { useReducedMotion } from "framer-motion";
 import { memo } from "react";
 import { CachedImage } from "@/app/components/cover-image/cached-image";
-import { cn } from "@/lib/utils";
 
 interface FullscreenAmbientAtmosphereProps {
   coverArtId?: string;
@@ -24,9 +22,6 @@ export const FullscreenAmbientAtmosphere = memo(
     hasRightPanel = false,
     isPortrait = false,
   }: FullscreenAmbientAtmosphereProps) {
-    const reduced = useReducedMotion() ?? false;
-    const shouldAnimate = active && !reduced;
-
     if (!coverArtId || !active) return null;
 
     // Anchor the glow center to the artwork's visual focal point:
@@ -55,12 +50,7 @@ export const FullscreenAmbientAtmosphere = memo(
               "radial-gradient(circle closest-side at center, black 18%, rgba(0,0,0,0.85) 38%, rgba(0,0,0,0.5) 62%, rgba(0,0,0,0.15) 84%, transparent 98%)",
           }}
         >
-          <div
-            className={cn(
-              "size-full blur-[72px] sm:blur-[96px] transition-all duration-1000",
-              shouldAnimate ? "animate-dreamy-breathe" : "opacity-65 scale-106",
-            )}
-          >
+          <div className="size-full blur-[72px] sm:blur-[96px] opacity-65 scale-106 transition-opacity duration-1000">
             <div className="size-full scale-110">
               <CachedImage
                 coverArtId={coverArtId}

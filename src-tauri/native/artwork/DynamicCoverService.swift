@@ -233,13 +233,13 @@ final class MacDynamicCoverService {
       generation.update(registry.revision)
       preparing = false
     }
-    guard ArtworkDemand.shared.requested, policy.allowsStaticGeneration else { return }
+    guard ArtworkDemand.shared.requested else { return }
     guard let original else {
       fetchOriginal()
       return
     }
     guard !preparing else { return }
-    let motion = ArtworkDemand.shared.dynamicRequested && policy.allowsGeneration
+    let motion = ArtworkDemand.shared.dynamicRequested && policy.allowsPlayback
     if let cover = registry.coverArtId,
       let asset = registry.current(
         coverArtId: cover, format: "any", mode: motion ? "dynamic" : "static"),
@@ -278,6 +278,11 @@ final class MacDynamicCoverService {
           return
         }
         for asset in assets { publish(asset) }
+        // Restore existing clips even under restriction; only new work waits.
+        guard policy.allowsStaticGeneration else {
+          finish()
+          return
+        }
         let reusableDepth = assets.first(where: { $0.motion && $0.backend != "camera" })
         if assets.contains(where: { !$0.motion }) && (reusableDepth != nil || !motion) {
           finish()

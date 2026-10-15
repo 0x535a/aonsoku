@@ -479,10 +479,11 @@ Key files:
   playback/preferences contracts for other runtimes unchanged.
   iOS-only `resourceProtectionEnabled` defaults true (including old preferences).
   The audio settings' "Disable resource protection" switch inverses it. When off,
-  generation/playback bypass app thermal/Low Power/memory pause/recovery and
+  generation bypasses app thermal/Low Power/memory pause/recovery and
   headroom-based tier/canvas reductions; selected/physical-RAM tier selection
-  remains. Resource notifications do not retire artwork or cancel a live revision
-  in override mode; changing the option retries deferred compilation. Demand,
+  remains. Resource notifications do not retire completed artwork; restrictions
+  defer new work while completed files remain readable/playable in either mode.
+  Changing the option retries deferred compilation. Demand,
   display settings, foreground lifecycle, Reduce Motion, physical capacity and
   hardware/encoding bounds still apply; OS suspension/termination cannot be
   overridden. The Debug Artwork board shows this option. No macOS counterpart.
@@ -556,7 +557,11 @@ Key files:
   applies resource/encoder caps without upscaling the subject.
   `FullscreenSongArtwork` mounts an Apple-only `ImmersiveArtwork` consumer with
   a square object-cover mask. Silent leased clips swap only after the new first
-  frame is ready and pause for playback/accessibility/resource policy. Visibility,
+  frame is ready and pause for playback, visibility and accessibility policy.
+  Resource restrictions pause new static/camera/depth generation and model work,
+  not completed-video playback. Cache restoration precedes generation guards on
+  iOS and macOS; `motionAllowed` excludes thermal/Low Power/memory restrictions.
+  iOS resource notifications preserve published clips. Visibility,
   cover changes, close and display disable release both intent and leases.
   `settings.fullscreen.dynamicArtworkEnabled` is a separate opt-in display
   preference in the player popover and appearance settings, not a generation

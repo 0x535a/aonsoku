@@ -17,6 +17,7 @@ export interface DynamicCoverCapabilities {
 
 export interface DynamicCoverVideo {
   status: "ready";
+  /** Playback/accessibility permission; resource restrictions only gate generation. */
   motionAllowed?: boolean;
   leaseId: string;
   assetId: string;

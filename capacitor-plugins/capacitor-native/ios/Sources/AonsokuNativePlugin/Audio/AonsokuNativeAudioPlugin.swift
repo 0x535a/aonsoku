@@ -2147,13 +2147,10 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                         ProcessInfo.thermalStateDidChangeNotification, LockScreenArtworkMotionPolicy.resourcesChanged,
                         UIApplication.didReceiveMemoryWarningNotification].contains(note.name)
                     if resourceEvent && !LockScreenArtworkSettings.shared.value.resourceProtectionEnabled { return }
-                    if note.name == UIApplication.didReceiveMemoryWarningNotification {
-                        if var info = MPNowPlayingInfoCenter.default().nowPlayingInfo {
-                            self.removeImmersiveArtwork(from: &info)
-                            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
-                        }
-                    } else if self.currentMetadata.artworkUrl != nil {
-                        let keepExisting = [LockScreenArtworkDemand.changed, LockScreenArtworkRequests.changed,
+                    // Restriction pauses generation without retiring published videos.
+                    if resourceEvent && !LockScreenArtworkMotionPolicy.shared.allowsGeneration { return }
+                    if self.currentMetadata.artworkUrl != nil {
+                        let keepExisting = resourceEvent || [LockScreenArtworkDemand.changed, LockScreenArtworkRequests.changed,
                             UIScreen.didConnectNotification, UIScreen.didDisconnectNotification, UIScreen.modeDidChangeNotification].contains(note.name)
                         if !keepExisting, var info = MPNowPlayingInfoCenter.default().nowPlayingInfo {
                             self.removeImmersiveArtwork(from: &info)
@@ -2952,6 +2949,8 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                             self.deliverImmersiveArtwork(asset, key: key, revision: revision)
                         }
                     }
+                    // Cache restoration/publication is independent of generation policy.
+                    guard LockScreenArtworkMotionPolicy.shared.allowsStaticGeneration else { return }
                     // A fullscreen consumer accepts existing files of any size/aspect.
                     // Only the lock-screen producer may request an upgraded format.
                     if !locked && assets.contains(where: { !$0.motion }) && (assets.contains(where: { $0.motion && $0.backend != "camera" }) || !LockScreenArtworkDemand.shared.dynamicRequested) { return }
@@ -3067,7 +3066,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                 let available = LockScreenArtworkModelManager.shared.availableTier(upTo: target) {
                 tier = available
             }
-            let motion = ((options.immersiveEnabled && options.dynamicEnabled) || (consumerMotion && LockScreenArtworkDemand.shared.dynamicRequested)) && policy.allowsPlayback && policy.effectiveTier != nil
+            let motion = ((options.immersiveEnabled && options.dynamicEnabled) || (consumerMotion && LockScreenArtworkDemand.shared.dynamicRequested)) && policy.allowsPlayback
             let backend = tier.backend
             LockScreenArtworkDiagnostics.shared.update(format.label,
                 ["targetTier": target.rawValue, "selectedTier": tier.rawValue,

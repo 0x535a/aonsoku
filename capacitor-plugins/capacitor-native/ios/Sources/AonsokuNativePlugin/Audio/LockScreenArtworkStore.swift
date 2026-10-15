@@ -418,6 +418,7 @@ final class LockScreenArtworkStore {
     guard encodingID == nil, let request = pending.first else { return }
     encodingID = request.asset.id
     guard request.asset.shouldContinue(),
+      policy.allowsStaticGeneration,
       !request.asset.motion || canGenerate(request.asset)
     else {
       request.asset.analysisReason = "generation-deferred: \(policy.generationReason)"
@@ -607,7 +608,7 @@ final class LockScreenArtworkStore {
     // The loaded model itself consumes headroom. Tier admission happens once,
     // before loading; abort only for actual pause conditions while it is alive.
     let active = asset.shouldContinue()
-    let allowed = policy.allowsGeneration
+    let allowed = asset.motion ? policy.allowsGeneration : policy.allowsStaticGeneration
     if !active || !allowed {
       LockScreenArtworkDiagnostics.shared.update(
         asset.format.label,

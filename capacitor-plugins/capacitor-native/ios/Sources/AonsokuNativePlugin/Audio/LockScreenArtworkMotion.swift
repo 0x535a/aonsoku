@@ -274,23 +274,26 @@ final class LockScreenArtworkMotionPolicy {
   }
 
   var allowsGeneration: Bool {
+    return allowsStaticGeneration && allowsPlayback
+  }
+
+  var allowsStaticGeneration: Bool {
     let protection = LockScreenArtworkSettings.shared.value.resourceProtectionEnabled
     lock.lock()
     let allowed = foreground && (!protection || Date() > memoryPauseUntil)
     lock.unlock()
-    return allowed && allowsPlayback && effectiveTier != nil
-      && (!protection || ProcessInfo.processInfo.thermalState.rawValue < 2)
+    return allowed && effectiveTier != nil
+      && (!protection || (ProcessInfo.processInfo.thermalState.rawValue < 2
+        && !ProcessInfo.processInfo.isLowPowerModeEnabled))
   }
 
   var allowsPlayback: Bool {
     #if os(iOS)
       lock.lock()
       let reduced = reduceMotion
-      let pressured = Date() <= memoryPauseUntil
       lock.unlock()
-      if !LockScreenArtworkSettings.shared.value.resourceProtectionEnabled { return !reduced }
-      return !reduced && !pressured && !ProcessInfo.processInfo.isLowPowerModeEnabled
-        && ProcessInfo.processInfo.thermalState.rawValue < 2
+      // Resource protection gates new work, never playback of completed files.
+      return !reduced
     #else
       return true
     #endif

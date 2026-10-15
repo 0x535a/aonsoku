@@ -20,7 +20,9 @@ another platform's files.
   displacement. Loss of keyboard focus does not pause desktop generation;
   hiding the application does. Memory warnings pause for 60 seconds and cap
   recovery to P6 for 180 seconds. Serious thermal state, Low Power Mode and
-  Reduce Motion stop motion generation/publication.
+  resource pressure block new generation, not playback of completed clips.
+  Reduce Motion still blocks animated playback. Cache restoration precedes
+  generation guards; no cached video requires inference to play.
 - `ArtworkSettings.swift`: app-scoped atomic model/trajectory settings and
   consumer demand ownership. The opt-in fullscreen display preference is separate.
 - `ArtworkRenderer.swift` also owns resolution planning: on a cache miss, use the

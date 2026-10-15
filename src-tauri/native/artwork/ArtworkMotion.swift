@@ -286,25 +286,24 @@ final class ArtworkMotionPolicy {
   }
 
   var allowsGeneration: Bool {
-    lock.lock()
-    let allowed = foreground && Date() > memoryPauseUntil
-    lock.unlock()
-    return allowed && allowsPlayback && effectiveTier != nil
-      && ProcessInfo.processInfo.thermalState.rawValue < 2
+    return allowsStaticGeneration && allowsPlayback
   }
 
   var allowsStaticGeneration: Bool {
     lock.lock()
-    defer { lock.unlock() }
-    return foreground && Date() > memoryPauseUntil
+    let allowed = foreground && Date() > memoryPauseUntil
+    lock.unlock()
+    return allowed && effectiveTier != nil
+      && !ProcessInfo.processInfo.isLowPowerModeEnabled
+      && ProcessInfo.processInfo.thermalState.rawValue < 2
   }
 
   var allowsPlayback: Bool {
     lock.lock()
-    let reduced = reduceMotion || Date() <= memoryPauseUntil
+    let reduced = reduceMotion
     lock.unlock()
-    return !reduced && !ProcessInfo.processInfo.isLowPowerModeEnabled
-      && ProcessInfo.processInfo.thermalState.rawValue < 2
+    // Resource protection gates new work, never playback of completed files.
+    return !reduced
   }
 }
 

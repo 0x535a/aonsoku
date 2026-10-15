@@ -1,5 +1,8 @@
 # Aonsoku — 本地 AI 动态专辑封面需求文档
 
+> 当前输出尺寸、最小延伸、全屏展示选项及消费需求分离规则已按 [resolution.md](resolution.md) 实现。下文保留此前固定尺寸实验与历史设备结果，不能将其 720px/1200px 数值当作当前生成上限或 Apple 要求。
+
+
 ## 1. 项目背景与目标
 
 项目仓库：https://gitlab.com/stephenzeng/aonsoku

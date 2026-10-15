@@ -22,6 +22,8 @@ export const tauriDynamicCover: DynamicCoverProvider = {
   getCapabilities: () => macArtworkCommand("capabilities"),
   acquire: (request) => macArtworkCommand("acquire", request),
   release: (leaseId) => macArtworkCommand("release", { leaseId }),
+  registerDemand: (request) => macArtworkCommand("registerDemand", request),
+  releaseDemand: (demandId) => macArtworkCommand("releaseDemand", { demandId }),
 };
 
 export interface MacArtworkDiagnostics {

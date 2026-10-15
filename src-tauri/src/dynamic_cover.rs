@@ -112,6 +112,8 @@ pub async fn dynamic_cover_command(
         return Err("Artwork is restricted to the main window".into());
     }
     if ![
+        "registerDemand",
+        "releaseDemand",
         "capabilities",
         "state",
         "configure",

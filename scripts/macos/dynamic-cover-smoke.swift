@@ -1,5 +1,6 @@
 import AVFoundation
 import AppKit
+import CryptoKit
 import Foundation
 
 @main
@@ -37,14 +38,71 @@ struct DynamicCoverSmoke {
     app.run()
   }
 
+  static func legacy(_ args: [String]) throws {
+    let output = URL(fileURLWithPath: args[4], isDirectory: true)
+    try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+    let cache = URL(fileURLWithPath: args[1]).appendingPathComponent("AonsokuArtwork")
+    try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
+    let id = "motion-v6-dav2-p6-a100-s100-720x960-" + args[7]
+    let seeded = cache.appendingPathComponent(id + ".mp4")
+    try FileManager.default.copyItem(at: URL(fileURLWithPath: args[6]), to: seeded)
+    _ = try command("openSession")
+    _ = try command(
+      "configure",
+      [
+        "immersiveEnabled": false, "dynamicEnabled": false,
+        "quality": "p6", "motionAmplitude": 1, "motionSpeed": 1,
+      ])
+    _ = try command("playback", ["artworkUrl": args[3]])
+    _ = try command("registerDemand", ["coverArtId": "fixture", "mode": "dynamic"])
+    var found: [String: Any]?
+    for _ in 0..<100 {
+      let result = try command(
+        "acquire", ["coverArtId": "fixture", "format": "any", "mode": "dynamic"])
+      if let lease = result["leaseId"] as? String {
+        if result["assetId"] as? String == id {
+          found = result
+          break
+        }
+        _ = try command("release", ["leaseId": lease])
+      }
+      Thread.sleep(forTimeInterval: 0.05)
+    }
+    guard let found, let lease = found["leaseId"] as? String else {
+      throw NSError(domain: "Legacy video was not reused", code: 1)
+    }
+    precondition(found["width"] as? Int == 720 && found["height"] as? Int == 960)
+    let path = try command("leaseFile", ["leaseId": lease])["path"] as! String
+    let sameBytes =
+      try Data(contentsOf: URL(fileURLWithPath: path))
+      == Data(contentsOf: URL(fileURLWithPath: args[6]))
+    precondition(sameBytes)
+    let diagnostics = try command("diagnostics")
+    let phases = diagnostics["phases"] as? [String: Any] ?? [:]
+    precondition(!phases.keys.contains(where: { $0.hasPrefix("model-") }))
+    let report: [String: Any] = [
+      "asset": found, "byteIdentical": sameBytes, "diagnostics": diagnostics,
+    ]
+    try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
+      .write(to: output.appendingPathComponent("legacy-reuse.json"))
+    _ = try command("releaseAll")
+    _ = try command("playback")
+    print(
+      "macOS legacy reuse passed: unchanged 720x960 file, any-format lease, no Core ML inference")
+  }
+
   static func run(_ args: [String]) throws {
+    if args[5] == "legacy" {
+      try legacy(args)
+      return
+    }
     let output = URL(fileURLWithPath: args[4], isDirectory: true)
     try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
     _ = try command("openSession")
     _ = try command(
       "configure",
       [
-        "immersiveEnabled": true, "dynamicEnabled": true,
+        "immersiveEnabled": false, "dynamicEnabled": false,
         "wifiOnly": false, "quality": "p6", "motionAmplitude": 1.5, "motionSpeed": 2,
       ])
     let network = args[5] == "1"
@@ -57,6 +115,11 @@ struct DynamicCoverSmoke {
       _ = try command("cancel", ["tier": "p6"])
     }
     _ = try command("playback", ["artworkUrl": args[3]])
+    let before = try command(
+      "acquire", ["coverArtId": "fixture", "format": "any", "mode": "dynamic"])
+    precondition(before["status"] as? String == "pending")
+    let demand = try command("registerDemand", ["coverArtId": "fixture", "mode": "dynamic"])
+    precondition(demand["demandId"] != nil)
     let started = Date()
     var observed: [String: [String: Any]] = [:]
     var staticLease: String?
@@ -128,7 +191,7 @@ struct DynamicCoverSmoke {
     _ = try command("configure", ["immersiveEnabled": false])
     let disabled = try command(
       "acquire", ["coverArtId": "fixture", "format": "square", "mode": "static"])
-    precondition(disabled["status"] as? String == "disabled")
+    precondition(disabled["status"] as? String == "mismatch")
     print(
       "macOS service smoke passed: \(observed.keys.sorted()), lease protection, mismatch and session cleanup"
     )

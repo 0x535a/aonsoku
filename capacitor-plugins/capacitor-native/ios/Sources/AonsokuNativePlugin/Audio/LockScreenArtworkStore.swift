@@ -105,7 +105,7 @@ final class LockScreenArtworkStore {
         let id =
           motion
           ? Self.motionID(digest: digest, format: format, backend: backend, parameters: parameters)
-          : "edge-v1-\(format.width)x\(format.height)-\(digest)"
+          : "edge-v2-\(format.width)x\(format.height)-\(digest)"
         LockScreenArtworkDiagnostics.shared.update(
           format.label,
           [
@@ -156,7 +156,7 @@ final class LockScreenArtworkStore {
     // A deferred or failed motion export still uses the proven immersive
     // static clip, with no inference/multi-frame work in system requests.
     let digest = asset.id.components(separatedBy: "-").last!
-    let id = "edge-v1-\(asset.format.width)x\(asset.format.height)-\(digest)"
+    let id = "edge-v2-\(asset.format.width)x\(asset.format.height)-\(digest)"
     if let existing = assets[id]?.value { return existing }
     let fallback = LockScreenArtworkAsset(
       id: id, preview: asset.preview, source: nil,
@@ -220,20 +220,115 @@ final class LockScreenArtworkStore {
       ?? false
   }
 
+  /// Called by the producer on original readiness/demand, never by acquire.
+  /// Older sizes remain consumable; only new exports use the new geometry IDs.
+  func restoreCached(
+    data: Data, shouldContinue: @escaping () -> Bool,
+    completion: @escaping ([LockScreenArtworkAsset]) -> Void
+  ) {
+    queue.async {
+      guard shouldContinue() else {
+        completion([])
+        return
+      }
+      let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+      let options = LockScreenArtworkSettings.shared.value
+      let files =
+        (try? FileManager.default.contentsOfDirectory(
+          at: self.directory,
+          includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
+      let ordered = files.sorted {
+        ((try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+          ?? .distantPast)
+          > ((try? $1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+            ?? .distantPast)
+      }
+      var selected: Set<String> = []
+      var previews: [String: CGImage] = [:]
+      var result: [LockScreenArtworkAsset] = []
+      for file in ordered where file.pathExtension == "mp4" {
+        let id = file.deletingPathExtension().lastPathComponent
+        guard id.hasSuffix("-\(digest)"), !id.contains("tmp"),
+          let size = id.components(separatedBy: "-").first(where: { $0.contains("x") }),
+          size.split(separator: "x").count == 2
+        else { continue }
+        let sides = size.split(separator: "x").compactMap { Int($0) }
+        guard sides.count == 2, sides[0] > 0, sides[1] > 0,
+          sides[0] == sides[1] || sides[0] * 4 == sides[1] * 3
+        else { continue }
+        let format = LockScreenArtworkFormat(width: sides[0], height: sides[1])
+        let motion = !id.hasPrefix("edge-")
+        let backend =
+          LockScreenArtworkTier.allCases.first { id.contains($0.backend + "-") }?.backend
+          ?? "camera"
+        let valid =
+          id.hasPrefix("edge-v1-") || id.hasPrefix("edge-v2-")
+          || id.hasPrefix("motion-v5-camera-") || id.hasPrefix("motion-v7-camera-")
+          || ((id.hasPrefix("motion-v6-dav2-") || id.hasPrefix("motion-v8-dav2-"))
+            && id.contains("-\(options.motionParameters.cacheKey)-"))
+        guard valid else { continue }
+        if motion && backend != "camera",
+          let tier = LockScreenArtworkTier(rawValue: options.quality), backend != tier.backend
+        {
+          continue
+        }
+        let key =
+          format.label + "-" + (motion ? (backend == "camera" ? "camera" : "depth") : "static")
+        guard selected.insert(key).inserted else { continue }
+        if let existing = self.assets[id]?.value {
+          result.append(existing)
+          continue
+        }
+        // A bounded preview is separate from the existing video's pixel size.
+        if previews[format.label] == nil,
+          let image = LockScreenArtworkRenderer.decode(data, maxPixelSize: 1200),
+          let previewFormat = LockScreenArtworkResolution.aligned(
+            CGSize(width: min(format.width, 1200), height: min(format.height, 1200)),
+            portrait: !format.isSquare)
+        {
+          previews[format.label] = LockScreenArtworkRenderer.render(image, format: previewFormat)
+        }
+        guard let preview = previews[format.label] else { continue }
+        let asset = LockScreenArtworkAsset(
+          id: id, preview: preview, source: nil, format: format,
+          motion: motion, backend: backend, store: self,
+          parameters: backend == "camera" ? .init() : options.motionParameters)
+        asset.analysisReason = "reused-existing-video"
+        self.assets[id] = WeakAsset(value: asset)
+        result.append(asset)
+      }
+      for asset in result where asset.motion {
+        asset.retainedStaticAsset = result.first {
+          !$0.motion && $0.format.label == asset.format.label
+        }
+      }
+      completion(Array(result.reversed()))
+    }
+  }
+
   static func motionID(
     digest: String, format: LockScreenArtworkFormat, backend: String,
     parameters: LockScreenArtworkMotionParameters
   ) -> String {
     let prefix =
-      backend == "camera" ? "motion-v5-camera" : "motion-v6-\(backend)-\(parameters.cacheKey)"
+      backend == "camera" ? "motion-v7-camera" : "motion-v8-\(backend)-\(parameters.cacheKey)"
     return "\(prefix)-\(format.width)x\(format.height)-\(digest)"
   }
 
   func retireCameraVideo(for depthAsset: LockScreenArtworkAsset) {
     queue.async {
       let digest = depthAsset.id.components(separatedBy: "-").last!
-      let id = "motion-v5-camera-\(depthAsset.format.width)x\(depthAsset.format.height)-\(digest)"
-      self.retiredCameraIDs.insert(id)
+      let files =
+        (try? FileManager.default.contentsOfDirectory(
+          at: self.directory, includingPropertiesForKeys: nil)) ?? []
+      for file in files {
+        let id = file.deletingPathExtension().lastPathComponent
+        if id.hasSuffix("-\(digest)")
+          && (id.hasPrefix("motion-v5-camera-") || id.hasPrefix("motion-v7-camera-"))
+        {
+          self.retiredCameraIDs.insert(id)
+        }
+      }
       self.trim()
       self.queue.asyncAfter(deadline: .now() + 5) { self.trim() }
     }

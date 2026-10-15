@@ -1,0 +1,11 @@
+{
+  "geometry": "passed: source/target, aspect alignment, decode >1200, resource cap, consumer isolation",
+  "interfaceTests": 24,
+  "nativeRegistry": "passed: stage/order, any-format, revision and lease ownership",
+  "macOS": "Rust/Swift compile/link and Range test passed",
+  "iOS": "Release generic device build passed, signing disabled",
+  "newVideo": "original 500x500 -> 500x500; static/camera/depth stages",
+  "legacy": "720x960 byte-identical reuse, no Core ML phases",
+  "typescript": "blocked by existing coordination/player/theme/UI type errors; new consumer/interface errors resolved",
+  "deviceQA": "not performed: iOS system callbacks and WKWebView fullscreen interactions"
+}

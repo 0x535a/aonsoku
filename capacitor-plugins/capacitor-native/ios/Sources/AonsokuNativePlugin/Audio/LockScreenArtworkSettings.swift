@@ -132,3 +132,57 @@ final class LockScreenArtworkSettings {
     }
   }
 }
+
+/// Explicit consumer intent; cache reads and system file callbacks never add work.
+final class LockScreenArtworkDemand {
+  static let shared = LockScreenArtworkDemand()
+  static let changed = Notification.Name("LockScreenArtworkGenerationDemandChanged")
+  private let lock = NSLock()
+  private var cover: String?
+  private var entries: [String: (owner: UUID, cover: String, motion: Bool)] = [:]
+  func setCurrentCover(_ value: String?) {
+    lock.lock()
+    cover = value
+    lock.unlock()
+  }
+  var requested: Bool {
+    lock.lock()
+    defer { lock.unlock() }
+    return entries.values.contains { $0.cover == cover }
+  }
+  var dynamicRequested: Bool {
+    lock.lock()
+    defer { lock.unlock() }
+    return entries.values.contains { $0.cover == cover && $0.motion }
+  }
+  func add(owner: UUID, cover: String, motion: Bool) -> String? {
+    lock.lock()
+    guard entries.values.filter({ $0.owner == owner }).count < 8 else {
+      lock.unlock()
+      return nil
+    }
+    let id = UUID().uuidString
+    entries[id] = (owner, cover, motion)
+    lock.unlock()
+    notify()
+    return id
+  }
+  func remove(_ id: String, owner: UUID) {
+    lock.lock()
+    let found = entries[id]?.owner == owner
+    if found { entries.removeValue(forKey: id) }
+    lock.unlock()
+    if found { notify() }
+  }
+  func releaseAll(owner: UUID) {
+    lock.lock()
+    let count = entries.count
+    entries = entries.filter { $0.value.owner != owner }
+    let changed = entries.count != count
+    lock.unlock()
+    if changed { notify() }
+  }
+  private func notify() {
+    DispatchQueue.main.async { NotificationCenter.default.post(name: Self.changed, object: nil) }
+  }
+}

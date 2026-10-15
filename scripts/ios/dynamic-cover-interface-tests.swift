@@ -20,6 +20,11 @@ enum DynamicCoverInterfaceTests {
         precondition(registry.current(coverArtId: "cover-1", format: "square", mode: "static") === original)
         precondition(registry.current(coverArtId: "other", format: "square", mode: "dynamic") == nil)
         precondition(registry.current(coverArtId: "cover-1", format: "portrait", mode: "dynamic") == nil)
+        let portrait = Asset()
+        registry.publish(portrait, format: "portrait", rank: 2)
+        precondition(registry.current(coverArtId: "cover-1", format: "any", mode: "dynamic") === portrait)
+        registry.publish(depth, format: "square", rank: 2)
+        precondition(registry.current(coverArtId: "cover-1", format: "any", mode: "dynamic") === depth)
         let lease = registry.retain(original!, owner: owner)!
         original = nil
         registry.begin(coverArtId: nil)

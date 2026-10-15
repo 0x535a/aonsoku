@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
     getDynamicCoverCapabilities: vi.fn(),
     acquireDynamicCover: vi.fn(),
     releaseDynamicCover: vi.fn(),
+    registerDynamicCoverDemand: vi.fn(),
+    releaseDynamicCoverDemand: vi.fn(),
   },
 }));
 vi.mock("@/utils/capabilities", () => ({ getRuntime: () => mocks.runtime }));
@@ -64,6 +66,38 @@ describe("dynamic cover consumer interface", () => {
     mocks.native.getDynamicCoverCapabilities.mockResolvedValue(capabilities);
     mocks.native.acquireDynamicCover.mockResolvedValue(video);
     mocks.native.releaseDynamicCover.mockResolvedValue(undefined);
+  });
+
+  it("reuses a smaller portrait clip without submitting a generation request", async () => {
+    mocks.native.acquireDynamicCover.mockResolvedValue({
+      ...video,
+      format: "portrait",
+      width: 300,
+      height: 400,
+    });
+    const handle = await dynamicCover.acquire({ ...request, format: "any" });
+    expect(handle.status).toBe("ready");
+    if (handle.status === "ready") {
+      expect(handle.format).toBe("portrait");
+      await handle.release();
+    }
+    expect(mocks.native.registerDynamicCoverDemand).not.toHaveBeenCalled();
+  });
+
+  it("registers a consumer demand separately and releases it once", async () => {
+    mocks.native.registerDynamicCoverDemand.mockResolvedValue({
+      demandId: "consumer",
+    });
+    mocks.native.releaseDynamicCoverDemand.mockResolvedValue(undefined);
+    const demand = await dynamicCover.requestGeneration({
+      coverArtId: "album-1",
+      mode: "dynamic",
+    });
+    await Promise.all([demand?.release(), demand?.release()]);
+    expect(mocks.native.acquireDynamicCover).not.toHaveBeenCalled();
+    expect(
+      mocks.native.releaseDynamicCoverDemand,
+    ).toHaveBeenCalledExactlyOnceWith({ demandId: "consumer" });
   });
 
   it("converts iOS URLs and releases a lease once through the original provider", async () => {

@@ -142,8 +142,7 @@ final class ArtworkModelManager: NSObject, URLSessionDownloadDelegate {
   func request(_ tier: ArtworkTier, automatic: Bool = false) {
     worker.async {
       if automatic {
-        let options = ArtworkSettings.shared.value
-        guard options.immersiveEnabled && options.dynamicEnabled else { return }
+        guard ArtworkDemand.shared.dynamicRequested else { return }
       }
       guard self.modelURL(tier) == nil else { return }
       self.lock.lock()

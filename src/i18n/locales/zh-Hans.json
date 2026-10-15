@@ -128,6 +128,8 @@
     "songCount_other": "{{count}} 首歌曲"
   },
   "fullscreen": {
+    "dynamicArtwork": "动态专辑封面",
+    "dynamicArtworkInfo": "在全屏播放器中展示沉浸封面视频，与锁屏封面开关独立。",
     "emptyQueue": "队列中没有歌曲",
     "loadingLyrics": "搜索歌词…",
     "lyrics": "歌词",
@@ -596,6 +598,7 @@
         "cancel": "取消",
         "license": "Depth Anything V2 Small · Apple Core ML · Apache-2.0",
         "generation": {
+          "waitingForConsumer": "等待可见播放器的封面需求",
           "ready": "可在前台生成动态封面",
           "disabled": "动态封面生成已关闭",
           "background": "App 在后台，已暂停生成",

@@ -14,6 +14,10 @@ import type {
 export type * from "./types";
 
 interface IOSDynamicCoverBridge {
+  registerDynamicCoverDemand(
+    request: Pick<DynamicCoverRequest, "coverArtId" | "mode">,
+  ): Promise<{ demandId: string }>;
+  releaseDynamicCoverDemand(request: { demandId: string }): Promise<void>;
   getDynamicCoverCapabilities(): Promise<DynamicCoverCapabilities>;
   acquireDynamicCover(
     request: DynamicCoverRequest,
@@ -35,6 +39,9 @@ const iosProvider: DynamicCoverProvider = {
     }
   },
   release: (leaseId) => iosBridge.releaseDynamicCover({ leaseId }),
+  registerDemand: (request) => iosBridge.registerDynamicCoverDemand(request),
+  releaseDemand: (demandId) =>
+    iosBridge.releaseDynamicCoverDemand({ demandId }),
 };
 
 function provider(): DynamicCoverProvider | undefined {
@@ -57,7 +64,29 @@ function provider(): DynamicCoverProvider | undefined {
   return undefined;
 }
 
+export function isDynamicCoverAvailable(): boolean {
+  return provider() !== undefined;
+}
+
 export const dynamicCover = {
+  async requestGeneration(
+    request: Pick<DynamicCoverRequest, "coverArtId" | "mode">,
+  ) {
+    const host = provider();
+    if (!host?.registerDemand || !host.releaseDemand) return undefined;
+    const { demandId } = await host.registerDemand(request);
+    let releasing: Promise<void> | undefined;
+    return {
+      release: () => {
+        if (!releasing)
+          releasing = host.releaseDemand!(demandId).catch((error) => {
+            releasing = undefined;
+            throw error;
+          });
+        return releasing;
+      },
+    };
+  },
   async getCapabilities(): Promise<DynamicCoverCapabilities> {
     const host = provider();
     if (!host) {
@@ -84,7 +113,9 @@ export const dynamicCover = {
     if (
       capabilities.version !== 1 ||
       !capabilities.available ||
-      !capabilities.formats.includes(request.format)
+      !(request.format === "any"
+        ? capabilities.formats.length > 0
+        : capabilities.formats.includes(request.format))
     ) {
       return {
         status: "unavailable",
@@ -105,7 +136,7 @@ export const dynamicCover = {
     };
     if (
       result.coverArtId !== request.coverArtId ||
-      result.format !== request.format ||
+      (request.format !== "any" && result.format !== request.format) ||
       (request.mode === "static" && result.stage !== "static")
     ) {
       await release();

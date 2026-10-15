@@ -111,40 +111,44 @@ export function LockScreenArtworkSettings() {
               {t(`${prefix}.unsupported`)}
             </p>
           )}
-          <ContentItem>
-            <ContentItemTitle
-              info={t(
-                `${prefix}.${mac ? "macImmersiveInfo" : "immersiveInfo"}`,
-              )}
-            >
-              {t(`${prefix}.immersive`)}
-            </ContentItemTitle>
-            <ContentItemForm>
-              <Switch
-                aria-label={t(`${prefix}.immersive`)}
-                checked={state.options.immersiveEnabled}
-                disabled={disabled}
-                onCheckedChange={(immersiveEnabled) =>
-                  configure.mutate({ immersiveEnabled })
-                }
-              />
-            </ContentItemForm>
-          </ContentItem>
-          <ContentItem>
-            <ContentItemTitle info={t(`${prefix}.dynamicInfo`)}>
-              {t(`${prefix}.dynamic`)}
-            </ContentItemTitle>
-            <ContentItemForm>
-              <Switch
-                aria-label={t(`${prefix}.dynamic`)}
-                checked={state.options.dynamicEnabled}
-                disabled={disabled || !state.options.immersiveEnabled}
-                onCheckedChange={(dynamicEnabled) =>
-                  configure.mutate({ dynamicEnabled })
-                }
-              />
-            </ContentItemForm>
-          </ContentItem>
+          {!mac && (
+            <>
+              <ContentItem>
+                <ContentItemTitle
+                  info={t(
+                    `${prefix}.${mac ? "macImmersiveInfo" : "immersiveInfo"}`,
+                  )}
+                >
+                  {t(`${prefix}.immersive`)}
+                </ContentItemTitle>
+                <ContentItemForm>
+                  <Switch
+                    aria-label={t(`${prefix}.immersive`)}
+                    checked={state.options.immersiveEnabled}
+                    disabled={disabled}
+                    onCheckedChange={(immersiveEnabled) =>
+                      configure.mutate({ immersiveEnabled })
+                    }
+                  />
+                </ContentItemForm>
+              </ContentItem>
+              <ContentItem>
+                <ContentItemTitle info={t(`${prefix}.dynamicInfo`)}>
+                  {t(`${prefix}.dynamic`)}
+                </ContentItemTitle>
+                <ContentItemForm>
+                  <Switch
+                    aria-label={t(`${prefix}.dynamic`)}
+                    checked={state.options.dynamicEnabled}
+                    disabled={disabled || !state.options.immersiveEnabled}
+                    onCheckedChange={(dynamicEnabled) =>
+                      configure.mutate({ dynamicEnabled })
+                    }
+                  />
+                </ContentItemForm>
+              </ContentItem>
+            </>
+          )}
           <ContentItem>
             <ContentItemTitle info={t(`${prefix}.qualityInfo`)}>
               {t(`${prefix}.quality`)}
@@ -187,11 +191,7 @@ export function LockScreenArtworkSettings() {
             <ContentItemForm>
               <Select
                 value={String(state.options.motionAmplitude ?? 1)}
-                disabled={
-                  disabled ||
-                  !state.options.immersiveEnabled ||
-                  !state.options.dynamicEnabled
-                }
+                disabled={disabled}
                 onValueChange={(value) =>
                   configure.mutate({ motionAmplitude: Number(value) })
                 }
@@ -220,11 +220,7 @@ export function LockScreenArtworkSettings() {
             <ContentItemForm>
               <Select
                 value={String(state.options.motionSpeed ?? 1)}
-                disabled={
-                  disabled ||
-                  !state.options.immersiveEnabled ||
-                  !state.options.dynamicEnabled
-                }
+                disabled={disabled}
                 onValueChange={(value) =>
                   configure.mutate({ motionSpeed: Number(value) })
                 }
@@ -264,7 +260,6 @@ export function LockScreenArtworkSettings() {
           <p className="text-xs text-muted-foreground" aria-live="polite">
             {t(`${prefix}.generation.${state.generationStatus}`)}
             {state.effectiveTier &&
-              state.options.dynamicEnabled &&
               ` · ${t(`${prefix}.effectiveTier`, { tier: tierLabels[state.effectiveTier] })}`}
           </p>
           <p className="text-xs text-muted-foreground">

@@ -37,7 +37,7 @@ final class MacDynamicCoverService {
     _ = ArtworkMotionPolicy.shared  // AppKit snapshot, main thread
     let center = NotificationCenter.default
     for name in [
-      ArtworkSettings.changed, ArtworkModelManager.ready,
+      ArtworkDemand.changed, ArtworkSettings.changed, ArtworkModelManager.ready,
       ArtworkMotionPolicy.resourcesChanged,
       ProcessInfo.thermalStateDidChangeNotification, .NSProcessInfoPowerStateDidChange,
     ] {
@@ -80,9 +80,6 @@ final class MacDynamicCoverService {
       let old = ArtworkSettings.shared.value
       try ArtworkSettings.shared.configure(input)
       let next = ArtworkSettings.shared.value
-      if !next.immersiveEnabled || !next.dynamicEnabled {
-        ArtworkModelManager.shared.stopAutomaticGeneration()
-      }
       if old.wifiOnly != next.wifiOnly { ArtworkModelManager.shared.preferencesChanged() }
       completion(state())
     case "download", "cancel", "remove":
@@ -130,6 +127,22 @@ final class MacDynamicCoverService {
     case "playback":
       updateSource(input["artworkUrl"] as? String)
       completion([:])
+    case "registerDemand":
+      guard let raw = input["owner"] as? String, let owner = UUID(uuidString: raw),
+        owners.contains(owner),
+        let cover = input["coverArtId"] as? String, cover == registry.coverArtId,
+        let mode = input["mode"] as? String, ["static", "dynamic"].contains(mode),
+        let id = ArtworkDemand.shared.add(owner: owner, cover: cover, motion: mode == "dynamic")
+      else {
+        throw NSError(domain: "ArtworkDemand", code: 1)
+      }
+      completion(["demandId": id])
+    case "releaseDemand":
+      guard let raw = input["owner"] as? String, let owner = UUID(uuidString: raw),
+        let id = input["demandId"] as? String
+      else { throw NSError(domain: "ArtworkDemand", code: 2) }
+      ArtworkDemand.shared.remove(id, owner: owner)
+      completion([:])
     case "acquire": acquire(input, completion: completion)
     case "openSession", "release", "releaseAll", "leaseFile":
       guard let raw = input["owner"] as? String, let owner = UUID(uuidString: raw) else {
@@ -140,6 +153,7 @@ final class MacDynamicCoverService {
         owners.insert(owner)
       } else if operation == "releaseAll" {
         owners.remove(owner)
+        ArtworkDemand.shared.releaseAll(owner: owner)
         registry.releaseAll(owner: owner)
         fileLeases = fileLeases.filter { $0.value.owner != owner }
       } else if fileLeases[id]?.owner == owner {
@@ -161,8 +175,8 @@ final class MacDynamicCoverService {
     let manager = ArtworkModelManager.shared
     let encoded = try? JSONEncoder().encode(options)
     var reason = policy.generationReason
-    if !options.immersiveEnabled || !options.dynamicEnabled {
-      reason = "disabled"
+    if !ArtworkDemand.shared.dynamicRequested {
+      reason = "waitingForConsumer"
     } else if reason == "ready", let tier = policy.effectiveTier,
       manager.availableTier(upTo: tier) == nil
     {
@@ -205,13 +219,13 @@ final class MacDynamicCoverService {
     sourceStatus = url == nil ? "no-cover" : "waitingForOriginal"
     let cover = components?.queryItems?.first { $0.name == "id" }?.value
     registry.begin(coverArtId: cover)
+    ArtworkDemand.shared.setCurrentCover(cover)
     generation.update(registry.revision)
     preparing = false
     prepare()
   }
 
   private func prepare(force: Bool = false) {
-    let options = ArtworkSettings.shared.value
     let policy = ArtworkMotionPolicy.shared
     guard originalURL != nil else { return }
     if force {
@@ -219,40 +233,36 @@ final class MacDynamicCoverService {
       generation.update(registry.revision)
       preparing = false
     }
-    guard options.immersiveEnabled, policy.allowsStaticGeneration else { return }
+    guard ArtworkDemand.shared.requested, policy.allowsStaticGeneration else { return }
     guard let original else {
       fetchOriginal()
       return
     }
     guard !preparing else { return }
-    // A completed depth clip needs no further work until its source/options change.
-    let motion = options.dynamicEnabled && policy.allowsGeneration
+    let motion = ArtworkDemand.shared.dynamicRequested && policy.allowsGeneration
     if let cover = registry.coverArtId,
-      let asset = registry.current(coverArtId: cover, format: "square", mode: "dynamic"),
+      let asset = registry.current(
+        coverArtId: cover, format: "any", mode: motion ? "dynamic" : "static"),
       !motion || (asset.motion && asset.backend != "camera")
     {
       return
     }
     preparing = true
     let revision = registry.revision
-    let current = { [generation] in generation.contains(revision) }
-    let store = ArtworkStore.shared
-    let target =
-      policy.effectiveTier ?? ArtworkTier.automatic(memory: ProcessInfo.processInfo.physicalMemory)
-    let tier = ArtworkModelManager.shared.availableTier(upTo: target) ?? target
-    if motion { ArtworkModelManager.shared.request(target, automatic: true) }
-    guard let image = ArtworkRenderer.decode(original) else {
-      preparing = false
-      sourceStatus = "invalid-original"
-      return
+    let current = { [generation] in generation.contains(revision) && ArtworkDemand.shared.requested
     }
-    func publish(_ asset: ArtworkAsset?) {
+    let motionCurrent = { current() && ArtworkDemand.shared.dynamicRequested }
+    let store = ArtworkStore.shared
+    let finish = {
+      self.control.async { if self.registry.revision == revision { self.preparing = false } }
+    }
+    let publish: (ArtworkAsset?) -> Void = { asset in
       guard let asset else { return }
       self.control.async {
         guard self.registry.revision == revision else { return }
-        let rank = asset.motion ? (asset.backend == "camera" ? 1 : 2) : 0
         self.registry.publish(
-          asset, format: asset.format == .square ? "square" : "portrait", rank: rank)
+          asset, format: asset.format.consumerFormat,
+          rank: asset.motion ? (asset.backend == "camera" ? 1 : 2) : 0)
         ArtworkDiagnostics.shared.update(
           asset.format.label,
           [
@@ -261,45 +271,107 @@ final class MacDynamicCoverService {
           ])
       }
     }
-    let group = DispatchGroup()
-    for format in [ArtworkFormat.square, .tall] {
-      group.enter()
-      store.prepare(data: original, source: image, format: format, shouldContinue: current) {
-        staticAsset in
-        publish(staticAsset)
-        guard motion, current(), policy.allowsGeneration else {
-          group.leave()
+    store.restoreCached(data: original, shouldContinue: current) { assets in
+      self.control.async {
+        guard current() else {
+          finish()
           return
         }
-        let depth = {
-          store.prepare(
-            data: original, source: image, format: format, motion: true,
-            backend: tier.backend, shouldContinue: current
-          ) { asset in
-            if let asset, asset.motion, asset.backend != "camera" {
-              asset.retainedStaticAsset = staticAsset
-              publish(asset)
-              store.retireCameraVideo(for: asset)
+        for asset in assets { publish(asset) }
+        let reusableDepth = assets.first(where: { $0.motion && $0.backend != "camera" })
+        if assets.contains(where: { !$0.motion }) && (reusableDepth != nil || !motion) {
+          finish()
+          return
+        }
+        guard let source = ArtworkResolution.sourceSize(original) else {
+          finish()
+          return
+        }
+        let existing = assets.first(where: { $0.motion }) ?? assets.first
+        let size =
+          existing.map { CGSize(width: $0.format.width, height: $0.format.height) }
+          ?? CGSize(
+            width: max(source.width, source.height), height: max(source.width, source.height))
+        guard
+          let plan = ArtworkResolution.plan(
+            source: source, target: size,
+            portrait: existing.map { !$0.format.isSquare } ?? false,
+            budgetBytes: policy.resolutionBudgetBytes),
+          let image = ArtworkRenderer.decode(original, maxPixelSize: plan.decodeLimit)
+        else {
+          ArtworkDiagnostics.shared.update(
+            "1:1", ["resolutionReason": "resource-or-hardware-unavailable"])
+          finish()
+          return
+        }
+        let format = plan.format
+        ArtworkDiagnostics.shared.update(
+          format.label,
+          [
+            "sourcePixels": "\(source.width)×\(source.height)",
+            "outputPixels": "\(format.width)×\(format.height)",
+            "resolutionReason": plan.reason, "decodedPixels": "\(image.width)×\(image.height)",
+            "algorithm": "minimal-extension-v2",
+          ])
+        let target =
+          policy.effectiveTier
+          ?? ArtworkTier.automatic(memory: ProcessInfo.processInfo.physicalMemory)
+        let tier = ArtworkModelManager.shared.availableTier(upTo: target) ?? target
+        if motion && reusableDepth == nil {
+          ArtworkModelManager.shared.request(target, automatic: true)
+        }
+        let afterStatic: (ArtworkAsset?) -> Void = { staticAsset in
+          publish(staticAsset)
+          if let reusableDepth {
+            reusableDepth.retainedStaticAsset = staticAsset
+            publish(reusableDepth)
+            finish()
+            return
+          }
+          guard motion, motionCurrent(), policy.allowsGeneration else {
+            finish()
+            return
+          }
+          let depth = {
+            store.prepare(
+              data: original, source: image, format: format, motion: true,
+              backend: tier.backend, shouldContinue: motionCurrent
+            ) { asset in
+              if let asset, asset.motion, asset.backend != "camera" {
+                asset.retainedStaticAsset = staticAsset
+                publish(asset)
+                store.retireCameraVideo(for: asset)
+              }
+              finish()
             }
-            group.leave()
+          }
+          if store.hasReadyVideo(data: original, format: format, backend: tier.backend) {
+            depth()
+            return
+          }
+          let afterCamera: (ArtworkAsset?) -> Void = { asset in
+            asset?.retainedStaticAsset = staticAsset
+            publish(asset)
+            if motionCurrent() { depth() } else { finish() }
+          }
+          if let cached = assets.first(where: {
+            $0.motion && $0.backend == "camera" && $0.format == format
+          }) {
+            afterCamera(cached)
+          } else {
+            store.prepare(
+              data: original, source: image, format: format, motion: true,
+              backend: "camera", shouldContinue: motionCurrent, completion: afterCamera)
           }
         }
-        if store.hasReadyVideo(data: original, format: format, backend: tier.backend) {
-          depth()
-          return
-        }
-        store.prepare(
-          data: original, source: image, format: format, motion: true,
-          backend: "camera", shouldContinue: current
-        ) { asset in
-          asset?.retainedStaticAsset = staticAsset
-          publish(asset)
-          if current() { depth() } else { group.leave() }
+        if let cached = assets.first(where: { !$0.motion && $0.format == format }) {
+          afterStatic(cached)
+        } else {
+          store.prepare(
+            data: original, source: image, format: format, shouldContinue: current,
+            completion: afterStatic)
         }
       }
-    }
-    group.notify(queue: control) {
-      if self.registry.revision == revision { self.preparing = false }
     }
   }
 
@@ -367,15 +439,11 @@ final class MacDynamicCoverService {
 
   private func acquire(_ input: [String: Any], completion: @escaping ([String: Any]) -> Void) {
     guard let cover = input["coverArtId"] as? String,
-      let format = input["format"] as? String, ["square", "portrait"].contains(format),
+      let format = input["format"] as? String, ["square", "portrait", "any"].contains(format),
       let mode = input["mode"] as? String, ["static", "dynamic"].contains(mode),
       let raw = input["owner"] as? String, let owner = UUID(uuidString: raw)
     else {
       completion(["error": "Invalid cover request"])
-      return
-    }
-    guard ArtworkSettings.shared.value.immersiveEnabled else {
-      completion(["status": "disabled"])
       return
     }
     guard owners.contains(owner), registry.coverArtId == cover else {
@@ -383,12 +451,15 @@ final class MacDynamicCoverService {
       return
     }
     let motion =
-      ArtworkSettings.shared.value.dynamicEnabled && ArtworkMotionPolicy.shared.allowsPlayback
+      ArtworkMotionPolicy.shared.allowsPlayback
     guard
       let asset = registry.current(
         coverArtId: cover, format: format, mode: mode == "dynamic" && motion ? "dynamic" : "static")
     else {
-      completion(["status": "pending", "reason": sourceStatus])
+      completion([
+        "status": "pending", "reason": sourceStatus,
+        "motionAllowed": ArtworkMotionPolicy.shared.allowsPlayback,
+      ])
       return
     }
     let revision = registry.revision
@@ -398,17 +469,14 @@ final class MacDynamicCoverService {
           completion(["status": "mismatch"])
           return
         }
-        guard ArtworkSettings.shared.value.immersiveEnabled else {
-          completion(["status": "disabled"])
-          return
-        }
         guard
           !asset.motion
-            || (ArtworkSettings.shared.value.dynamicEnabled
-              && ArtworkMotionPolicy.shared.allowsPlayback),
+            || ArtworkMotionPolicy.shared.allowsPlayback,
           let url
         else {
-          completion(["status": "pending"])
+          completion([
+            "status": "pending", "motionAllowed": ArtworkMotionPolicy.shared.allowsPlayback,
+          ])
           return
         }
         guard let id = self.registry.retain(asset, owner: owner) else {
@@ -417,8 +485,9 @@ final class MacDynamicCoverService {
         }
         self.fileLeases[id] = (owner, url)
         completion([
-          "status": "ready", "leaseId": id, "assetId": asset.id, "coverArtId": cover,
-          "format": format,
+          "status": "ready", "motionAllowed": ArtworkMotionPolicy.shared.allowsPlayback,
+          "leaseId": id, "assetId": asset.id, "coverArtId": cover,
+          "format": asset.format.consumerFormat,
           "stage": asset.motion ? (asset.backend == "camera" ? "camera" : "depth") : "static",
           "backend": asset.motion ? asset.backend : "static", "width": asset.format.width,
           "height": asset.format.height, "duration": asset.motion ? asset.parameters.duration : 2,

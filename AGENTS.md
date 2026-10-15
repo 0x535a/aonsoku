@@ -58,6 +58,9 @@ cd android && ./gradlew :aonsoku-capacitor-native:testDebugUnitTest
 node scripts/ios/test-native-shell-bridge.mjs # Actual Debug Capacitor app WK state/layout round trip (build Simulator App first)
 node scripts/ios/test-native-shell.mjs # Standalone UITabAccessory regular/inline/control fixture + PNGs in /tmp/aonsoku-native-shell-qa
 
+# Apple artwork resolution contracts (independent implementations; macOS + Xcode)
+node scripts/artwork/test-resolution.mjs # Geometry/decode/demand guards; no model/video generation
+
 # iOS lock-screen artwork (macOS + Xcode, no server/device required)
 node scripts/ios/test-dynamic-cover-interface.mjs # Fast publication/lease checks, no model/video generation
 node scripts/ios/test-original-cover.mjs # Offline Mac original-source/cache-quality tests (uses Xcode-resolved GRDB)
@@ -403,7 +406,16 @@ Key files:
 - `src/native/audio/` — native audio facade and shared TS types.
 - iOS lock-screen artwork stays inside the Capacitor native audio plugin.
   `Audio/LockScreenArtworkRenderer.swift` preserves the source aspect ratio and
-  extends edge texture into a continuous 720x960 portrait or 720x720 square;
+  extends only the uncovered edges into source/target-sized 3:4 or 1:1 video.
+  `LockScreenArtworkRequests.swift` stores preview/video requests separately,
+  scoped to device/OS/native display; only video callbacks update output targets.
+  Without a record, a native-screen-bounded provisional target is labeled as
+  provisional, never as a proactively queried system pixel size.
+  `LockScreenArtworkResolution` applies source caps, even/6n×8n alignment, memory
+  budgets and prepared VideoToolbox encoder support, logging actual dimensions
+  and downgrade reasons. The producer decodes to that target; ordinary previews
+  alone keep a separate 1200px budget. Matching ratios use a no-extension fast
+  path; motion overscan tracks actual displacement.
   `LockScreenArtworkStore.swift` prepares it on a utility queue and reuses
   content-addressed videos (12 files / 24 MiB, with live assets protected from
   eviction) in a backup-excluded Application Support directory.
@@ -421,9 +433,10 @@ Key files:
   four pending requests, revision cancellation and lifecycle/resource guards
   (background, low power, serious thermal state, Reduce Motion, memory warning).
   `LockScreenArtworkMeasurement.swift` records per-phase time/process footprint;
-  Debug samples peaks every 10ms. DAV2 motion IDs use `motion-v6` with amplitude/
-  speed keys; quick-camera clips keep `motion-v5`. Both remain isolated
-  from static `edge-v1` assets. On iOS 26+,
+  Debug samples peaks every 10ms. New DAV2 IDs use `motion-v8` with amplitude/
+  speed keys; camera clips use `motion-v7`, and static clips use `edge-v2`.
+  Every ID includes actual dimensions. Original-hash/parameter-validated legacy
+  v1/v5/v6 files remain explicitly readable without re-encoding. On iOS 26+,
   `AonsokuNativeAudioPlugin` adds `MPMediaItemAnimatedArtwork` alongside the
   ordinary artwork for each key in `supportedAnimatedArtworkKeys` (3:4 and/or
   1:1), with revision checks for local and remote playback. Do not infer aspect
@@ -464,7 +477,7 @@ Key files:
   gates every static/camera/DAV2 stage. One current-cover download survives
   same-cover metadata updates, cancels on cover change/clear, and retries on
   normal foreground/metadata opportunities after failure. Original-ready sources
-  retain the bounded 1200px decode and existing content-addressed video pipeline.
+  use target-driven bounded decoding and the content-addressed video pipeline.
   ImageCacheManager serializes cover writes across instances and prevents late
   smaller writes from downgrading originals. Native image methods report actual
   stored quality; the shared cache manager recognizes `original` and avoids
@@ -489,12 +502,16 @@ Key files:
   `src/native/artwork/` defines the provider-neutral v1 video acquire/release
   contract. The iOS Preferences extension exposes completed published assets
   through `DynamicCoverRegistry`, matching the current native cover/revision
-  and pinning each leased asset against cache eviction. Its first adapter
-  inherits iOS 26 system format support. Reads never initiate generation.
+  and pinning each leased asset against cache eviction. `format: any` accepts
+  portrait/square output without a pixel threshold. Highest completed stage wins;
+  ties follow publication order so new upgrades replace old assets. Reads never
+  initiate generation. Registration/release is a separate cover/session-scoped
+  consumer demand API, not a generation preference. iOS lock-screen settings
+  govern system publication independently of fullscreen demand.
   macOS Tauri owns a separate Swift/Core ML implementation under
   `src-tauri/native/artwork`; build.rs compiles only that platform's sources into
-  a static library (Xcode required, macOS 13+), never includes the iOS plugin, and links it through a small
-  C ABI. The Rust `dynamic_cover` module owns main-WebView sessions and the
+  a static library (Xcode required, macOS 13+), never includes the iOS plugin,
+  and links it through a small C ABI. The Rust `dynamic_cover` module owns main-WebView sessions and the
   `aonsoku-artwork` video protocol (active leases only, Range/HEAD support).
   Native media-session updates feed original cover URLs into the progressive
   static/camera/DAV2 producer, including remote playback projections. The Swift
@@ -510,10 +527,23 @@ Key files:
   exposes a collapsible diagnostics/depth/timing/footprint board. Model weights
   are optional and never bundled; the Apache license is a Tauri resource.
   Session reload/destruction releases all leases; source revisions retain old
-  consumer leases until release. Fullscreen player UI integration is separate.
+  consumer leases until release. macOS generation requires actual consumer
+  demand, not legacy lock-screen option fields; on a cache miss its independent
+  `ArtworkResolution` starts from the original long edge as a square canvas and
+  applies resource/encoder caps without upscaling the subject.
+  `FullscreenSongArtwork` mounts an Apple-only `ImmersiveArtwork` consumer with
+  a square object-cover mask. Silent leased clips swap only after the new first
+  frame is ready and pause for playback/accessibility/resource policy. Visibility,
+  cover changes, close and display disable release both intent and leases.
+  `settings.fullscreen.dynamicArtworkEnabled` is a separate opt-in display
+  preference in the player popover and appearance settings, not a generation
+  master switch. Native `motionAllowed` separates playback permission from
+  generation stage during upgrades. Cached clips are accepted independently of
+  viewport pixels, lock toggles and aspect ratio.
   Electron has no new generation service. Web, Windows and Android remain
   unchanged. See `doc/dynamic-cover/fullscreen.md` and
   `src-tauri/native/artwork/README.md` for platform ownership and commands.
+  `doc/dynamic-cover/resolution.md` is the current geometry/demand contract.
   `scripts/ios/prepare-motion-models.py` prepares only those three DAV2 tiers for
   Mac experiments. `run-motion-cover-experiment.mjs` uses the production Core ML
   and rendering sources; intermediates live under `doc/dynamic-cover/exp`.

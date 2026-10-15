@@ -1,0 +1,213 @@
+{
+  "diagnostics": {
+    "leases": 2,
+    "phases": {
+      "analysis backend=camera": {
+        "detail": "mode=camera reason=camera-fallback-no-depth",
+        "elapsed": "0 ms",
+        "memory": "baseline 92, peak 92, delta 0 MiB"
+      },
+      "analysis backend=dav2-p6": {
+        "detail": "mode=parallax reason=dav2-p6",
+        "elapsed": "5051 ms",
+        "memory": "baseline 107, peak 184, delta 76 MiB"
+      },
+      "image-extension": {
+        "detail": "format=1:1",
+        "elapsed": "0 ms",
+        "memory": "baseline 106, peak 107, delta 0 MiB"
+      },
+      "model-depth-map backend=dav2-p6": {
+        "detail": "valid=true",
+        "elapsed": "3 ms",
+        "memory": "baseline 167, peak 167, delta 0 MiB"
+      },
+      "model-input backend=dav2-p6": {
+        "detail": "size=518x392",
+        "elapsed": "12 ms",
+        "memory": "baseline 68, peak 143, delta 74 MiB"
+      },
+      "model-load backend=dav2-p6": {
+        "detail": "packageBytes=19038993 compiledBytes=0",
+        "elapsed": "4703 ms",
+        "memory": "baseline 107, peak 107, delta 0 MiB"
+      },
+      "model-predict-cold backend=dav2-p6": {
+        "detail": "firstPrediction=true",
+        "elapsed": "65 ms",
+        "memory": "baseline 143, peak 167, delta 24 MiB"
+      },
+      "model-total backend=dav2-p6": {
+        "detail": "precision=palette-W6A16 computeUnits=all",
+        "elapsed": "4791 ms",
+        "memory": "baseline 107, peak 161, delta 53 MiB"
+      },
+      "motion-encode backend=camera": {
+        "detail": "success=true",
+        "elapsed": "166 ms",
+        "memory": "baseline 92, peak 106, delta 14 MiB"
+      },
+      "motion-encode backend=dav2-p6": {
+        "detail": "success=true",
+        "elapsed": "164 ms",
+        "memory": "baseline 184, peak 202, delta 18 MiB"
+      },
+      "static-encode backend=camera": {
+        "detail": "success=true",
+        "elapsed": "169 ms",
+        "memory": "baseline 13, peak 91, delta 78 MiB"
+      }
+    },
+    "renderer": "Metal ready",
+    "revision": 2,
+    "source": "originalReady",
+    "state": {
+      "deviceMemoryBytes": 19327352832,
+      "effectiveTier": "p6",
+      "generationStatus": "ready",
+      "modelRevision": "cfef6f6f2a70783dedc0bfae40cecbc2052285d3",
+      "models": [
+        {
+          "downloadBytes": 49819122,
+          "progress": 0,
+          "status": "notDownloaded",
+          "storedBytes": 0,
+          "tier": "fp16"
+        },
+        {
+          "downloadBytes": 25247952,
+          "progress": 0,
+          "status": "notDownloaded",
+          "storedBytes": 0,
+          "tier": "p8"
+        },
+        {
+          "downloadBytes": 19038993,
+          "progress": 0,
+          "status": "ready",
+          "storedBytes": 19114103,
+          "tier": "p6"
+        }
+      ],
+      "options": {
+        "dynamicEnabled": false,
+        "immersiveEnabled": false,
+        "motionAmplitude": 1.5,
+        "motionSpeed": 2,
+        "quality": "p6",
+        "wifiOnly": false
+      },
+      "recommendedTier": "fp16",
+      "supported": true
+    },
+    "variants": {
+      "1:1": {
+        "algorithm": "minimal-extension-v2",
+        "asset": "motion-v8-dav2-p6-a150-s200-500x500-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+        "backend": "dav2-p6",
+        "cache": "miss",
+        "decodedPixels": "500×500",
+        "loopDuration": "3.0 s",
+        "mode": "parallax",
+        "outputPixels": "500×500",
+        "publishedBackend": "dav2-p6",
+        "reason": "dav2-p6",
+        "resolutionReason": "source-and-target",
+        "sourcePixels": "500.0×500.0",
+        "state": "ready",
+        "textRegions": "7"
+      }
+    }
+  },
+  "downloadTest": true,
+  "elapsedMs": 5841,
+  "observed": {
+    "camera": {
+      "assetId": "motion-v7-camera-500x500-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+      "backend": "camera",
+      "coverArtId": "fixture",
+      "duration": 6,
+      "elapsedMs": 606,
+      "format": "square",
+      "height": 500,
+      "leaseId": "4529B35C-3829-4540-BAB7-790E18E66272",
+      "stage": "camera",
+      "status": "ready",
+      "width": 500,
+      "encodedMedia": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 500,
+            "height": 500,
+            "avg_frame_rate": "24/1"
+          }
+        ],
+        "format": {
+          "duration": "6.000000"
+        }
+      }
+    },
+    "depth": {
+      "assetId": "motion-v8-dav2-p6-a150-s200-500x500-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+      "backend": "dav2-p6",
+      "coverArtId": "fixture",
+      "duration": 3,
+      "elapsedMs": 5838,
+      "format": "square",
+      "height": 500,
+      "leaseId": "8611F609-A2C4-4485-A7BC-1A4A6156548A",
+      "stage": "depth",
+      "status": "ready",
+      "width": 500,
+      "encodedMedia": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 500,
+            "height": 500,
+            "avg_frame_rate": "24/1"
+          }
+        ],
+        "format": {
+          "duration": "3.000000"
+        }
+      }
+    },
+    "static": {
+      "assetId": "edge-v2-500x500-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+      "backend": "static",
+      "coverArtId": "fixture",
+      "duration": 2,
+      "elapsedMs": 430,
+      "format": "square",
+      "height": 500,
+      "leaseId": "DD0DFB8F-34D2-4F49-B1F3-66879167ED48",
+      "stage": "static",
+      "status": "ready",
+      "width": 500,
+      "encodedMedia": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 500,
+            "height": 500,
+            "avg_frame_rate": "15/1"
+          }
+        ],
+        "format": {
+          "duration": "0.066667"
+        }
+      }
+    }
+  },
+  "validationNotes": [
+    "Legacy publication flags were false; a separate consumer demand triggered generation.",
+    "P6 compiled weights were reused from the earlier verified download; no new model download.",
+    "The complete server original is 500x500.",
+    "WKWebView device interactions and real iOS system size callbacks were not device-tested."
+  ]
+}

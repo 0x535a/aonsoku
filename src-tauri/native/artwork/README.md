@@ -11,6 +11,8 @@ another platform's files.
 - `DynamicCoverService.swift`: native original-cover download, serialized
   publication, progressive static/camera/depth preparation, per-session leases,
   settings/model/cache/diagnostic commands and the small C ABI.
+  Explicit cover/session-scoped consumer intent triggers work; acquire only
+  reads completed files. Legacy lock-screen options do not gate the producer.
 - `ArtworkDepthModel.swift`, `ArtworkModelManager.swift`,
   `ArtworkModelCatalog.swift`: one serial Core ML boundary, pinned Apple DAV2
   Small FP16/P8/P6 packages, streamed verified downloads and local compilation.
@@ -19,7 +21,14 @@ another platform's files.
   hiding the application does. Memory warnings pause for 60 seconds and cap
   recovery to P6 for 180 seconds. Serious thermal state, Low Power Mode and
   Reduce Motion stop motion generation/publication.
-- `ArtworkSettings.swift`: app-scoped atomic settings, tier and trajectory rules.
+- `ArtworkSettings.swift`: app-scoped atomic model/trajectory settings and
+  consumer demand ownership. The opt-in fullscreen display preference is separate.
+- `ArtworkRenderer.swift` also owns resolution planning: on a cache miss, use the
+  original long edge for a square, never upscale the subject; cap by VM/physical
+  memory and prepared hardware H.264 support, then decode only the needed pixels.
+  Camera/depth share the static base geometry. Existing clips, including old
+  portrait files, are reusable without a viewport threshold. New export IDs are
+  edge-v2/motion-v7/motion-v8.
 - `ArtworkRenderer.swift`, `ArtworkVideo.swift`, `ArtworkStore.swift`: bounded
   decode/frame buffers, complete silent loops and a live-asset-protected LRU.
 - `DynamicCoverRegistry.swift`: publication and strong references for leases.
@@ -44,9 +53,11 @@ copied alongside downloaded models with their notice.
 Verification from the repository root:
 
 ```sh
+node scripts/artwork/test-resolution.mjs
 cargo test --manifest-path src-tauri/Cargo.toml --lib dynamic_cover::tests::webkit_video_ranges
 node scripts/macos/test-dynamic-cover.mjs
 AONSOKU_TEST_MODEL_DOWNLOAD=1 node scripts/macos/test-dynamic-cover.mjs
+AONSOKU_MACOS_SMOKE_LEGACY_ONLY=1 node scripts/macos/test-dynamic-cover.mjs /tmp/aonsoku-legacy-reuse
 ```
 
 The default smoke checks static/camera stages without fetching model weights;
@@ -57,3 +68,5 @@ publication and lease protection. Output is under
 the library just produced by Cargo to avoid recompiling production Swift;
 `AONSOKU_MACOS_SMOKE_MODEL_CACHE` can reuse a previous verified smoke model folder.
 Neither option is consumed by the application.
+
+Current geometry, demand and QA details: `doc/dynamic-cover/resolution.md`. The neutral resolution harness compiles both independent implementations only for contract checks; production code remains isolated.

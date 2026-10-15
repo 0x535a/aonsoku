@@ -8,6 +8,8 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "AonsokuNativePreferencesPlugin"
     public let jsName = "AonsokuNativePreferences"
     public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "registerDynamicCoverDemand", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "releaseDynamicCoverDemand", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getDynamicCoverCapabilities", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "acquireDynamicCover", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "releaseDynamicCover", returnType: CAPPluginReturnPromise),
@@ -39,20 +41,26 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
     deinit {
         let registry = leasedCoverRegistry
         let owner = dynamicCoverOwner
-        DispatchQueue.main.async { registry?.releaseAll(owner: owner) }
+        DispatchQueue.main.async { registry?.releaseAll(owner: owner); LockScreenArtworkDemand.shared.releaseAll(owner: owner) }
     }
 
-    private func dynamicCoverFormats() -> [String] {
-        #if compiler(>=6.2)
-            if #available(iOS 26.0, *) {
-                let keys = MPNowPlayingInfoCenter.supportedAnimatedArtworkKeys
-                var formats: [String] = []
-                if keys.contains(MPNowPlayingInfoProperty1x1AnimatedArtwork) { formats.append("square") }
-                if keys.contains(MPNowPlayingInfoProperty3x4AnimatedArtwork) { formats.append("portrait") }
-                return formats
-            }
-        #endif
-        return []
+    private func dynamicCoverFormats() -> [String] { ["square", "portrait"] }
+
+    @objc func registerDynamicCoverDemand(_ call: CAPPluginCall) {
+        guard let cover = call.getString("coverArtId"), !cover.isEmpty,
+            let mode = call.getString("mode"), ["static", "dynamic"].contains(mode) else { call.reject("Invalid demand"); return }
+        DispatchQueue.main.async {
+            guard AonsokuNativeAudioPlugin.dynamicCoverRegistryFromActive?.coverArtId == cover else { call.reject("Cover changed"); return }
+            guard let id = LockScreenArtworkDemand.shared.add(owner: self.dynamicCoverOwner, cover: cover, motion: mode == "dynamic") else { call.reject("Demand limit reached"); return }
+            call.resolve(["demandId": id])
+        }
+    }
+    @objc func releaseDynamicCoverDemand(_ call: CAPPluginCall) {
+        guard let id = call.getString("demandId") else { call.reject("Missing demand ID"); return }
+        DispatchQueue.main.async {
+            LockScreenArtworkDemand.shared.remove(id, owner: self.dynamicCoverOwner)
+            call.resolve()
+        }
     }
 
     @objc func getDynamicCoverCapabilities(_ call: CAPPluginCall) {
@@ -65,15 +73,12 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func acquireDynamicCover(_ call: CAPPluginCall) {
         guard let coverArtId = call.getString("coverArtId"), !coverArtId.isEmpty,
-            let format = call.getString("format"), ["square", "portrait"].contains(format),
+            let format = call.getString("format"), ["square", "portrait", "any"].contains(format),
             let mode = call.getString("mode"), ["static", "dynamic"].contains(mode)
         else { call.reject("Invalid dynamic cover request"); return }
         DispatchQueue.main.async {
-            guard self.dynamicCoverFormats().contains(format) else {
+            guard format == "any" || self.dynamicCoverFormats().contains(format) else {
                 call.resolve(["status": "unavailable", "reason": "unsupported-format"]); return
-            }
-            guard LockScreenArtworkSettings.shared.value.immersiveEnabled else {
-                call.resolve(["status": "disabled"]); return
             }
             guard let registry = AonsokuNativeAudioPlugin.dynamicCoverRegistryFromActive else {
                 call.resolve(["status": "unavailable", "reason": "no-player"]); return
@@ -85,11 +90,10 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
             guard registry.coverArtId == coverArtId else {
                 call.resolve(["status": "mismatch"]); return
             }
-            let options = LockScreenArtworkSettings.shared.value
-            let allowMotion = options.dynamicEnabled && LockScreenArtworkMotionPolicy.shared.allowsPlayback
+            let allowMotion = LockScreenArtworkMotionPolicy.shared.allowsPlayback
             let effectiveMode = mode == "dynamic" && allowMotion ? "dynamic" : "static"
             guard let asset = registry.current(coverArtId: coverArtId, format: format, mode: effectiveMode) else {
-                call.resolve(["status": "pending"]); return
+                call.resolve(["status": "pending", "motionAllowed": LockScreenArtworkMotionPolicy.shared.allowsPlayback]); return
             }
             let revision = registry.revision
             // Capture the asset during the asynchronous file lookup; never encode here.
@@ -98,17 +102,15 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
                     guard registry.revision == revision,
                         AonsokuNativeAudioPlugin.dynamicCoverRegistryFromActive === registry
                     else { call.resolve(["status": "mismatch"]); return }
-                    let latest = LockScreenArtworkSettings.shared.value
-                    guard latest.immersiveEnabled else { call.resolve(["status": "disabled"]); return }
-                    guard !asset.motion || (latest.dynamicEnabled && LockScreenArtworkMotionPolicy.shared.allowsPlayback)
-                    else { call.resolve(["status": "pending"]); return }
-                    guard let url else { call.resolve(["status": "pending"]); return }
+                    guard !asset.motion || LockScreenArtworkMotionPolicy.shared.allowsPlayback
+                    else { call.resolve(["status": "pending", "motionAllowed": LockScreenArtworkMotionPolicy.shared.allowsPlayback]); return }
+                    guard let url else { call.resolve(["status": "pending", "motionAllowed": LockScreenArtworkMotionPolicy.shared.allowsPlayback]); return }
                     guard let leaseId = registry.retain(asset, owner: self.dynamicCoverOwner) else {
                         call.resolve(["status": "busy", "reason": "lease-limit"]); return
                     }
                     call.resolve([
-                        "status": "ready", "leaseId": leaseId, "assetId": asset.id,
-                        "coverArtId": coverArtId, "format": format,
+                        "status": "ready", "motionAllowed": LockScreenArtworkMotionPolicy.shared.allowsPlayback, "leaseId": leaseId, "assetId": asset.id,
+                        "coverArtId": coverArtId, "format": asset.format.consumerFormat,
                         "stage": asset.motion ? (asset.backend == "camera" ? "camera" : "depth") : "static",
                         "backend": asset.motion ? asset.backend : "static",
                         "width": asset.format.width, "height": asset.format.height,
@@ -171,7 +173,7 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
                 try LockScreenArtworkSettings.shared.configure(options)
                 let updated = LockScreenArtworkSettings.shared.value
-                if !updated.immersiveEnabled || !updated.dynamicEnabled {
+                if old.immersiveEnabled && old.dynamicEnabled && !(updated.immersiveEnabled && updated.dynamicEnabled) && !LockScreenArtworkDemand.shared.dynamicRequested {
                     LockScreenArtworkModelManager.shared.stopAutomaticGeneration()
                 }
                 if old.wifiOnly != updated.wifiOnly {

@@ -20,7 +20,7 @@
       let data = try? JSONEncoder().encode(settings)
       let options = data.flatMap { try? JSONSerialization.jsonObject(with: $0) } ?? [:]
       var reason = policy.generationReason
-      if !settings.immersiveEnabled || !settings.dynamicEnabled {
+      if !(settings.immersiveEnabled && settings.dynamicEnabled) && !LockScreenArtworkDemand.shared.dynamicRequested {
         reason = "disabled"
       } else if reason == "ready", let tier = policy.effectiveTier, manager.modelURL(tier) == nil,
         manager.availableTier(upTo: tier) == nil

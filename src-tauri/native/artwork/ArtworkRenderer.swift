@@ -2,14 +2,108 @@ import CoreGraphics
 import CoreImage
 import Foundation
 import ImageIO
+import VideoToolbox
 
-enum ArtworkFormat {
-  case tall
-  case square
+struct ArtworkFormat: Equatable {
+  let width: Int
+  let height: Int
+  static let square = Self(width: 720, height: 720)  // Legacy fixture/default only.
+  static let tall = Self(width: 720, height: 960)
+  var isSquare: Bool { width == height }
+  var label: String { isSquare ? "1:1" : "3:4" }
+  var consumerFormat: String { isSquare ? "square" : "portrait" }
+}
 
-  var width: Int { 720 }
-  var height: Int { self == .tall ? 960 : 720 }
-  var label: String { self == .tall ? "3:4" : "1:1" }
+/// Source-aware dimensions, independent of DAV2's fixed inference input.
+/// Round down in aspect-ratio units; neither alignment nor protection upsizes art.
+enum ArtworkResolution {
+  struct Plan {
+    let format: ArtworkFormat
+    let reason: String
+    var decodeLimit: Int { max(format.width, format.height) }
+  }
+  static func sourceSize(_ data: Data) -> CGSize? {
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+      CGImageSourceGetStatus(source) == .statusComplete,
+      let p = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+      let w = p[kCGImagePropertyPixelWidth] as? Int,
+      let h = p[kCGImagePropertyPixelHeight] as? Int, w > 0, h > 0
+    else { return nil }
+    let orientation = p[kCGImagePropertyOrientation] as? Int ?? 1
+    return (5...8).contains(orientation) ? CGSize(width: h, height: w) : CGSize(width: w, height: h)
+  }
+  static func aligned(_ size: CGSize, portrait: Bool) -> ArtworkFormat? {
+    guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else {
+      return nil
+    }
+    let uw = portrait ? 6 : 2
+    let uh = portrait ? 8 : 2
+    let n = Int(min(size.width / Double(uw), size.height / Double(uh)).rounded(.down))
+    guard n >= 1 else { return nil }
+    return ArtworkFormat(width: n * uw, height: n * uh)
+  }
+  static func base(source: CGSize, target: CGSize, portrait: Bool) -> ArtworkFormat? {
+    guard let target = aligned(target, portrait: portrait) else { return nil }
+    let r = min(1, max(source.width / Double(target.width), source.height / Double(target.height)))
+    return aligned(
+      CGSize(width: Double(target.width) * r, height: Double(target.height) * r), portrait: portrait
+    )
+  }
+  static func plan(
+    source: CGSize, target: CGSize, portrait: Bool,
+    budgetBytes: UInt64, checkHardware: Bool = true
+  ) -> Plan? {
+    guard var format = base(source: source, target: target, portrait: portrait) else { return nil }
+    var reasons: [String] = []
+    // Includes decoded image, extension arrays, CI surfaces and six video buffers.
+    let pixels = Double(max(1, budgetBytes / 80))
+    let area = Double(format.width) * Double(format.height)
+    if area > pixels {
+      let factor = sqrt(pixels / area)
+      guard
+        let smaller = aligned(
+          CGSize(
+            width: Double(format.width) * factor,
+            height: Double(format.height) * factor), portrait: portrait)
+      else { return nil }
+      format = smaller
+      reasons.append("resource-budget")
+    }
+    if checkHardware {
+      for _ in 0..<16 {
+        var session: VTCompressionSession?
+        let status = VTCompressionSessionCreate(
+          allocator: kCFAllocatorDefault,
+          width: Int32(format.width), height: Int32(format.height),
+          codecType: kCMVideoCodecType_H264,
+          encoderSpecification: [
+            kVTVideoEncoderSpecification_RequireHardwareAcceleratedVideoEncoder: true
+          ] as CFDictionary,
+          imageBufferAttributes: nil, compressedDataAllocator: nil, outputCallback: nil,
+          refcon: nil, compressionSessionOut: &session)
+        let prepared =
+          session.map { VTCompressionSessionPrepareToEncodeFrames($0) == noErr } ?? false
+        if let session { VTCompressionSessionInvalidate(session) }
+        if status == noErr && prepared {
+          return Plan(
+            format: format,
+            reason: reasons.isEmpty ? "source-and-target" : reasons.joined(separator: ","))
+        }
+        guard
+          let smaller = aligned(
+            CGSize(
+              width: Double(format.width) * 0.75,
+              height: Double(format.height) * 0.75), portrait: portrait), smaller != format
+        else { return nil }
+        format = smaller
+        if !reasons.contains("hardware-encoder") { reasons.append("hardware-encoder") }
+      }
+      return nil
+    }
+    return Plan(
+      format: format, reason: reasons.isEmpty ? "source-and-target" : reasons.joined(separator: ",")
+    )
+  }
 }
 
 /// A single continuous image: aspect-fit the source, then extend its actual
@@ -18,14 +112,15 @@ enum ArtworkFormat {
 enum ArtworkRenderer {
   private static let context = CIContext(options: [.cacheIntermediates: false])
 
-  static func decode(_ data: Data) -> CGImage? {
+  // The default is an ordinary-artwork preview budget; producers pass their plan.
+  static func decode(_ data: Data, maxPixelSize: Int = 1200) -> CGImage? {
     guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
     return CGImageSourceCreateThumbnailAtIndex(
       source, 0,
       [
         kCGImageSourceCreateThumbnailFromImageAlways: true,
         kCGImageSourceCreateThumbnailWithTransform: true,
-        kCGImageSourceThumbnailMaxPixelSize: 1200,
+        kCGImageSourceThumbnailMaxPixelSize: max(1, maxPixelSize),
         kCGImageSourceShouldCacheImmediately: true,
       ] as CFDictionary)
   }
@@ -33,7 +128,8 @@ enum ArtworkRenderer {
   static func sourceRect(for image: CGImage, format: ArtworkFormat = .tall) -> CGRect {
     let width = format.width
     let height = format.height
-    let scale = min(Double(width) / Double(image.width), Double(height) / Double(image.height))
+    let scale = min(
+      1, min(Double(width) / Double(image.width), Double(height) / Double(image.height)))
     let w = max(1, min(width, Int((Double(image.width) * scale).rounded())))
     let h = max(1, min(height, Int((Double(image.height) * scale).rounded())))
     return CGRect(x: (width - w) / 2, y: (height - h) / 2, width: w, height: h)
@@ -66,6 +162,14 @@ enum ArtworkRenderer {
       return true
     }
     guard drawn else { return nil }
+    if left == 0, bottom == 0, w == width, h == height,
+      let provider = CGDataProvider(data: Data(source) as CFData)
+    {
+      return CGImage(
+        width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32,
+        bytesPerRow: width * 4, space: colorSpace, bitmapInfo: CGBitmapInfo(rawValue: bitmapInfo),
+        provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
+    }
 
     let band = max(1, Double(min(w, h)) * 0.12)
     let reflectionBand = max(1, Double(min(w, h)) * 0.025)

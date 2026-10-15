@@ -1,0 +1,81 @@
+{
+  "asset" : {
+    "assetId" : "motion-v6-dav2-p6-a100-s100-720x960-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+    "backend" : "dav2-p6",
+    "coverArtId" : "fixture",
+    "duration" : 6,
+    "format" : "portrait",
+    "height" : 960,
+    "leaseId" : "80C3499E-76DD-4B9A-A97A-8EF71B6D9399",
+    "motionAllowed" : true,
+    "stage" : "depth",
+    "status" : "ready",
+    "width" : 720
+  },
+  "byteIdentical" : true,
+  "diagnostics" : {
+    "leases" : 1,
+    "phases" : {
+
+    },
+    "renderer" : "not initialized (cached videos need no renderer)",
+    "revision" : 2,
+    "source" : "originalReady",
+    "state" : {
+      "deviceMemoryBytes" : 19327352832,
+      "effectiveTier" : "p6",
+      "generationStatus" : "waitingForModel",
+      "modelRevision" : "cfef6f6f2a70783dedc0bfae40cecbc2052285d3",
+      "models" : [
+        {
+          "downloadBytes" : 49819122,
+          "progress" : 0,
+          "status" : "notDownloaded",
+          "storedBytes" : 0,
+          "tier" : "fp16"
+        },
+        {
+          "downloadBytes" : 25247952,
+          "progress" : 0,
+          "status" : "notDownloaded",
+          "storedBytes" : 0,
+          "tier" : "p8"
+        },
+        {
+          "downloadBytes" : 19038993,
+          "progress" : 0,
+          "status" : "notDownloaded",
+          "storedBytes" : 0,
+          "tier" : "p6"
+        }
+      ],
+      "options" : {
+        "dynamicEnabled" : false,
+        "immersiveEnabled" : false,
+        "motionAmplitude" : 1,
+        "motionSpeed" : 1,
+        "quality" : "p6",
+        "wifiOnly" : true
+      },
+      "recommendedTier" : "fp16",
+      "supported" : true
+    },
+    "variants" : {
+      "3:4" : {
+        "algorithm" : "minimal-extension-v2",
+        "asset" : "motion-v6-dav2-p6-a100-s100-720x960-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+        "backend" : "camera",
+        "cache" : "miss",
+        "decodedPixels" : "500×500",
+        "loopDuration" : "6.0 s",
+        "mode" : "static",
+        "outputPixels" : "498×664",
+        "publishedBackend" : "dav2-p6",
+        "reason" : "",
+        "resolutionReason" : "source-and-target",
+        "sourcePixels" : "500.0×500.0",
+        "state" : "preparing"
+      }
+    }
+  }
+}

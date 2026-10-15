@@ -1,0 +1,11 @@
+scripts/ios/dynamic-cover-interface-tests.swift:14:18: warning: weak variable 'pinned' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+12 |         let revision = registry.revision
+13 |         var original: Asset? = Asset()
+14 |         weak var pinned = original
+   |                  `- warning: weak variable 'pinned' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+15 |         registry.publish(original!, format: "square", rank: 0)
+16 |         let depth = Asset()
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+Dynamic cover registry: stage selection, revision isolation, lease lifetime and limits passed

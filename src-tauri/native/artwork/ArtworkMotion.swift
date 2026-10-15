@@ -136,15 +136,19 @@ enum ArtworkMotion {
     let bounds = CGRect(x: 0, y: 0, width: image.width, height: image.height)
     let input = CIImage(cgImage: image).clampedToExtent()
     let angle = phase * 2 * Double.pi
-    let factor = depth == nil ? 1 : parameters.amplitude
+    let factor =
+      (depth == nil ? 1 : parameters.amplitude) * Double(min(image.width, image.height)) / 720
     let amplitude = (depth == nil ? 4.0 : 1.5) * factor
-    let scale =
-      depth == nil
-      ? 1.025 + 0.0125 * (1 - cos(angle))
-      : 1 + 0.04 * factor + 0.004 * factor * (1 - cos(angle))
+    // Cover only this frame's camera + depth displacement, with one pixel
+    // for interpolation. This is motion-only crop, never a generated border.
+    let cameraX = amplitude * sin(angle)
+    let cameraY = amplitude * sin(2 * angle) * 0.5
+    let padX = abs(cameraX) + (depth == nil ? 0 : abs(10 * factor * sin(angle))) + 1
+    let padY = abs(cameraY) + (depth == nil ? 0 : abs(4 * factor * sin(2 * angle))) + 1
+    let scale = 1 + max(2 * padX / bounds.width, 2 * padY / bounds.height)
     let transform = CGAffineTransform(
-      translationX: bounds.midX + amplitude * sin(angle),
-      y: bounds.midY + amplitude * sin(2 * angle) * 0.5
+      translationX: bounds.midX + cameraX,
+      y: bounds.midY + cameraY
     )
     .scaledBy(x: scale, y: scale)
     .translatedBy(x: -bounds.midX, y: -bounds.midY)
@@ -237,6 +241,12 @@ final class ArtworkMotionPolicy {
     }
     guard status == KERN_SUCCESS else { return nil }
     return (UInt64(stats.free_count) + UInt64(stats.inactive_count)) * UInt64(vm_kernel_page_size)
+  }
+
+  var resolutionBudgetBytes: UInt64 {
+    min(
+      ProcessInfo.processInfo.physicalMemory / 8,
+      (availableMemory ?? ProcessInfo.processInfo.physicalMemory / 4) / 4)
   }
 
   var generationReason: String {

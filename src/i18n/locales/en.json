@@ -301,6 +301,8 @@
     }
   },
   "fullscreen": {
+    "dynamicArtwork": "Dynamic album artwork",
+    "dynamicArtworkInfo": "Use immersive cover videos in the fullscreen player. Independent of lock-screen artwork.",
     "noLyrics": "No lyrics found",
     "loadingLyrics": "Searching for lyrics…",
     "queue": "Queue",
@@ -906,6 +908,7 @@
         "cancel": "Cancel",
         "license": "Depth Anything V2 Small · Apple Core ML · Apache-2.0",
         "generation": {
+          "waitingForConsumer": "Waiting for a visible player",
           "ready": "Ready to generate in the foreground",
           "disabled": "Motion generation is disabled",
           "background": "Generation paused while the app is in the background",

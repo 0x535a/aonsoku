@@ -145,7 +145,7 @@ final class LockScreenArtworkModelManager: NSObject, URLSessionDownloadDelegate 
     worker.async {
       if automatic {
         let options = LockScreenArtworkSettings.shared.value
-        guard options.immersiveEnabled && options.dynamicEnabled else { return }
+        guard (options.immersiveEnabled && options.dynamicEnabled) || LockScreenArtworkDemand.shared.dynamicRequested else { return }
       }
       guard self.modelURL(tier) == nil else { return }
       self.lock.lock()

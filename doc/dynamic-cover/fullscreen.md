@@ -4,18 +4,19 @@
 
 目标平台是 iOS/iPadOS 与 macOS。先提供统一消费接口，再替换全屏播放器中现有的方形专辑封面区域。播放控制、拖动关闭、歌词、队列及迷你播放器保持各自职责。
 
-接口与 iOS 适配已完成；macOS 现已接入 Tauri + 原生 Core ML，使用同一消费契约。本轮仍不替换播放器 UI。Windows、Android 暂不实现；未来浏览器 WebGPU 提供者也沿用统一消费边界，不让组件依赖 Core ML。
+接口与 iOS 适配已完成；macOS 现已接入 Tauri + 原生 Core ML，使用同一消费契约。全屏播放器现已接入消费接口；当前分辨率和需求规则以 [`resolution.md`](resolution.md) 为准。Windows、Android 暂不实现；未来浏览器 WebGPU 提供者也沿用统一消费边界，不让组件依赖 Core ML。
 
 ## 消费契约（v1）
 
 代码入口：`src/native/artwork/`。
 
 - `getCapabilities()`：协议版本、可用状态、支持的格式及不可用原因。能力来自提供者握手，不能仅凭 Apple 系统或桌面运行时推断可用。
-- `acquire({ coverArtId, format, mode })`：请求当前展示封面的已完成视频。格式为 `square` / `portrait`，模式为 `static` / `dynamic`。返回 `ready`、`pending`、`disabled`、`mismatch`、`unavailable` 或 `busy`。
+- `acquire({ coverArtId, format, mode })`：请求当前展示封面的已完成视频。格式为 `square` / `portrait` / `any`（接受已有比例），模式为 `static` / `dynamic`。返回 `ready`、`pending`、`disabled`、`mismatch`、`unavailable` 或 `busy`。
 - `ready` 包含 `leaseId`、`assetId`、`coverArtId`、`format`、`stage`、`backend`、`width`、`height`、`duration`、`src`。`stage` 是 `static`、`camera` 或 `depth`；`backend` 保留具体 DAV2 档位，便于诊断。`src` 是可直接供播放器读取的本地视频地址，不携带服务器凭据。
+- `requestGeneration({ coverArtId, mode })`：独立登记消费者需求，返回可释放的句柄；不是 UI 生成开关，也不传递全屏像素尺寸。读取接口自身不登记需求。
 - `release(leaseId)`：幂等释放引用。使用返回的句柄 `release()` 可保证释放回到原提供者，即使运行时桥接对象已改变。
 
-静态模式始终使用保留的纯静态视频；动态模式按 static → camera → depth 渐进取用。读取只访问已完成的视频，绝不触发推理、下载或编码。调用者在可见期间有限频率重试 `pending`，比较 `assetId`，无需逐帧查询。暂不添加事件订阅或常驻轮询。
+静态模式始终使用保留的纯静态视频；动态模式按 static → camera → depth 渐进取用。`motionAllowed` 表达原生播放许可，与生成阶段分开。读取只访问已完成的视频，绝不触发推理、下载或编码。调用者在可见期间有限频率重试 `pending`，比较 `assetId`，无需逐帧查询。暂不添加事件订阅或常驻轮询。
 
 ## 所有权与安全
 
@@ -23,7 +24,7 @@
 
 一次成功 acquire 对应一个租约。租约持有生产管线的同一 asset，沿用已有缓存保护，缓存清理/LRU 不得删除使用中的视频。切歌不会撤销尚在播放或退出动画中的旧租约；消费者移除旧视频后主动 release。每个原生桥接会话最多 32 个租约，超出返回 busy，不强制删除活跃视频；桥接销毁时释放全部租约。生产者只保留当前修订的发布记录。
 
-iOS 通过现有 Preferences 插件扩展方法访问原生发布注册表，适配器用 Capacitor 文件转换生成 WebView URL。v1 复用 iOS 26+ 系统已经请求的输出格式；不支持的系统或格式返回 unavailable，不伪装成仍在生成。后续把生成入口与系统锁屏能力解耦时，可独立支持全屏方形输出。
+iOS 通过现有 Preferences 插件扩展方法访问原生发布注册表，适配器用 Capacitor 文件转换生成 WebView URL。锁屏发布仍按公开支持的 artwork key 执行；全屏消费与其展示开关、是否已有系统尺寸回调独立。预览/视频尺寸分别记录，具体目标和首次兜底见 `resolution.md`。
 
 macOS Tauri 适配器通过 `dynamic_cover_command` 实现 `DynamicCoverProvider`；`window.aonsokuDynamicCover` 保留为其他宿主的可选接入口。宿主验证 Darwin、维护 WebView 会话租约并负责销毁清理，通过受限本地资源协议返回视频 URL。接口不允许将任意路径转成可读 URL。非 Tauri/macOS 运行时不调用该桥接。现有 Electron 运行时未增加生成服务。
 
@@ -36,7 +37,7 @@ macOS Tauri 适配器通过 `dynamic_cover_command` 实现 `DynamicCoverProvider
 ## macOS 当前实现
 
 - 原生媒体元数据（本地/远程播放投影）是唯一源入口。Swift 剥离缩略图 `size` 参数并下载、验证完整原图；不将媒体会话中的 300px/base64 图片送入 DAV2。原图按 URL 摘要缓存，原始凭据不出现在文件名或诊断里。
-- 两种格式均按 static → camera → depth 发布；静态视频始终保留。DAV2 成功后退休 camera，仍在使用的租约继续保护文件。模型尚未准备好、压力暂停或推理失败时继续使用已有阶段，不写入伪 DAV2 缓存。
+- 新制作视频使用原图长边的方形画布；旧方形/竖版均可消费，按 static → camera → depth 发布；静态视频始终保留。DAV2 成功后退休 camera，仍在使用的租约继续保护文件。模型尚未准备好、压力暂停或推理失败时继续使用已有阶段，不写入伪 DAV2 缓存。
 - FP16/P8/P6 使用同一固定 Apple revision、字节数与 SHA256；串流下载、网络限制、取消、删除、编译延期、单模型串行推理均在 macOS 原生实现。模型推理完成后释放，视频编码复用有限像素缓冲。幅度 0.5–2x，速度对应 3–12 秒完整循环、24fps。
 - 音频设置提供开关、档位、模型管理和运动参数；离线缓存管理器接入静态/动态视频类型。macOS 设置增加折叠诊断面板，展示原图状态、发布阶段、Core ML/编码耗时与进程内存、归一化深度图。只有展开时才请求诊断。
 - Rust 启动时传入 app-data 与打包 license 路径。渲染层命令白名单不包含源 URL、文件路径、会话初始化或内部文件解析。`aonsoku-artwork://localhost/<session>/<lease>` 仅映射活跃原生租约，支持 Range/HEAD；WebView 重载和销毁时自动清理会话。
@@ -54,18 +55,18 @@ WebGPU 能力检测需要实际申请适配器/设备并验证推理所需特性
 
 能力、生成阶段和降级原因需要分别表达：能力表示当前设备可使用的后端，阶段表示已准备好的 static/camera/depth 内容，原因解释为何停留或降级。后续 Web 接入再补充具体能力字段，避免播放器根据系统名称猜测支持情况。
 
-## 下一步播放器接入
+## 播放器接入（已实现）
 
 继续使用现有方形尺寸与 CachedImage 首帧兜底。仅在全屏封面可见且 App 前台时获取/刷新视频；切歌丢弃迟到结果并立即释放其租约。新视频能播放后再换下旧视频并释放旧租约。关闭全屏、卸载组件时释放全部引用。歌曲暂停、隐藏页面、切到歌词/队列或 Reduce Motion 时暂停动画；资源恢复后复用视频，不重复生成。
 
-幅度、速度、模型档位继续由统一设置和缓存 ID 管理；视频完整循环仍为 3–12 秒、24fps。后续 UI 接入需验证 iPad/iPhone 与 macOS 的实际视频读取、循环、暂停及触摸拖动。
+幅度、速度、模型档位继续由统一设置和缓存 ID 管理；视频完整循环仍为 3–12 秒、24fps。设备验收仍需验证 iPad/iPhone 与 macOS WKWebView 的实际视频读取、循环、暂停及触摸拖动。
 
 ## 精简验证
 
 本次集中一次运行：前端提供者选择/地址转换/租约释放的定向单测；Foundation 注册表的修订隔离、分阶段选择与租约保护检查；TypeScript 检查和 iOS 编译。无需生成模型视频、下载模型、安装真机或重复跑全套渲染实验。
 
 
-## 本次验证结果（2026-10-15）
+## 首轮接口验证结果（历史，2026-10-15）
 
 - 接口与既有 iOS 设置门禁定向单测：21 项通过，约 150ms。
 - `node scripts/ios/test-dynamic-cover-interface.mjs`：发布阶段、修订隔离、租约生命周期/跨会话隔离/数量限制通过；不生成视频或加载模型。
@@ -74,7 +75,7 @@ WebGPU 能力检测需要实际申请适配器/设备并验证推理所需特性
 - 尚未验证真机 WebView 视频读取；播放器 UI 与 macOS 生产提供者留待下一步接入。
 
 
-## macOS 接通验证（2026-10-15）
+## macOS 首轮接通验证（历史，2026-10-15）
 
 - 平台归属：macOS 独立 Swift 源码全部在 `src-tauri/native/artwork`；本次最终无 iOS 文件改动，Web 实现未改动。
 - Tauri/Rust/Swift 编译与链接通过，WebKit Range 边界检查通过；22 项前端定向单测通过。
@@ -82,3 +83,8 @@ WebGPU 能力检测需要实际申请适配器/设备并验证推理所需特性
 - M3 Pro / 18 GiB / macOS 27.0.1：static 约 213ms、camera 约 533ms、首个 depth 约 36.639s；其中冷模型加载 3.775s、预测 75ms、首次含文字识别的分析 35.625s。幅度 1.5x、速度 2x 的实际输出为 720×720 / 24fps / 3s，保留完整轨迹。
 - 产物及测量边界见 [`exp/macos-service/README.md`](exp/macos-service/README.md)，包含实际视频、深度图、日志和 JSON。Release 内存是起止最大值，未声称采样峰值。
 - TypeScript 检查仍仅报告既有 coordination 类型与 `IAonsokuAPI.lanControl` 问题，新增文件无类型诊断。全量 Biome lint 在提交钩子执行。未额外跑 iOS/Android 或 Web 构建；Tauri WKWebView 全屏 UI 接入仍为下一阶段。
+
+
+### 2026-10-15 分辨率规则接入
+
+全屏新增独立“动态专辑封面”展示选项（默认关闭）；可见消费者通过 `requestGeneration` 登记实际需求，关闭后释放。现已使用现有方形布局显示 leased video，竖版影片仅在 CSS 遮罩中裁切，成品首帧可用后替换旧片；暂停、不可见、Reduce Motion 与原生资源策略受到约束。锁屏选项不再返回全屏 `disabled`。macOS 的旧锁屏兼容选项不作为生成入口，设置页只展示模型/参数配置，全屏展示由新选项控制。验算、兼容旧缓存与具体产物见 `resolution.md`。

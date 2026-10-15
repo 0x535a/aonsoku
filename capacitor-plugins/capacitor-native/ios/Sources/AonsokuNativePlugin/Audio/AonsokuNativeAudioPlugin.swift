@@ -178,6 +178,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     private var nowPlayingRevision = 0
     private var artworkResourceObservers: [NSObjectProtocol] = []
     private let artworkGeneration = LockScreenArtworkGeneration()
+    private let artworkPreparationQueue = DispatchQueue(label: "com.aonsoku.artwork-preparation", qos: .utility)
     private var artworkPublishedStages: [String: Int] = [:]
     private let dynamicCoverRegistry = DynamicCoverRegistry<LockScreenArtworkAsset>()
     private var publishedArtworkSource: String?
@@ -2132,7 +2133,9 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
             // Initialize the policy observer before publication observers so its
             // worker snapshots reflect the new accessibility/resource state.
             _ = LockScreenArtworkMotionPolicy.shared
-            for name in [UIAccessibility.reduceMotionStatusDidChangeNotification,
+            for name in [LockScreenArtworkDemand.changed, LockScreenArtworkRequests.changed,
+                         UIScreen.didConnectNotification, UIScreen.didDisconnectNotification,
+                         UIScreen.modeDidChangeNotification, UIAccessibility.reduceMotionStatusDidChangeNotification,
                          Notification.Name.NSProcessInfoPowerStateDidChange,
                          ProcessInfo.thermalStateDidChangeNotification,
                          LockScreenArtworkMotionPolicy.resourcesChanged,
@@ -2146,7 +2149,9 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                             MPNowPlayingInfoCenter.default().nowPlayingInfo = info
                         }
                     } else if self.currentMetadata.artworkUrl != nil {
-                        if var info = MPNowPlayingInfoCenter.default().nowPlayingInfo {
+                        let keepExisting = [LockScreenArtworkDemand.changed, LockScreenArtworkRequests.changed,
+                            UIScreen.didConnectNotification, UIScreen.didDisconnectNotification, UIScreen.modeDidChangeNotification].contains(note.name)
+                        if !keepExisting, var info = MPNowPlayingInfoCenter.default().nowPlayingInfo {
                             self.removeImmersiveArtwork(from: &info)
                             MPNowPlayingInfoCenter.default().nowPlayingInfo = info
                         }
@@ -2556,6 +2561,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         artworkPublishedStages.removeAll()
         dynamicCoverRegistry.begin(coverArtId: currentNowPlayingCoverArtId())
+        LockScreenArtworkDemand.shared.setCurrentCover(currentNowPlayingCoverArtId())
         nowPlayingRevision += 1
         artworkGeneration.update(nowPlayingRevision)
         let revision = nowPlayingRevision
@@ -2703,7 +2709,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
         coverArtId explicitCoverArtId: String?,
         revision: Int
     ) {
-        let needsOriginal = LockScreenArtworkController.supported && LockScreenArtworkSettings.shared.value.immersiveEnabled
+        let needsOriginal = (LockScreenArtworkController.supported && LockScreenArtworkSettings.shared.value.immersiveEnabled) || LockScreenArtworkDemand.shared.requested
         var coverArtId = explicitCoverArtId
         if let components = URLComponents(string: urlString),
            (components.scheme == "aonsoku-media" || URL(string: urlString)?.lastPathComponent == "getCoverArt"),
@@ -2910,82 +2916,101 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             guard originalReady else { return }
 
+            let options = LockScreenArtworkSettings.shared.value
+            guard options.immersiveEnabled || LockScreenArtworkDemand.shared.requested else { return }
+            var variants: [(LockScreenArtworkFormat, String)] = []
             #if compiler(>=6.2)
                 if #available(iOS 26.0, *) {
-                    guard LockScreenArtworkSettings.shared.value.immersiveEnabled else { return }
                     let keys = MPNowPlayingInfoCenter.supportedAnimatedArtworkKeys
-                    let variants: [(LockScreenArtworkFormat, String)] = [
-                        (.tall, MPNowPlayingInfoProperty3x4AnimatedArtwork),
-                        (.square, MPNowPlayingInfoProperty1x1AnimatedArtwork),
-                    ]
-                    for (format, key) in variants where keys.contains(key) {
-                        self.prepareAnimatedNowPlayingArtwork(
-                            image, data: data, format: format, key: key, revision: revision)
+                    if keys.contains(MPNowPlayingInfoProperty3x4AnimatedArtwork) {
+                        variants.append((.tall, MPNowPlayingInfoProperty3x4AnimatedArtwork))
                     }
-                    if keys.isEmpty {
-                        NativeLogger.shared.info(
-                            "animated artwork skipped: system supports no variants",
-                            source: "NowPlayingArtwork")
+                    if keys.contains(MPNowPlayingInfoProperty1x1AnimatedArtwork) {
+                        variants.append((.square, MPNowPlayingInfoProperty1x1AnimatedArtwork))
                     }
-                } else {
-                    NativeLogger.shared.info(
-                        "animated artwork skipped: OS older than 26", source: "NowPlayingArtwork")
                 }
-            #else
-                NativeLogger.shared.warn(
-                    "animated artwork skipped: built without iOS 26 artwork API",
-                    source: "NowPlayingArtwork")
             #endif
+            if variants.isEmpty && LockScreenArtworkDemand.shared.requested { variants = [(.square, "")] }
+            if !options.immersiveEnabled, let preferred = variants.first { variants = [preferred] }
+            let observations = variants.map { format, key in
+                (format, key, LockScreenArtworkRequests.shared.target(portrait: !format.isSquare))
+            }
+            let budget = LockScreenArtworkRequests.budgetBytes
+            let locked = options.immersiveEnabled
+            self.artworkPreparationQueue.async { [weak self] in
+                guard let self, let sourceSize = LockScreenArtworkResolution.sourceSize(data) else { return }
+                let current = { [artworkGeneration = self.artworkGeneration] in artworkGeneration.contains(revision) }
+                LockScreenArtworkStore.shared.restoreCached(data: data, shouldContinue: current) { assets in
+                    DispatchQueue.main.async {
+                        guard self.nowPlayingRevision == revision else { return }
+                        for asset in assets {
+                            let key = observations.first { $0.0.label == asset.format.label }?.1 ?? ""
+                            self.deliverImmersiveArtwork(asset, key: key, revision: revision)
+                        }
+                    }
+                    // A fullscreen consumer accepts existing files of any size/aspect.
+                    // Only the lock-screen producer may request an upgraded format.
+                    if !locked && assets.contains(where: { !$0.motion }) && (assets.contains(where: { $0.motion && $0.backend != "camera" }) || !LockScreenArtworkDemand.shared.dynamicRequested) { return }
+                    let existing = !locked ? assets.max(by: { ($0.motion ? 1 : 0) < ($1.motion ? 1 : 0) }) : nil
+                    let jobs = existing.map { asset in [(asset.format, observations.first { $0.0.label == asset.format.label }?.1 ?? "", (size: CGSize(width: asset.format.width, height: asset.format.height), origin: "reused-existing-video"))] } ?? observations
+                    for (format, key, target) in jobs {
+                        guard current() else { continue }
+                        guard let plan = LockScreenArtworkResolution.plan(source: sourceSize,
+                            target: target.size, portrait: !format.isSquare, budgetBytes: budget) else {
+                            LockScreenArtworkDiagnostics.shared.update(format.label,
+                                ["resolutionReason": "resource-or-hardware-unavailable", "outputPixels": "unavailable", "targetOrigin": target.origin])
+                            continue
+                        }
+                        guard let decoded = LockScreenArtworkRenderer.decode(data, maxPixelSize: plan.decodeLimit) else {
+                            LockScreenArtworkDiagnostics.shared.update(format.label, ["resolutionReason": "source-decode-failed"])
+                            continue
+                        }
+                        LockScreenArtworkDiagnostics.shared.update(format.label,
+                            ["targetOrigin": target.origin, "targetPixels": "\(target.size.width)×\(target.size.height)",
+                             "outputPixels": "\(plan.format.width)×\(plan.format.height)", "resolutionReason": plan.reason,
+                             "decodedPixels": "\(decoded.width)×\(decoded.height)", "algorithm": "minimal-extension-v2"])
+                        self.prepareImmersiveArtwork(decoded, data: data, format: plan.format, key: key, revision: revision, existing: assets, allowLegacyReuse: !locked, consumerMotion: !locked || format.label == observations.first?.0.label)
+                    }
+                }
+            }
         }
     }
 
-    #if compiler(>=6.2)
-        @available(iOS 26.0, *)
-        private func prepareAnimatedNowPlayingArtwork(
-            _ image: CGImage, data: Data, format: LockScreenArtworkFormat, key: String,
-            revision: Int
-        ) {
-            let prepared: (LockScreenArtworkAsset?) -> Void = {
-                [weak self] asset in
-                guard let asset else {
-                    NativeLogger.shared.warn(
-                        "\(format.label) artwork generation failed; using static cover",
-                        source: "NowPlayingArtwork")
-                    return
-                }
-                DispatchQueue.main.async { [weak self] in
-                    guard let self, self.nowPlayingRevision == revision,
-                        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo
-                    else {
-                        NativeLogger.shared.debug(
-                            "\(format.label) result dropped as stale revision=\(revision)",
-                            source: "NowPlayingArtwork")
-                        return
-                    }
-                    let stage = asset.motion ? (asset.backend == "camera" ? 1 : 2) : 0
-                    let stageKey = "\(revision)-\(format.label)"
-                    guard stage >= (self.artworkPublishedStages[stageKey] ?? -1) else { return }
-                    self.artworkPublishedStages[stageKey] = stage
-                    self.dynamicCoverRegistry.publish(asset,
-                        format: format == .square ? "square" : "portrait", rank: stage)
+    private func deliverImmersiveArtwork(_ asset: LockScreenArtworkAsset, key: String, revision: Int) {
+        guard nowPlayingRevision == revision else { return }
+        let stage = asset.motion ? (asset.backend == "camera" ? 1 : 2) : 0
+        dynamicCoverRegistry.publish(asset, format: asset.format.consumerFormat, rank: stage)
+        let options = LockScreenArtworkSettings.shared.value
+        guard options.immersiveEnabled, !asset.motion || (options.dynamicEnabled && LockScreenArtworkMotionPolicy.shared.allowsPlayback), !key.isEmpty else { return }
+        let stageKey = "\(revision)-\(asset.format.label)"
+        guard stage >= (artworkPublishedStages[stageKey] ?? -1) else { return }
+        artworkPublishedStages[stageKey] = stage
+        #if compiler(>=6.2)
+            if #available(iOS 26.0, *), var info = MPNowPlayingInfoCenter.default().nowPlayingInfo {
                     let preview = UIImage(cgImage: asset.preview)
                     let animated = MPMediaItemAnimatedArtwork(
                         artworkID: asset.id,
                         previewImageRequestHandler: { size, completion in
                             NativeLogger.shared.info(
-                                "\(format.label) preview requested revision=\(revision) size=\(size) returning=\(preview.size)",
+                                "\(asset.format.label) preview requested revision=\(revision) size=\(size) returning=\(preview.size)",
                                 source: "NowPlayingArtwork")
                             completion(preview)
+                            DispatchQueue.main.async {
+                                LockScreenArtworkRequests.shared.record(format: asset.format, size: size, kind: "preview")
+                            }
                         },
                         videoAssetFileURLRequestHandler: { size, completion in
                             let started = Date()
+                            DispatchQueue.main.async {
+                                LockScreenArtworkRequests.shared.record(format: asset.format, size: size, kind: "video")
+                            }
                             NativeLogger.shared.info(
-                                "\(format.label) video requested revision=\(revision) size=\(size)",
+                                "\(asset.format.label) video requested revision=\(revision) size=\(size)",
                                 source: "NowPlayingArtwork")
                             asset.requestVideo { url in
                                 if url == nil {
                                     NativeLogger.shared.warn(
-                                        "\(format.label) video unavailable; using system fallback",
+                                        "\(asset.format.label) video unavailable; using system fallback",
                                         source: "NowPlayingArtwork")
                                 }
                                 let bytes =
@@ -2993,9 +3018,9 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                                         try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize
                                     } ?? 0
                                 NativeLogger.shared.info(
-                                    "\(format.label) video returned revision=\(revision) local=\(url?.isFileURL ?? false) bytes=\(bytes) elapsedMs=\(Int(Date().timeIntervalSince(started) * 1000))",
+                                    "\(asset.format.label) video returned revision=\(revision) local=\(url?.isFileURL ?? false) bytes=\(bytes) elapsedMs=\(Int(Date().timeIntervalSince(started) * 1000))",
                                     source: "NowPlayingArtwork")
-                                LockScreenArtworkDiagnostics.shared.update(format.label,
+                                LockScreenArtworkDiagnostics.shared.update(asset.format.label,
                                     ["systemVideo": url == nil ? "unavailable" : "delivered",
                                      "systemBackend": asset.backend, "bytes": "\(bytes)",
                                      "requestMs": "\(Int(Date().timeIntervalSince(started) * 1000)) ms"])
@@ -3004,7 +3029,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                         }
                     )
                     info[key] = animated
-                    LockScreenArtworkDiagnostics.shared.update(format.label,
+                    LockScreenArtworkDiagnostics.shared.update(asset.format.label,
                         ["publishedRevision": "\(revision)", "publishedBackend": asset.backend,
                          "publishedMode": asset.motion ? "motion" : "static",
                          "publishedReason": asset.analysisReason ?? "disk-cache",
@@ -3014,39 +3039,53 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                          "asset": String(asset.id.prefix(45))])
                     MPNowPlayingInfoCenter.default().nowPlayingInfo = info
                     NativeLogger.shared.info(
-                        "\(format.label) artwork published revision=\(revision)",
+                        "\(asset.format.label) artwork published revision=\(revision)",
                         source: "NowPlayingArtwork")
                     NativeLogger.shared.info("backend=\(asset.backend) motion=\(asset.motion) analysis=\(asset.analysisReason ?? "cached")", source: "NowPlayingArtwork")
-                    self.logNowPlayingArtworkDiagnostics("\(format.label)-published")
-                }
+                    self.logNowPlayingArtworkDiagnostics("\(asset.format.label)-published")
             }
+        #endif
+    }
+
+    private func prepareImmersiveArtwork(
+        _ image: CGImage, data: Data, format: LockScreenArtworkFormat, key: String, revision: Int, existing: [LockScreenArtworkAsset], allowLegacyReuse: Bool, consumerMotion: Bool
+    ) {
+        let prepared: (LockScreenArtworkAsset?) -> Void = { [weak self] asset in
+            guard let asset else { return }
+            DispatchQueue.main.async { self?.deliverImmersiveArtwork(asset, key: key, revision: revision) }
+        }
+            let reusableDepth = allowLegacyReuse ? existing.first(where: { $0.motion && $0.backend != "camera" && $0.format.label == format.label }) : nil
             let options = LockScreenArtworkSettings.shared.value
             let policy = LockScreenArtworkMotionPolicy.shared
             let target = policy.effectiveTier ?? LockScreenArtworkTier.automatic(memory: ProcessInfo.processInfo.physicalMemory)
             var tier = target
-            if options.dynamicEnabled && !LockScreenArtworkStore.shared.hasReadyVideo(data: data, format: format, backend: target.backend),
+            if ((options.immersiveEnabled && options.dynamicEnabled) || (consumerMotion && LockScreenArtworkDemand.shared.dynamicRequested)) && !LockScreenArtworkStore.shared.hasReadyVideo(data: data, format: format, backend: target.backend),
                 let available = LockScreenArtworkModelManager.shared.availableTier(upTo: target) {
                 tier = available
             }
-            let motion = options.dynamicEnabled && policy.allowsPlayback && policy.effectiveTier != nil
+            let motion = ((options.immersiveEnabled && options.dynamicEnabled) || (consumerMotion && LockScreenArtworkDemand.shared.dynamicRequested)) && policy.allowsPlayback && policy.effectiveTier != nil
             let backend = tier.backend
             LockScreenArtworkDiagnostics.shared.update(format.label,
                 ["targetTier": target.rawValue, "selectedTier": tier.rawValue,
                  "policy": policy.generationReason])
-            if motion && policy.allowsGeneration
+            if motion && reusableDepth == nil && policy.allowsGeneration
                 && LockScreenArtworkModelManager.shared.modelURL(target) == nil
                 && !LockScreenArtworkStore.shared.hasReadyVideo(data: data, format: format, backend: target.backend) {
                 LockScreenArtworkModelManager.shared.request(target, automatic: true)
             }
             let current = { [artworkGeneration] in artworkGeneration.contains(revision) }
+            let motionCurrent = { current() && ((LockScreenArtworkSettings.shared.value.immersiveEnabled && LockScreenArtworkSettings.shared.value.dynamicEnabled) || (consumerMotion && LockScreenArtworkDemand.shared.dynamicRequested)) }
             let store = LockScreenArtworkStore.shared
-            store.prepare(data: data, source: image, format: format,
-                shouldContinue: current) { staticAsset in
+            let afterStatic: (LockScreenArtworkAsset?) -> Void = { staticAsset in
                 prepared(staticAsset)
-                guard motion, current() else { return }
+                if let reusableDepth {
+                    reusableDepth.retainedStaticAsset = staticAsset
+                    prepared(reusableDepth); return
+                }
+                guard motion, motionCurrent() else { return }
                 let prepareDepth = {
                     store.prepare(data: data, source: image, format: format,
-                        motion: true, backend: backend, shouldContinue: current) { depthAsset in
+                        motion: true, backend: backend, shouldContinue: motionCurrent) { depthAsset in
                         guard let depthAsset, depthAsset.motion, depthAsset.backend != "camera" else { return }
                         depthAsset.retainedStaticAsset = staticAsset
                         prepared(depthAsset)
@@ -3057,21 +3096,24 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                     prepareDepth()
                     return
                 }
-                store.prepare(data: data, source: image, format: format,
-                    motion: true, backend: "camera", shouldContinue: current) { cameraAsset in
+                let afterCamera: (LockScreenArtworkAsset?) -> Void = { cameraAsset in
                     cameraAsset?.retainedStaticAsset = staticAsset
                     prepared(cameraAsset)
-                    guard current() else { return }
+                    guard motionCurrent() else { return }
                     prepareDepth()
                 }
+                if let cachedCamera = existing.first(where: { $0.motion && $0.backend == "camera" && $0.format == format }) { afterCamera(cachedCamera) }
+                else { store.prepare(data: data, source: image, format: format, motion: true, backend: "camera", shouldContinue: motionCurrent, completion: afterCamera) }
             }
-        }
-    #endif
+            if let cachedStatic = existing.first(where: { !$0.motion && $0.format == format }) { afterStatic(cachedStatic) }
+            else { store.prepare(data: data, source: image, format: format, shouldContinue: current, completion: afterStatic) }
+    }
 
     private func clearNowPlayingInfo() {
         cancelCoverDownload()
         artworkPublishedStages.removeAll()
         dynamicCoverRegistry.begin(coverArtId: nil)
+        LockScreenArtworkDemand.shared.setCurrentCover(nil)
         nowPlayingRevision += 1
         artworkGeneration.update(nowPlayingRevision)
         artworkTask?.cancel()

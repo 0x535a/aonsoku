@@ -1,5 +1,8 @@
 # Aonsoku — iOS 沉浸式锁屏封面适配目标
 
+> 当前输出尺寸、最小延伸、全屏展示选项及消费需求分离规则已按 [resolution.md](resolution.md) 实现。下文保留此前固定尺寸实验与历史设备结果，不能将其 720px/1200px 数值当作当前生成上限或 Apple 要求。
+
+
 ## 项目背景
 
 Aonsoku 是基于 Navidrome/Subsonic 的音乐播放器。希望在现有 iOS 音频播放功能的基础上，实现类似 Apple Music 的沉浸式全屏锁屏专辑封面。

@@ -1,0 +1,8 @@
+
+ RUN  v4.1.5 /Users/stephenzeng/Repo/aonsoku
+
+
+ Test Files  3 passed (3)
+      Tests  24 passed (24)
+   Start at  19:28:05
+   Duration  210ms (transform 147ms, setup 156ms, import 108ms, tests 12ms, environment 0ms)

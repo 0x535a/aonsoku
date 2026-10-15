@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   appendFileSync,
   cpSync,
@@ -92,7 +93,16 @@ try {
       join(native, "DepthAnythingV2-LICENSE.txt"),
       `http://127.0.0.1:${port}/rest/getCoverArt?id=fixture&size=300`,
       output,
-      process.env.AONSOKU_TEST_MODEL_DOWNLOAD === "1" ? "1" : "0",
+      process.env.AONSOKU_MACOS_SMOKE_LEGACY_ONLY === "1"
+        ? "legacy"
+        : process.env.AONSOKU_TEST_MODEL_DOWNLOAD === "1"
+          ? "1"
+          : "0",
+      join(
+        root,
+        "doc/dynamic-cover/exp/dav2-product-mac/dav2-p6/motion-960.mp4",
+      ),
+      createHash("sha256").update(cover).digest("hex"),
     ],
     { cwd: root },
   );
@@ -119,7 +129,10 @@ try {
   console.log(
     log
       .split("\n")
-      .filter((line) => line.includes("smoke passed"))
+      .filter(
+        (line) =>
+          line.includes("smoke passed") || line.includes("legacy reuse passed"),
+      )
       .join("\n"),
   );
   console.log(`Artifacts: ${output}`);

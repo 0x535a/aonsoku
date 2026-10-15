@@ -1,0 +1,14 @@
+phase=image-extension elapsedMs=0 baselineMiB=10 peakMiB=13 deltaMiB=2 format=1:1
+phase=static-encode backend=camera elapsedMs=169 baselineMiB=13 peakMiB=91 deltaMiB=78 success=true
+phase=image-extension elapsedMs=0 baselineMiB=91 peakMiB=92 deltaMiB=0 format=1:1
+phase=analysis backend=camera elapsedMs=0 baselineMiB=92 peakMiB=92 deltaMiB=0 mode=camera reason=camera-fallback-no-depth
+phase=motion-encode backend=camera elapsedMs=166 baselineMiB=92 peakMiB=106 deltaMiB=14 success=true
+phase=image-extension elapsedMs=0 baselineMiB=106 peakMiB=107 deltaMiB=0 format=1:1
+phase=model-load backend=dav2-p6 elapsedMs=4703 baselineMiB=107 peakMiB=107 deltaMiB=0 packageBytes=19038993 compiledBytes=0
+phase=model-input backend=dav2-p6 elapsedMs=12 baselineMiB=68 peakMiB=143 deltaMiB=74 size=518x392
+phase=model-predict-cold backend=dav2-p6 elapsedMs=65 baselineMiB=143 peakMiB=167 deltaMiB=24 firstPrediction=true
+phase=model-depth-map backend=dav2-p6 elapsedMs=3 baselineMiB=167 peakMiB=167 deltaMiB=0 valid=true
+phase=model-total backend=dav2-p6 elapsedMs=4791 baselineMiB=107 peakMiB=161 deltaMiB=53 precision=palette-W6A16 computeUnits=all
+phase=analysis backend=dav2-p6 elapsedMs=5051 baselineMiB=107 peakMiB=184 deltaMiB=76 mode=parallax reason=dav2-p6
+phase=motion-encode backend=dav2-p6 elapsedMs=164 baselineMiB=184 peakMiB=202 deltaMiB=18 success=true
+macOS service smoke passed: ["camera", "depth", "static"], lease protection, mismatch and session cleanup

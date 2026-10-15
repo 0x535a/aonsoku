@@ -4,7 +4,7 @@ export type DynamicCoverStage = "static" | "camera" | "depth";
 export interface DynamicCoverRequest {
   /** Must match the currently displayed local/remote playback cover. */
   coverArtId: string;
-  format: DynamicCoverFormat;
+  format: DynamicCoverFormat | "any";
   mode: "static" | "dynamic";
 }
 
@@ -17,6 +17,7 @@ export interface DynamicCoverCapabilities {
 
 export interface DynamicCoverVideo {
   status: "ready";
+  motionAllowed?: boolean;
   leaseId: string;
   assetId: string;
   coverArtId: string;
@@ -35,6 +36,7 @@ export type DynamicCoverResult =
   | {
       status: "pending" | "disabled" | "mismatch" | "unavailable" | "busy";
       reason?: string;
+      motionAllowed?: boolean;
     };
 
 /** macOS hosts implement this bridge; future WebGPU can use the same contract. */
@@ -42,6 +44,10 @@ export interface DynamicCoverProvider {
   getCapabilities(): Promise<DynamicCoverCapabilities>;
   acquire(request: DynamicCoverRequest): Promise<DynamicCoverResult>;
   release(leaseId: string): Promise<void>;
+  registerDemand?(
+    request: Pick<DynamicCoverRequest, "coverArtId" | "mode">,
+  ): Promise<{ demandId: string }>;
+  releaseDemand?(demandId: string): Promise<void>;
 }
 
 export type DynamicCoverHandle = DynamicCoverVideo & {

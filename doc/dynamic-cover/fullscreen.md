@@ -174,3 +174,11 @@ WebGPU 能力检测需要实际申请适配器/设备并验证推理所需特性
    - 若需调整封面所在物理卡槽的最大极限尺寸，可调整 [`src/app/components/fullscreen/artwork-with-info.tsx`](../../src/app/components/fullscreen/artwork-with-info.tsx) 中的 `clamp(280px, 85vw, 480px)` 及其对应的 `flex-[0_1_min(480px,100cqw)]`。
 
 
+### 竖屏（移动端）播放视图溢出硬边消除（2026-10-16）
+
+针对竖屏状态下全屏播放器顶部（`MobileHeader` 与专辑标题之间）出现水平直切硬边的现象进行修复：
+- **根因分析**：[`src/app/components/fullscreen/mobile-layout.tsx`](../../src/app/components/fullscreen/mobile-layout.tsx) 中 `playing-view` 的 `motion.div` 容器原本带有 `overflow-hidden overflow-clip`。由于 Layer 1 的同色散景垫底（`-inset-[12%]`、`blur-2xl`）以及放大后的 Layer 2 动态封面向上蔓延，在触及 `motion.div` 顶边缘（即 `MobileHeader` 下沿）时被 `overflow-hidden` 硬性截断，造成明显的横向硬切割线。
+- **修复方案**：移除 `mobile-layout.tsx` 中 `playing-view` 的 `overflow-hidden overflow-clip`，使散景与高斯光晕能够顺滑贯穿顶部控制区并与全画幅环境漫反射（`FullscreenAmbientAtmosphere`）完全无缝融合，彻底消除刘海屏/灵动岛下方与小标题之间的切割痕迹。
+
+
+

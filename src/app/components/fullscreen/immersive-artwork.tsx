@@ -1,20 +1,19 @@
 import { useReducedMotion } from "framer-motion";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 import { type DynamicCoverHandle, dynamicCover } from "@/native/artwork";
 
 const rank = { static: 0, camera: 1, depth: 2 };
 
-// A wide, smooth S-curve feather that dissolves the artwork perimeter into
-// the underlying bokeh cushion and expansive ambient background, while
-// keeping the central 64% crisp, focused, and vibrant (referencing iPadOS presentation).
+// A wide, continuous Perlin smootherstep (6t^5 - 15t^4 + 10t^3) transition across 20%
+// ensuring zero slope/knee at both the opaque central core (60%) and the outer perimeter.
+// This prevents any visible transition boundary even on static freeze-frames during pause.
 const edgeFade =
-  "transparent 0%, rgba(0,0,0,0.02) 2%, rgba(0,0,0,0.12) 5%, rgba(0,0,0,0.35) 9%, rgba(0,0,0,0.68) 13.5%, black 18%, black 82%, rgba(0,0,0,0.68) 86.5%, rgba(0,0,0,0.35) 91%, rgba(0,0,0,0.12) 95%, rgba(0,0,0,0.02) 98%, transparent 100%";
+  "transparent 0%, rgba(0,0,0,0.01) 2%, rgba(0,0,0,0.06) 4%, rgba(0,0,0,0.2) 7%, rgba(0,0,0,0.5) 10%, rgba(0,0,0,0.8) 13%, rgba(0,0,0,0.94) 16%, rgba(0,0,0,0.99) 18%, black 20%, black 80%, rgba(0,0,0,0.99) 82%, rgba(0,0,0,0.94) 84%, rgba(0,0,0,0.8) 87%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.2) 93%, rgba(0,0,0,0.06) 96%, rgba(0,0,0,0.01) 98%, transparent 100%";
 const edgeMask = `linear-gradient(to right, ${edgeFade}), linear-gradient(to bottom, ${edgeFade})`;
 
-// Defocus cushion mask directly behind the foreground feather zone
+// Defocus cushion mask directly behind the foreground feather zone (-inset-[12%])
 const cushionFade =
-  "transparent 0%, rgba(0,0,0,0.15) 3%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.85) 14%, black 20%, black 80%, rgba(0,0,0,0.85) 86%, rgba(0,0,0,0.5) 92%, rgba(0,0,0,0.15) 97%, transparent 100%";
+  "transparent 0%, rgba(0,0,0,0.12) 4%, rgba(0,0,0,0.45) 10%, rgba(0,0,0,0.85) 18%, black 26%, black 74%, rgba(0,0,0,0.85) 82%, rgba(0,0,0,0.45) 90%, rgba(0,0,0,0.12) 96%, transparent 100%";
 const cushionMask = `linear-gradient(to right, ${cushionFade}), linear-gradient(to bottom, ${cushionFade})`;
 
 type Demand = Awaited<ReturnType<typeof dynamicCover.requestGeneration>>;
@@ -181,31 +180,10 @@ export function ImmersiveArtwork({
 
   return (
     <div ref={element} className="relative isolate size-full aspect-square">
-      {/* Layer 0: Expansive ambient atmosphere (iPad-style large-area soft blur) */}
+      {/* Defocus cushion directly under the artwork feather zone */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -inset-[55%] sm:-inset-[70%] z-0 select-none"
-        style={{
-          maskImage:
-            "radial-gradient(circle closest-side at center, black 22%, rgba(0,0,0,0.85) 42%, rgba(0,0,0,0.52) 65%, rgba(0,0,0,0.18) 84%, transparent 98%)",
-          WebkitMaskImage:
-            "radial-gradient(circle closest-side at center, black 22%, rgba(0,0,0,0.85) 42%, rgba(0,0,0,0.52) 65%, rgba(0,0,0,0.18) 84%, transparent 98%)",
-        }}
-      >
-        <div
-          className={cn(
-            "size-full blur-[64px] sm:blur-[84px] transition-opacity duration-1000",
-            canMove ? "animate-dreamy-breathe" : "opacity-50 scale-102",
-          )}
-        >
-          <div className="size-full scale-110">{halo}</div>
-        </div>
-      </div>
-
-      {/* Layer 1: Defocus cushion directly under the artwork feather zone */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -inset-[10%] z-[1] select-none"
+        className="pointer-events-none absolute -inset-[12%] z-[1] select-none"
         style={{
           maskImage: cushionMask,
           maskComposite: "intersect",
@@ -213,7 +191,7 @@ export function ImmersiveArtwork({
           WebkitMaskComposite: "source-in",
         }}
       >
-        <div className="size-full blur-2xl opacity-90 scale-105">{halo}</div>
+        <div className="size-full blur-2xl opacity-95 scale-106">{halo}</div>
       </div>
 
       {/* Layer 2: Foreground artwork with wide, dreamy transition into the blur */}

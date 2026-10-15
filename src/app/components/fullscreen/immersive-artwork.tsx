@@ -4,6 +4,12 @@ import { type DynamicCoverHandle, dynamicCover } from "@/native/artwork";
 
 const rank = { static: 0, camera: 1, depth: 2 };
 
+// Feather the whole composition, including its still-image fallback, into
+// the actual player backdrop. Intersect both axes to soften the corners too.
+const feather =
+  "transparent 0%, rgba(0,0,0,.12) 1.5%, rgba(0,0,0,.5) 3.5%, rgba(0,0,0,.85) 5.5%, black 8%, black 92%, rgba(0,0,0,.85) 94.5%, rgba(0,0,0,.5) 96.5%, rgba(0,0,0,.12) 98.5%, transparent 100%";
+const artworkMask = `linear-gradient(to right, ${feather}), linear-gradient(to bottom, ${feather})`;
+
 type Demand = Awaited<ReturnType<typeof dynamicCover.requestGeneration>>;
 
 /** A square display mask over leased files. It never requests pixel dimensions. */
@@ -168,6 +174,12 @@ export function ImmersiveArtwork({
     <div
       ref={element}
       className="relative size-full aspect-square overflow-hidden"
+      style={{
+        maskImage: artworkMask,
+        maskComposite: "intersect",
+        WebkitMaskImage: artworkMask,
+        WebkitMaskComposite: "source-in",
+      }}
     >
       {children}
       {clips

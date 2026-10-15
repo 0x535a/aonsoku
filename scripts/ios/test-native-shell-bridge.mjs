@@ -9,7 +9,7 @@ const requestedDevice = process.env.AONSOKU_QA_SIMULATOR_UDID;
 const device = Object.values(devices.devices).flat().find((item) =>
   requestedDevice ? item.udid === requestedDevice : item.state === "Booted",
 );
-if (!device) throw new Error("Boot an iOS Simulator before running Capacitor bridge QA");
+if (!device) throw new Error("Boot a portrait iOS Simulator window before running Capacitor bridge QA");
 const bundle = "github.realtvop.aonsoku";
 const settings = JSON.parse(execFileSync("xcodebuild", ["-project", "ios/App/App.xcodeproj", "-scheme", "App", "-configuration", "Debug", "-sdk", "iphonesimulator", "-destination", `platform=iOS Simulator,id=${device.udid}`, "-showBuildSettings", "-json"], { cwd: root, encoding: "utf8" }))[0].buildSettings;
 const app = join(settings.TARGET_BUILD_DIR, settings.FULL_PRODUCT_NAME);

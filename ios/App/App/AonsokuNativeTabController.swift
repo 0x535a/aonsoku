@@ -20,8 +20,10 @@ final class AonsokuNativeTabController: UITabBarController, UITabBarControllerDe
     override func viewDidLoad() {
         super.viewDidLoad()
         delegate = self
-        mode = .tabSidebar
-        sidebar.preferredLayout = .tile
+        mode = .tabBar
+        // React's existing portrait-layout hook decides when this shell is used.
+        // The active native navigation always uses bottom tabs, including iPad.
+        traitOverrides.horizontalSizeClass = .compact
         tabBarMinimizeBehavior = .onScrollDown
         bridgeController.nativeTabController = self
         tabs = makeTabs()
@@ -35,6 +37,12 @@ final class AonsokuNativeTabController: UITabBarController, UITabBarControllerDe
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        // Keep the navigation-only override out of Web content and presentations.
+        if let sizeClass = view.window?.traitCollection.horizontalSizeClass {
+            for container in containers.values {
+                container.traitOverrides.horizontalSizeClass = sizeClass
+            }
+        }
         updateAccessoryVisibility()
     }
 
@@ -54,6 +62,9 @@ final class AonsokuNativeTabController: UITabBarController, UITabBarControllerDe
     }
 
     private func hostBridge(in container: AonsokuTabContainerController) {
+        if let sizeClass = view.window?.traitCollection.horizontalSizeClass {
+            container.traitOverrides.horizontalSizeClass = sizeClass
+        }
         guard bridgeController.parent !== container else { return }
         NSLayoutConstraint.deactivate(bridgeConstraints)
         if bridgeController.parent != nil {
@@ -147,9 +158,10 @@ final class AonsokuNativeTabController: UITabBarController, UITabBarControllerDe
 
     private func sendCurrentLayout() {
         guard let bridgeView = bridgeController.viewIfLoaded else { return }
-        let compact = traitCollection.userInterfaceIdiom != .pad || bridgeView.bounds.width < 768
+        let active = shellEnabled
         // Preserve the page geometry while a keyboard/modal/fullscreen player is over it.
-        if shellEnabled && (accessoryObscured || miniPlayer.keyboardVisible) { return }
+        // A window-mode change must still restore/hide Web chrome immediately.
+        if active && lastReportedInsets.last == 1 && (accessoryObscured || miniPlayer.keyboardVisible) { return }
         var top: CGFloat = 0
         var bottom: CGFloat = 0
         var frames: [CGRect] = []
@@ -166,7 +178,13 @@ final class AonsokuNativeTabController: UITabBarController, UITabBarControllerDe
                 top = max(top, overlap.maxY - bridgeView.bounds.minY)
             }
         }
-        sendLayout(top: shellEnabled ? top : 0, bottom: shellEnabled ? bottom : 0, compact: compact)
+        sendLayout(top: active ? top : 0, bottom: active ? bottom : 0, compact: active, active: active)
+    }
+
+    func reportCurrentLayout() {
+        // React may mount after UIKit's first layout (or after a Web reload).
+        lastReportedInsets = []
+        sendCurrentLayout()
     }
 
     #if DEBUG
@@ -194,12 +212,12 @@ final class AonsokuNativeTabController: UITabBarController, UITabBarControllerDe
     }
     #endif
 
-    private func sendLayout(top: CGFloat, bottom: CGFloat, compact: Bool) {
-        let values: [CGFloat] = [top, bottom, compact ? 1 : 0]
+    private func sendLayout(top: CGFloat, bottom: CGFloat, compact: Bool, active: Bool) {
+        let values: [CGFloat] = [top, bottom, compact ? 1 : 0, active ? 1 : 0]
         guard values != lastReportedInsets else { return }
         lastReportedInsets = values
         bridgeController.dispatchShellEvent([
-            "type": "layout", "top": top, "bottom": bottom, "compact": compact,
+            "type": "layout", "top": top, "bottom": bottom, "compact": compact, "active": active,
         ])
     }
 

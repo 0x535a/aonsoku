@@ -55,7 +55,7 @@ cd android && ./gradlew :aonsoku-capacitor-native:compileDebugKotlin
 cd android && ./gradlew :aonsoku-capacitor-native:testDebugUnitTest
 
 # iOS navigation/player UI (macOS + Xcode, booted iOS Simulator, no server/device)
-node scripts/ios/test-native-shell-bridge.mjs # Actual Debug Capacitor app WK state/layout round trip (build Simulator App first)
+node scripts/ios/test-native-shell-bridge.mjs # Actual Debug Capacitor app WK state/layout round trip (build Simulator App first; boot portrait iOS Simulator window)
 node scripts/ios/test-native-shell.mjs # Standalone UITabAccessory regular/inline/control fixture + PNGs in /tmp/aonsoku-native-shell-qa
 
 # Apple artwork resolution contracts (independent implementations; macOS + Xcode)
@@ -274,8 +274,20 @@ location from inside a cached subtree unless the freeze above is extended.
 ### iOS / iPadOS Native Navigation and Mini Player
 
 On iOS 26+, `AonsokuNativeTabController` is the root `UITabBarController` in
-`.tabSidebar` mode with system `.onScrollDown` minimization and a
-`UITabAccessory`. UIKit owns tab/sidebar adaptation, accessory glass and its
+`.tabBar` mode with system `.onScrollDown` minimization and a
+`UITabAccessory`. React reuses `useIsPortraitViewport()` from
+`src/app/hooks/use-mobile.tsx` (the same hook as fullscreen layout) and sends
+its result as shell `enabled`: portrait uses native navigation/player and
+landscape uses the complete Web shell, including on iPad. Swift does not make
+an independent orientation, device, width, or size-class activation decision.
+The tab controller's compact trait only keeps native tabs at the bottom;
+content containers restore the window's real size class, preserving Web and
+presentation layout. Switching never replaces the root or WebView.
+Layout events include `active`, which React uses to toggle native shell CSS
+and restore Web chrome/insets during resize, even while overlays are open.
+React requests the current layout after subscribing so late mounts/reloads
+do not miss an already-reported mode. The shared bridge remains mounted.
+UIKit owns accessory glass and its
 regular-to-inline transition; `NativeBottomShellView` adapts to the accessory
 trait by hiding artist/next and shrinking cover art inline. The single existing
 `AonsokuViewController`/WKWebView is reparented between three lightweight tab
@@ -287,9 +299,9 @@ sends navigation. React-driven selectedTab updates suppress user-intent dispatch
 and mutate existing tab titles/selection without rebuilding controllers. The active container registers the
 WebView scroll view with setContentScrollView for system scroll minimization.
 The
-React header remains on wide windows for search/account. The system sidebar
-replaces duplicate Web navigation, and the system bottom Tab bar replaces Web
-bottom tabs. Compact windows also hide the Web header. Before iOS 26, the
+React header remains on wide windows for search/account. The system bottom Tab
+bar replaces Web navigation, including the Web sidebar and bottom tabs.
+Compact native-shell windows also hide the Web header. Before iOS 26, the
 existing Web navigation/player UI remains in place. Reduce Transparency and
 Reduce Motion are respected.
 
@@ -307,7 +319,8 @@ stale track IDs are ignored. Native controls dispatch existing React Router and
 player actions, preserving fullscreen history. Tab selections open the same
 root routes as the Web bottom links; they do not restore remembered detail URLs. Measured
 Tab/accessory occlusion in WebView coordinates feeds root CSS variables; Web playback and duplicate navigation chrome hide
-with this host capability. Web, Android and desktop keep their existing UI. Window changes
+only while this host layout is active. Landscape iOS windows, Web, Android and
+desktop keep their existing UI. Window changes
 never replace the WebView or audio service. Native shell state is scene-local;
 the app still advertises a single scene. See `doc/ios-native/bottom.md`.
 

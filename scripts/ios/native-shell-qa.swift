@@ -30,7 +30,8 @@ final class ShellQAController: UITabBarController, UITabBarControllerDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         delegate = self
-        mode = .tabSidebar
+        mode = .tabBar
+        traitOverrides.horizontalSizeClass = .compact
         tabs = [
             UITab(title: "Home", image: UIImage(systemName: "house"), identifier: "home") { _ in UIViewController() },
             UITab(title: "Library", image: UIImage(systemName: "books.vertical"), identifier: "library") { _ in UIViewController() },

@@ -31,7 +31,7 @@ describe("iOS native shell integration", () => {
     cy.get('[data-testid="path"]').should("have.text", "/mobile/library");
   });
 
-  it("keeps the wide-window header and system sidebar without duplicate Web chrome", () => {
+  it("keeps the wide-window header without duplicate Web navigation", () => {
     cy.viewport(1366, 900);
     cy.mount(<>
       <Fixture />

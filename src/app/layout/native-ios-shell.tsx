@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useIsPortraitViewport } from "@/app/hooks/use-mobile";
 import {
   isNativeShellLayout,
   nativeShellHandler,
@@ -30,6 +31,7 @@ export function NativeIOSShell(props: NativeIOSShellProps) {
 }
 
 function ShellSync(props: NativeIOSShellProps) {
+  const isPortraitViewport = useIsPortraitViewport();
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -56,13 +58,14 @@ function ShellSync(props: NativeIOSShellProps) {
     if (!handler) return;
     const root = document.documentElement;
     lastState.current = "";
-    root.classList.add("native-ios-shell");
     const onEvent = (event: Event) => {
       const detail: unknown = (event as CustomEvent).detail;
       if (isNativeShellLayout(detail)) {
+        const active = detail.active ?? true;
+        root.classList.toggle("native-ios-shell", active);
         root.style.setProperty("--native-shell-top", `${detail.top}px`);
         root.style.setProperty("--native-shell-bottom", `${detail.bottom}px`);
-        root.classList.toggle("native-ios-compact", detail.compact);
+        root.classList.toggle("native-ios-compact", active && detail.compact);
         return;
       }
       if (!detail || typeof detail !== "object") return;
@@ -95,6 +98,7 @@ function ShellSync(props: NativeIOSShellProps) {
       }
     };
     window.addEventListener("aonsoku-native-shell", onEvent);
+    handler.postMessage({ type: "layoutRequest" });
     return () => {
       handler.postMessage({ type: "state", enabled: false });
       window.removeEventListener("aonsoku-native-shell", onEvent);
@@ -127,7 +131,7 @@ function ShellSync(props: NativeIOSShellProps) {
   useLayoutEffect(() => {
     const state = {
       type: "state",
-      enabled: true,
+      enabled: isPortraitViewport,
       obscured: fullscreen || obstructed.current,
       trackId: props.trackId,
       hasContent: Boolean(props.trackId),
@@ -168,6 +172,7 @@ function ShellSync(props: NativeIOSShellProps) {
     fullscreen,
     t,
     theme,
+    isPortraitViewport,
   ]);
 
   useEffect(() => {

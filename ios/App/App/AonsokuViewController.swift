@@ -91,6 +91,11 @@ class AonsokuViewController: CAPBridgeViewController {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             switch payload["type"] as? String {
+            case "layoutRequest":
+                if #available(iOS 26.0, *),
+                   let controller = nativeTabController as? AonsokuNativeTabController {
+                    controller.reportCurrentLayout()
+                }
             case "state":
                 nativeShell?.update(payload)
                 updateRootShellState(payload)
@@ -235,7 +240,7 @@ class AonsokuViewController: CAPBridgeViewController {
                 let output = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                     .appendingPathComponent("native-shell-bridge-qa.json")
                 let systemShell = self?.nativeSystemShellDiagnostics() ?? [:]
-                guard ["systemTabController", "systemAccessory", "adaptiveTabSidebar", "tabCount", "singleWebView"]
+                guard ["systemTabController", "systemAccessory", "bottomTabBar", "tabCount", "singleWebView"]
                     .allSatisfy({ systemShell[$0] == true }) else {
                     print("NATIVE_SHELL_BRIDGE_QA_FAILED: system accessory or single-WebView tab ownership failed")
                     fflush(stdout)
@@ -246,7 +251,7 @@ class AonsokuViewController: CAPBridgeViewController {
                     "layoutRoundTrip": "passed", "layout": layout,
                     "systemTabController": systemShell["systemTabController"] ?? false,
                     "systemAccessory": systemShell["systemAccessory"] ?? false,
-                    "adaptiveTabSidebar": systemShell["adaptiveTabSidebar"] ?? false,
+                    "bottomTabBar": systemShell["bottomTabBar"] ?? false,
                     "threeSystemTabs": systemShell["tabCount"] ?? false,
                     "singleWebViewAcrossTabs": systemShell["singleWebView"] ?? false,
                     "reactMounted": snapshot["reactMounted"] ?? false,
@@ -277,7 +282,10 @@ class AonsokuViewController: CAPBridgeViewController {
         return [
             "systemTabController": true,
             "systemAccessory": controller.bottomAccessory != nil,
-            "adaptiveTabSidebar": controller.mode == .tabSidebar,
+            "bottomTabBar": controller.mode == .tabBar
+                && controller.tabBar.convert(controller.tabBar.bounds, to: controller.view).midY > controller.view.bounds.midY
+                && controller.selectedViewController?.traitCollection.horizontalSizeClass
+                    == controller.view.window?.traitCollection.horizontalSizeClass,
             "tabCount": controller.tabs.count == 3,
             "singleWebView": controller.verifySingleBridgeAcrossTabs(),
         ]

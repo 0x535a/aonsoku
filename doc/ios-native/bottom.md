@@ -83,16 +83,18 @@
 
 ## 当前实现（2026-10-15，参照 example）
 
-实际工程是 React + Capacitor 8、最低 iOS 15。iOS 26+ 现在使用 `AonsokuNativeTabController`（UIKit `UITabBarController`）作为根控制器，配置 `.tabSidebar` 与 `.onScrollDown`，通过 `UITabAccessory` 安装迷你播放器。iOS 15–25 保留原 Web 导航和播放器。
+实际工程是 React + Capacitor 8、最低 iOS 15。iOS 26+ 使用 `AonsokuNativeTabController`（UIKit `UITabBarController`）作为根控制器，配置 `.tabBar` 与 `.onScrollDown`，通过 `UITabAccessory` 安装迷你播放器。React 直接复用应用全屏布局的 `useIsPortraitViewport()`（`src/app/hooks/use-mobile.tsx`），把结果作为 enabled 发送给原生：竖屏使用原生导航和迷你播放器，横屏完整使用 Web。Swift 不再判断设备、宽度阈值或尺寸类别来决定启用状态。旋转或调整窗口时动态切换，不重建根控制器或 WebView。iOS 15–25 同样保留原 Web 导航和播放器。
 
-- **系统排布**：UIKit 负责 Tab/sidebar、玻璃背景、安全区及 accessory 的 regular/inline 转换。常规态展示 36pt 封面、曲名、艺人、播放/暂停与下一首；inline 态封面缩至 30pt，隐藏艺人及下一首，高度 44pt。控件不再自己画独立玻璃卡片。系统动效和材质遵守辅助功能设置，文字使用动态字体，控制支持 VoiceOver 和指针。
+- **系统排布（竖屏）**：UIKit 负责底部 Tab、玻璃背景、安全区及 accessory 的 regular/inline 转换，仅原生 Tab 控制器覆盖 horizontalSizeClass 为 compact 来保证底部导航；内容容器恢复窗口真实尺寸类别，不影响 Web 页面及弹层。常规态展示 36pt 封面、曲名、艺人、播放/暂停与下一首；inline 态封面缩至 30pt，隐藏艺人及下一首，高度 44pt。控件不再自己画独立玻璃卡片。系统动效和材质遵守辅助功能设置，文字使用动态字体，控制支持 VoiceOver 和指针。
 - **单一内容实例**：三个 UITab 的轻量容器只承载同一个 `AonsokuViewController`/WKWebView。切换时移动既有 controller，清理旧约束及滚动观察，再把 WebView 的 UIScrollView 注册为当前容器的 `contentScrollView`；不创建新 WebView、音频服务或队列。Info.plist 移除了 Main storyboard 的自动根控制器声明，避免在程序化 SceneDelegate 入口之外额外构造 bridge。
 - **路由一致**：使用现代 `shouldSelectTab` 发送用户点击意图（含重复点击当前 Tab）；`didSelectTab` 只同步容器，不发送导航。程序化更新 selectedTab 期间禁止回传用户点击事件。React Router 管理页面历史/KeepAlive；点击 Tab 与 Web 底栏一致，始终进入对应一级路由，不恢复上次二级页面，页面内跳转反向更新系统选中项。本地化直接更新既有 UITab 标题，不重建容器。
-- **内容与留白**：隐藏重复 Web 底栏、播放器、侧栏及失效的 Web 侧栏切换按钮；宽窗口保留 Web 顶栏的搜索与账户。系统侧栏采用 tile 布局，页面随其宽度重新布局。顶部/底部占用根据系统 Tab/accessory 与实际 WebView bounds 的交集测量，回传 CSS，替代固定 64pt 估算。键盘/模态/完整播放器遮挡期间保留页面留白，避免滚动位置跳动；原生控件让位。未登录或退出共享 Player 时隐藏原生导航，空队列移除 accessory。
+- **内容与留白**：隐藏重复 Web 底栏、播放器、侧栏及失效的 Web 侧栏切换按钮；宽窗口保留 Web 顶栏的搜索与账户。顶部/底部占用根据系统 Tab/accessory 与实际 WebView bounds 的交集测量，回传 CSS，替代固定 64pt 估算。键盘/模态/完整播放器遮挡期间保留页面留白，避免滚动位置跳动；原生控件让位。未登录或退出共享 Player 时隐藏原生导航，空队列移除 accessory。
 - **播放复用**：使用共享 Player 已计算的本地歌曲、电台、遥控投影。原生播放/暂停与下一首继续调用现有 actions；歌曲封面/标题进入现有 React 完整播放器并保留历史行为。电台沿用原来没有完整播放器入口的边界。单独发送既有 CachedImage 的 128px JPEG，过期曲目图片被忽略；这个副本只供迷你播放器，不进入沉浸封面生成管线。进度同步为无障碍播放时间描述。
-- **平台边界**：Web、Android、桌面保持原 UI。当前仍只支持单 scene；横竖屏、分屏与 Stage Manager 按可用内容尺寸适配。真实 Web 滚动是否触发系统最小化需要在真实页面与设备确认，不能以强制 inline trait 的夹具测试替代。
+- **平台边界**：横屏 iOS、Web、Android、桌面保持 Web UI。iOS 26+ 的 handler 持续存在，layout 事件通过 active 标记告诉 React 是否启用原生样式；横屏隐藏原生 Tab/accessory，恢复 Web 导航、播放器和布局留白。竖屏恢复原生外壳，保留选中路由及播放状态。React 挂载后主动请求当前 layout，避免漏掉首次事件；模态/键盘期间切换布局也必须发送 active 变化。不改变原生音频、队列或锁屏能力。当前仍只支持单 scene；横竖屏、分屏与 Stage Manager 按可用内容尺寸适配。iPhone 真实 Web 滚动是否触发系统最小化需要在真实页面与设备确认，不能以强制 inline trait 的夹具测试替代。
 
 ## 验证记录
+
+以下记录包含此前 iPad 原生外壳实现的历史验证。当前横屏回退完整 Web UI，竖屏保留原生；原生 bridge QA 适用于竖屏 iOS 窗口，本轮按用户要求不运行测试。
 
 - `test-native-shell.mjs`：独立 Simulator App 内使用真正的 `UITabBarController.bottomAccessory` 和生产播放器 view，验证 regular/inline 信息密度、控制事件、键盘及模态隐藏。结果保存到 `exp/system-accessory-qa/`。
 - `test-native-shell-bridge.mjs`：实际 Debug Capacitor App 验证最终 WK handler、系统 root、accessory 和三个 Tab；反复选择各 Tab，检查 WebView 身份和单父容器不变，并验证程序化选中/完成回调不发送导航，用户选择意图只发送一次。iPhone 已登录页面另检查 Web 底栏隐藏；无登录的 iPad 只做外壳验证，并明确标记页面隐藏测试未适用。

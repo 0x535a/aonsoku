@@ -42,6 +42,7 @@ export interface NativeShellLayout {
   top: number;
   bottom: number;
   compact: boolean;
+  active?: boolean;
 }
 
 export function isNativeShellLayout(
@@ -59,6 +60,7 @@ export function isNativeShellLayout(
     Number.isFinite(event.bottom) &&
     event.bottom >= 0 &&
     event.bottom <= 300 &&
-    typeof event.compact === "boolean"
+    typeof event.compact === "boolean" &&
+    (event.active === undefined || typeof event.active === "boolean")
   );
 }

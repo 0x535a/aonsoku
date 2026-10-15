@@ -1,14 +1,21 @@
 import { useReducedMotion } from "framer-motion";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 import { type DynamicCoverHandle, dynamicCover } from "@/native/artwork";
 
 const rank = { static: 0, camera: 1, depth: 2 };
 
-// A narrow edge transition keeps the opaque foreground while removing the
-// card silhouette. The cover-colored halo underneath supplies the edge color.
+// A wide, smooth S-curve feather that dissolves the artwork perimeter into
+// the underlying bokeh cushion and expansive ambient background, while
+// keeping the central 64% crisp, focused, and vibrant (referencing iPadOS presentation).
 const edgeFade =
-  "transparent 0%, rgba(0,0,0,.15) .6%, rgba(0,0,0,.5) 1.5%, rgba(0,0,0,.85) 2.6%, black 4%, black 96%, rgba(0,0,0,.85) 97.4%, rgba(0,0,0,.5) 98.5%, rgba(0,0,0,.15) 99.4%, transparent 100%";
+  "transparent 0%, rgba(0,0,0,0.02) 2%, rgba(0,0,0,0.12) 5%, rgba(0,0,0,0.35) 9%, rgba(0,0,0,0.68) 13.5%, black 18%, black 82%, rgba(0,0,0,0.68) 86.5%, rgba(0,0,0,0.35) 91%, rgba(0,0,0,0.12) 95%, rgba(0,0,0,0.02) 98%, transparent 100%";
 const edgeMask = `linear-gradient(to right, ${edgeFade}), linear-gradient(to bottom, ${edgeFade})`;
+
+// Defocus cushion mask directly behind the foreground feather zone
+const cushionFade =
+  "transparent 0%, rgba(0,0,0,0.15) 3%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.85) 14%, black 20%, black 80%, rgba(0,0,0,0.85) 86%, rgba(0,0,0,0.5) 92%, rgba(0,0,0,0.15) 97%, transparent 100%";
+const cushionMask = `linear-gradient(to right, ${cushionFade}), linear-gradient(to bottom, ${cushionFade})`;
 
 type Demand = Awaited<ReturnType<typeof dynamicCover.requestGeneration>>;
 
@@ -174,20 +181,44 @@ export function ImmersiveArtwork({
 
   return (
     <div ref={element} className="relative isolate size-full aspect-square">
+      {/* Layer 0: Expansive ambient atmosphere (iPad-style large-area soft blur) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -inset-[10%] z-0 opacity-55"
+        className="pointer-events-none absolute -inset-[55%] sm:-inset-[70%] z-0 select-none"
         style={{
           maskImage:
-            "radial-gradient(ellipse at center, black 25%, rgba(0,0,0,.75) 45%, rgba(0,0,0,.3) 58%, transparent 72%)",
+            "radial-gradient(circle closest-side at center, black 22%, rgba(0,0,0,0.85) 42%, rgba(0,0,0,0.52) 65%, rgba(0,0,0,0.18) 84%, transparent 98%)",
           WebkitMaskImage:
-            "radial-gradient(ellipse at center, black 25%, rgba(0,0,0,.75) 45%, rgba(0,0,0,.3) 58%, transparent 72%)",
+            "radial-gradient(circle closest-side at center, black 22%, rgba(0,0,0,0.85) 42%, rgba(0,0,0,0.52) 65%, rgba(0,0,0,0.18) 84%, transparent 98%)",
         }}
       >
-        <div className="size-full scale-110 blur-2xl">{halo}</div>
+        <div
+          className={cn(
+            "size-full blur-[64px] sm:blur-[84px] transition-opacity duration-1000",
+            canMove ? "animate-dreamy-breathe" : "opacity-50 scale-102",
+          )}
+        >
+          <div className="size-full scale-110">{halo}</div>
+        </div>
       </div>
+
+      {/* Layer 1: Defocus cushion directly under the artwork feather zone */}
       <div
-        className="relative z-[1] size-full overflow-hidden"
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-[10%] z-[1] select-none"
+        style={{
+          maskImage: cushionMask,
+          maskComposite: "intersect",
+          WebkitMaskImage: cushionMask,
+          WebkitMaskComposite: "source-in",
+        }}
+      >
+        <div className="size-full blur-2xl opacity-90 scale-105">{halo}</div>
+      </div>
+
+      {/* Layer 2: Foreground artwork with wide, dreamy transition into the blur */}
+      <div
+        className="relative z-[2] size-full overflow-hidden"
         style={{
           maskImage: edgeMask,
           maskComposite: "intersect",
@@ -208,7 +239,7 @@ export function ImmersiveArtwork({
               preload="auto"
               aria-hidden="true"
               data-stage={clip.stage}
-              className="pointer-events-none absolute inset-0 size-full object-cover"
+              className="pointer-events-none absolute inset-0 size-full object-cover transition-opacity duration-1000 ease-in-out"
               style={{ opacity: displayId === clip.leaseId ? 1 : 0 }}
               onLoadedData={(event) => ready(clip, event.currentTarget)}
               onError={() => {

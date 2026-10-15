@@ -1,184 +1,199 @@
 import UIKit
 
-/// One transparent overlay. Only its controls participate in hit testing.
-/// This view never creates a WebView, queue, player or audio session.
-final class NativeBottomShellView: UIView, UITabBarDelegate {
+/// Presentation and interaction only. UITabAccessory owns its glass, placement,
+/// safe area and regular-to-inline transition.
+final class NativeBottomShellView: UIView {
     var onEvent: (([String: Any]) -> Void)?
-    var onInsetsChanged: ((CGFloat, CGFloat, Bool) -> Void)?
-    var enabled = false { didSet { setNeedsLayout() } }
-    var obscured = false { didSet { setNeedsLayout() } }
-    var keyboardVisible = false { didSet { setNeedsLayout() } }
-    private let tabBar = UITabBar()
-    private let playerMaterial = UIVisualEffectView()
-    private let infoButton = UIButton(type: .system)
+    var onLayoutChanged: (() -> Void)?
+    var keyboardVisible = false { didSet { updateVisibility() } }
+    var enabled = false { didSet { updateVisibility() } }
+    var obscured = false { didSet { updateVisibility() } }
+    private var hasContent = false { didSet { updateVisibility() } }
+
     private let artwork = UIImageView()
     private let title = UILabel()
     private let subtitle = UILabel()
     private let playButton = UIButton(type: .system)
     private let nextButton = UIButton(type: .system)
-    private let progress = UIProgressView(progressViewStyle: .bar)
-    private var hasContent = false
+    private let textStack = UIStackView()
+    private let row = UIStackView()
+    private var artworkWidth: NSLayoutConstraint!
+    private var artworkHeight: NSLayoutConstraint!
+    private(set) var inline = false
     private var trackId = ""
     private var lastCover: String?
-    private var lastLabels: [String] = []
-    private var lastInsets: [CGFloat] = []
-    private(set) var compact = true
+    private var canOpenPlayer = false
 
-    override init(frame: CGRect) { super.init(frame: frame); build() }
-    required init?(coder: NSCoder) { super.init(coder: coder); build() }
+    var accessoryPresentation: (inline: Bool, artistVisible: Bool, nextVisible: Bool) {
+        (inline, !subtitle.isHidden, !nextButton.isHidden)
+    }
+    var controlButtons: [UIButton] { [playButton, nextButton] }
 
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        let target = super.hitTest(point, with: event)
-        return target === self ? nil : target
+    private func updateVisibility() {
+        isHidden = !enabled || obscured || keyboardVisible || !hasContent
+        setNeedsLayout()
+        onLayoutChanged?()
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        build()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        build()
+    }
+
+    override var intrinsicContentSize: CGSize {
+        CGSize(width: UIView.noIntrinsicMetric, height: inline ? 44 : 64)
+    }
+
+    @available(iOS 26.0, *)
+    override func updateProperties() {
+        super.updateProperties()
+        let nextInline = traitCollection.tabAccessoryEnvironment == .inline
+        guard inline != nextInline else { return }
+        inline = nextInline
+        subtitle.isHidden = inline || !enabled
+        nextButton.isHidden = inline
+        artworkWidth.constant = inline ? 30 : 46
+        artworkHeight.constant = inline ? 30 : 46
+        invalidateIntrinsicContentSize()
+        setNeedsLayout()
+        onLayoutChanged?()
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        compact = traitCollection.userInterfaceIdiom != .pad || bounds.width < 768
-        let safe = safeAreaInsets
-        let rowHeight: CGFloat = traitCollection.preferredContentSizeCategory.isAccessibilityCategory ? 88 : 68
-        let tabHeight = max(72, tabBar.sizeThatFits(CGSize(width: bounds.width, height: 100)).height)
-        let topInset: CGFloat = 0
-        let bottomInset = compact
-            ? safe.bottom + tabHeight + (hasContent ? rowHeight + 16 : 0)
-            : (hasContent ? safe.bottom + rowHeight + 24 : 0)
-        tabBar.isHidden = !enabled || obscured || keyboardVisible || !compact
-        playerMaterial.isHidden = !enabled || obscured || keyboardVisible || !hasContent
-        let availableWidth = bounds.width - safe.left - safe.right
-        tabBar.frame = CGRect(x: safe.left, y: bounds.height - safe.bottom - tabHeight,
-                              width: availableWidth, height: tabHeight)
-        let playerWidth = min(availableWidth - 24, compact ? availableWidth - 24 : 640)
-        let playerBottom = compact ? safe.bottom + tabHeight + 8 : safe.bottom + 12
-        playerMaterial.frame = CGRect(x: safe.left + (availableWidth - playerWidth) / 2,
-                                      y: bounds.height - playerBottom - rowHeight,
-                                      width: playerWidth, height: rowHeight)
-        infoButton.frame = CGRect(x: 10, y: 6, width: max(0, playerWidth - 110), height: rowHeight - 14)
-        artwork.frame = CGRect(x: 0, y: (infoButton.bounds.height - 48) / 2, width: 48, height: 48)
-        let textWidth = max(0, infoButton.bounds.width - 60)
-        title.frame = CGRect(x: 60, y: infoButton.bounds.height / 2 - 22, width: textWidth, height: 24)
-        subtitle.frame = CGRect(x: 60, y: infoButton.bounds.height / 2 + 2, width: textWidth, height: 20)
-        playButton.frame = CGRect(x: playerWidth - 98, y: (rowHeight - 48) / 2, width: 48, height: 48)
-        nextButton.frame = CGRect(x: playerWidth - 50, y: (rowHeight - 48) / 2, width: 48, height: 48)
-        progress.frame = CGRect(x: 16, y: rowHeight - 3, width: max(0, playerWidth - 32), height: 2)
-        let insets: [CGFloat] = [enabled ? topInset : 0, enabled ? bottomInset : 0, compact ? 1 : 0]
-        if insets != lastInsets {
-            lastInsets = insets
-            onInsetsChanged?(insets[0], insets[1], compact)
-        }
+        let regular = !inline
+        subtitle.isHidden = !regular || !enabled
+        nextButton.isHidden = !regular
+        row.spacing = inline ? 8 : 10
+        let size: CGFloat = inline ? 30 : 46
+        artworkWidth.constant = size
+        artworkHeight.constant = size
+        onLayoutChanged?()
     }
 
     func update(_ state: [String: Any]) {
         enabled = state["enabled"] as? Bool ?? false
-        obscured = state["obscured"] as? Bool ?? false
         hasContent = state["hasContent"] as? Bool ?? false
-        infoButton.isEnabled = state["canOpenPlayer"] as? Bool ?? false
         let newTrackId = state["trackId"] as? String ?? ""
         if trackId != newTrackId {
             trackId = newTrackId
             lastCover = nil
             artwork.image = UIImage(systemName: "music.note")
         }
-        let playing = state["isPlaying"] as? Bool ?? false
         playButton.isEnabled = hasContent
         nextButton.isEnabled = hasContent && (state["hasNext"] as? Bool ?? false)
+        let playing = state["isPlaying"] as? Bool ?? false
         playButton.setImage(UIImage(systemName: playing ? "pause.fill" : "play.fill"), for: .normal)
         playButton.accessibilityLabel = state[playing ? "pauseLabel" : "playLabel"] as? String
         nextButton.accessibilityLabel = state["nextLabel"] as? String
-        infoButton.accessibilityLabel = state["openPlayerLabel"] as? String
-        infoButton.accessibilityValue = state["trackLabel"] as? String
+        canOpenPlayer = state["canOpenPlayer"] as? Bool ?? false
+        textStack.accessibilityTraits = canOpenPlayer ? .button : .staticText
+        textStack.accessibilityLabel = state["openPlayerLabel"] as? String
+        textStack.accessibilityValue = state["trackLabel"] as? String
+        textStack.accessibilityHint = state["progressLabel"] as? String
         title.text = state["title"] as? String
         subtitle.text = state["artist"] as? String
-        progress.progress = Float(state["progressFraction"] as? Double ?? 0)
-        infoButton.accessibilityHint = state["progressLabel"] as? String
-        if let labels = state["labels"] as? [String], labels.count == 3, labels != lastLabels {
-            lastLabels = labels
-            let symbols = ["house", "square.grid.2x2", "magnifyingglass"]
-            tabBar.items = labels.enumerated().map { index, label in
-                return UITabBarItem(title: label, image: UIImage(systemName: symbols[index]), tag: index)
-            }
-        }
-        let selection = min(2, max(0, state["activeIndex"] as? Int ?? 0))
-        tabBar.selectedItem = tabBar.items?[selection]
         setNeedsLayout()
     }
+
 
     func updateArtwork(_ state: [String: Any]) {
         guard state["trackId"] as? String == trackId else { return }
         let cover = state["coverData"] as? String
-        if cover != lastCover {
-            lastCover = cover
-            artwork.image = cover.flatMap { encoded in
-                guard let comma = encoded.firstIndex(of: ","),
-                      let data = Data(base64Encoded: String(encoded[encoded.index(after: comma)...])),
-                      data.count <= 100_000 else { return nil }
-                return UIImage(data: data)
-            } ?? UIImage(systemName: "music.note")
-        }
-    }
-
-    func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
-        onEvent?(["type": "tab", "index": item.tag])
+        guard cover != lastCover else { return }
+        lastCover = cover
+        artwork.image = cover.flatMap { encoded in
+            guard let comma = encoded.firstIndex(of: ","),
+                  let data = Data(base64Encoded: String(encoded[encoded.index(after: comma)...])),
+                  data.count <= 100_000 else { return nil }
+            return UIImage(data: data)
+        } ?? UIImage(systemName: "music.note")
     }
 
     private func build() {
         backgroundColor = .clear
-        playerMaterial.clipsToBounds = true
-        playerMaterial.layer.cornerRadius = 24
-        addSubview(tabBar); addSubview(playerMaterial)
-        for control in [infoButton, playButton, nextButton, progress] { playerMaterial.contentView.addSubview(control) }
-        for child in [artwork, title, subtitle] {
-            infoButton.addSubview(child)
-            child.isUserInteractionEnabled = false
-            child.isAccessibilityElement = false
-        }
-        infoButton.accessibilityTraits = .button
-        infoButton.isAccessibilityElement = true
+        directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12)
         artwork.contentMode = .scaleAspectFill
         artwork.clipsToBounds = true
-        artwork.layer.cornerRadius = 8
+        artwork.layer.cornerRadius = 7
         artwork.tintColor = .secondaryLabel
         artwork.backgroundColor = .tertiarySystemFill
         artwork.image = UIImage(systemName: "music.note")
+        artwork.isAccessibilityElement = false
+
         title.font = UIFontMetrics(forTextStyle: .subheadline).scaledFont(
             for: .systemFont(ofSize: 15, weight: .semibold), maximumPointSize: 22)
+        title.adjustsFontForContentSizeCategory = true
+        title.lineBreakMode = .byTruncatingTail
+        title.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        title.isAccessibilityElement = false
+
         subtitle.font = UIFontMetrics(forTextStyle: .caption1).scaledFont(
             for: .systemFont(ofSize: 12), maximumPointSize: 18)
-        title.adjustsFontForContentSizeCategory = true; subtitle.adjustsFontForContentSizeCategory = true
-        title.textColor = .label; subtitle.textColor = .secondaryLabel
-        title.lineBreakMode = .byTruncatingTail; subtitle.lineBreakMode = .byTruncatingTail
-        progress.isAccessibilityElement = false
-        progress.tintColor = .systemBlue
-        tabBar.delegate = self; tabBar.tintColor = .systemBlue
+        subtitle.adjustsFontForContentSizeCategory = true
+        subtitle.textColor = .secondaryLabel
+        subtitle.lineBreakMode = .byTruncatingTail
+        subtitle.isAccessibilityElement = false
+
+        textStack.isAccessibilityElement = true
+        textStack.accessibilityTraits = .button
+        textStack.axis = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 2
+        textStack.addArrangedSubview(title)
+        textStack.addArrangedSubview(subtitle)
+
+        isHidden = true
+        artworkWidth = artwork.widthAnchor.constraint(equalToConstant: 46)
+        artworkHeight = artwork.heightAnchor.constraint(equalToConstant: 46)
+        playButton.setImage(UIImage(systemName: "play.fill"), for: .normal)
+        playButton.tintColor = .label
+        playButton.accessibilityLabel = "Play or pause"
+        playButton.addTarget(self, action: #selector(togglePlayback), for: .touchUpInside)
         nextButton.setImage(UIImage(systemName: "forward.end.fill"), for: .normal)
-        for button in [playButton, nextButton, infoButton] {
+        nextButton.tintColor = .label
+        nextButton.accessibilityLabel = "Next track"
+        nextButton.addTarget(self, action: #selector(nextTrack), for: .touchUpInside)
+        for button in [playButton, nextButton] {
+            let width = button.widthAnchor.constraint(equalToConstant: 44)
+            width.priority = .defaultHigh
+            width.isActive = true
+            button.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
             button.addInteraction(UIPointerInteraction(delegate: nil))
         }
-        infoButton.addTarget(self, action: #selector(openPlayer), for: .touchUpInside)
-        playButton.addTarget(self, action: #selector(togglePlayback), for: .touchUpInside)
-        nextButton.addTarget(self, action: #selector(nextTrack), for: .touchUpInside)
-        NotificationCenter.default.addObserver(self, selector: #selector(updateMaterial),
-            name: UIAccessibility.reduceTransparencyStatusDidChangeNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(updateMaterial),
-            name: UIAccessibility.reduceMotionStatusDidChangeNotification, object: nil)
-        updateMaterial()
-    }
 
-    @objc private func updateMaterial() {
-        for view in [playerMaterial] {
-            if UIAccessibility.isReduceTransparencyEnabled {
-                view.effect = nil; view.backgroundColor = .secondarySystemBackground
-            } else {
-                view.backgroundColor = .clear
-                if #available(iOS 26.0, *) {
-                    let glass = UIGlassEffect(style: .regular)
-                    glass.isInteractive = !UIAccessibility.isReduceMotionEnabled
-                    view.effect = glass
-                } else { view.effect = UIBlurEffect(style: .systemMaterial) }
-            }
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 10
+        row.isLayoutMarginsRelativeArrangement = true
+        row.directionalLayoutMargins = .zero
+        row.addArrangedSubview(artwork)
+        row.addArrangedSubview(textStack)
+        row.addArrangedSubview(playButton)
+        row.addArrangedSubview(nextButton)
+        row.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(row)
+        NSLayoutConstraint.activate([
+            artworkWidth, artworkHeight,
+            row.leadingAnchor.constraint(equalTo: layoutMarginsGuide.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor),
+            row.topAnchor.constraint(equalTo: topAnchor),
+            row.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+        for target in [artwork, textStack] {
+            target.isUserInteractionEnabled = true
+            let open = UITapGestureRecognizer(target: self, action: #selector(openPlayer))
+            open.cancelsTouchesInView = false
+            target.addGestureRecognizer(open)
         }
     }
 
-    @objc private func openPlayer() { onEvent?(["type": "openPlayer"]) }
     @objc private func togglePlayback() { onEvent?(["type": "control", "action": "togglePlayPause"]) }
     @objc private func nextTrack() { onEvent?(["type": "control", "action": "playNextSong"]) }
+    @objc private func openPlayer() { if canOpenPlayer { onEvent?(["type": "openPlayer"]) } }
 }

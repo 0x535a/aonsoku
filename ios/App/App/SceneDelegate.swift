@@ -8,7 +8,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = AonsokuViewController()
+        if #available(iOS 26.0, *) {
+            window?.rootViewController = AonsokuNativeTabController()
+        } else {
+            // Older systems retain the shared Web navigation and player chrome.
+            window?.rootViewController = AonsokuViewController()
+        }
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)

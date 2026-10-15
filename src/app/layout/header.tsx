@@ -114,7 +114,7 @@ export function Header() {
             className="flex-shrink-0"
           />
         )}
-        <div className="hidden xl:block w-8 h-8">
+        <div data-native-web-sidebar-toggle className="hidden xl:block w-8 h-8">
           <Button
             variant="ghost"
             size="sm"

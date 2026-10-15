@@ -19,6 +19,7 @@
 		A1B2C3D62026050100AABB02 /* MediaSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D52026050100AABB02 /* MediaSchemeHandler.swift */; };
 		A1B2C3D82026101400AABB03 /* NativeBottomShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D72026101400AABB03 /* NativeBottomShellView.swift */; };
 		A1B2C3D82026050100AABB03 /* MediaKeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D72026050100AABB03 /* MediaKeychainHelper.swift */; };
+		A1B2C3F12026110100AABB11 /* AonsokuNativeTabController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3F02026110100AABB11 /* AonsokuNativeTabController.swift */; };
 		A1B2C3DA2026050100AABB04 /* ObjCExceptionCatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D92026050100AABB04 /* ObjCExceptionCatcher.m */; };
 		A1B2C3E22026050100AABB08 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3E12026050100AABB08 /* SceneDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -42,6 +43,7 @@
 		A1B2C3DB2026050100AABB05 /* ObjCExceptionCatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCExceptionCatcher.h; sourceTree = "<group>"; };
 		A1B2C3DD2026050100AABB06 /* App-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "App-Bridging-Header.h"; sourceTree = "<group>"; };
 		A1B2C3E12026050100AABB08 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		A1B2C3F02026110100AABB11 /* AonsokuNativeTabController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AonsokuNativeTabController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +84,7 @@
 				A1B2C3D32026050100AABB01 /* AonsokuViewController.swift */,
 				A1B2C3D52026050100AABB02 /* MediaSchemeHandler.swift */,
 				A1B2C3D72026101400AABB03 /* NativeBottomShellView.swift */,
+				A1B2C3F02026110100AABB11 /* AonsokuNativeTabController.swift */,
 				A1B2C3D72026050100AABB03 /* MediaKeychainHelper.swift */,
 				A1B2C3DB2026050100AABB05 /* ObjCExceptionCatcher.h */,
 				A1B2C3D92026050100AABB04 /* ObjCExceptionCatcher.m */,
@@ -181,6 +184,7 @@
 				A1B2C3D42026050100AABB01 /* AonsokuViewController.swift in Sources */,
 				A1B2C3D62026050100AABB02 /* MediaSchemeHandler.swift in Sources */,
 				A1B2C3D82026101400AABB03 /* NativeBottomShellView.swift in Sources */,
+				A1B2C3F12026110100AABB11 /* AonsokuNativeTabController.swift in Sources */,
 				A1B2C3D82026050100AABB03 /* MediaKeychainHelper.swift in Sources */,
 				A1B2C3DA2026050100AABB04 /* ObjCExceptionCatcher.m in Sources */,
 				A1B2C3E22026050100AABB08 /* SceneDelegate.swift in Sources */,

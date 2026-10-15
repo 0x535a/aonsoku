@@ -81,42 +81,27 @@
 
 本文只描述产品目标与验收标准，不规定实现步骤或具体 API。如 iPhone 与 iPad 不能在同一轮完成，可提出分期方案；不得将 iPhone 布局机械套用到 iPad，或为统一代码而牺牲平板体验。
 
-## 实现记录（2026-10-14）
+## 当前实现（2026-10-15，参照 example）
 
-实际工程：React + Capacitor 8，iOS/iPadOS 最低版本 15，UIKit 外壳和单个 WKWebView；原生音频服务、队列、系统媒体控制与离线数据层继续沿用现有实现。
+实际工程是 React + Capacitor 8、最低 iOS 15。iOS 26+ 现在使用 `AonsokuNativeTabController`（UIKit `UITabBarController`）作为根控制器，配置 `.tabSidebar` 与 `.onScrollDown`，通过 `UITabAccessory` 安装迷你播放器。iOS 15–25 保留原 Web 导航和播放器。
 
-- `NativeBottomShellView.swift` 提供 UIKit 原生导航与迷你播放器。iPhone 横竖屏和小于 768pt 的 iPad 窗口使用原生 `UITabBar`；常规 iPad 窗口按 2026-10-15 的用户调整恢复原有 Web 顶栏/侧栏导航，播放器在底部居中且最大宽度 640pt。iPhone 工程同时开放横屏方向。
-- iOS 26+ 使用公开 `UIGlassEffect`；旧系统回退系统材质。减少透明度时使用不透明系统背景；减少动态效果时禁用交互式玻璃动效。控件提供 VoiceOver 描述、动态字体、指针交互和 Command+1/2/3 导航快捷键。
-- 原生播放器复用共享 Player 已计算好的本地歌曲、电台、遥控投影，展示歌曲封面、标题、艺人、播放/暂停、下一首、进度。歌曲可打开已有完整播放器；电台保留播放控制，沿用原有未提供电台完整播放器的边界。原生动作回到已有 actions，没有新的音频实例、会话、队列或网络请求。
-- 路由由 React Router 保持唯一所有权，原生选择同步页面跳转与返回。Tab 保存各自最后的位置并复用 KeepAlive 页面，完整播放器入口使用现有历史机制。改变窗口形态只重新布局原生控件，既有页面和音频仍保持挂载。
-- 原生播放器的封面从现有已加载的 CachedImage 复制为 128px JPEG，单独发送且仅在源图更新时发送；过期曲目的图片被忽略。这个小图只供 App 内原生迷你播放器，不进入沉浸封面生成管线。
-- 原生布局将实测顶部/底部高度回传根 CSS 变量，隐藏被替代的 Web 导航/播放器/侧栏，保留页面原有内容与设置入口。安全区跟随窗口；空队列隐藏播放器并释放留白；停靠键盘遮住底部时隐藏底部控件。Web 弹窗/Sheet 和完整播放器打开时原生控件让位，避免穿透或遮挡。
-- 外壳只在已登录的共享 Player 挂载且检测到 iOS host handler 时开启，退出登录/卸载时关闭；Web、Android、桌面保持既有 UI。每个场景各自维护消息与布局，当前工程仍保持单场景支持，没有新增多窗口业务能力。
-- 导航采用稳定布局，不随网页列表滚动收起：保留单个 WebView 的前提下，系统原生滚动收起没有可靠的网页滚动容器绑定。本阶段也没有将完整播放器原生化。
+- **系统排布**：UIKit 负责 Tab/sidebar、玻璃背景、安全区及 accessory 的 regular/inline 转换。常规态展示 46pt 封面、曲名、艺人、播放/暂停与下一首；inline 态封面缩至 30pt，隐藏艺人及下一首，高度 44pt。控件不再自己画独立玻璃卡片。系统动效和材质遵守辅助功能设置，文字使用动态字体，控制支持 VoiceOver 和指针。
+- **单一内容实例**：三个 UITab 的轻量容器只承载同一个 `AonsokuViewController`/WKWebView。切换时移动既有 controller，清理旧约束及滚动观察，再把 WebView 的 UIScrollView 注册为当前容器的 `contentScrollView`；不创建新 WebView、音频服务或队列。Info.plist 移除了 Main storyboard 的自动根控制器声明，避免在程序化 SceneDelegate 入口之外额外构造 bridge。
+- **路由一致**：使用现代 `didSelectTab` delegate；UIKit 先更新选中项后仍必须给 React 发出导航事件，不能因索引已经相同而提前返回。React Router 管理页面历史/KeepAlive 和各 Tab 最后位置，页面内跳转反向更新系统选中项。本地化直接更新既有 UITab 标题，不重建容器。
+- **内容与留白**：隐藏重复 Web 底栏、播放器、侧栏及失效的 Web 侧栏切换按钮；宽窗口保留 Web 顶栏的搜索与账户。系统侧栏采用 tile 布局，页面随其宽度重新布局。顶部/底部占用根据系统 Tab/accessory 与实际 WebView bounds 的交集测量，回传 CSS，替代固定 64pt 估算。键盘/模态/完整播放器遮挡期间保留页面留白，避免滚动位置跳动；原生控件让位。未登录或退出共享 Player 时隐藏原生导航，空队列移除 accessory。
+- **播放复用**：使用共享 Player 已计算的本地歌曲、电台、遥控投影。原生播放/暂停与下一首继续调用现有 actions；歌曲封面/标题进入现有 React 完整播放器并保留历史行为。电台沿用原来没有完整播放器入口的边界。单独发送既有 CachedImage 的 128px JPEG，过期曲目图片被忽略；这个副本只供迷你播放器，不进入沉浸封面生成管线。进度同步为无障碍播放时间描述。
+- **平台边界**：Web、Android、桌面保持原 UI。当前仍只支持单 scene；横竖屏、分屏与 Stage Manager 按可用内容尺寸适配。真实 Web 滚动是否触发系统最小化需要在真实页面与设备确认，不能以强制 inline trait 的夹具测试替代。
 
-## 验证与边界
+## 验证记录
 
-- `pnpm run lint`、`pnpm run build:mobile`、Vitest 原生桥边界测试通过。
-- Cypress 验证桥接的播放投影、实测 CSS 留白、原生 Tab 导航及返回原 Tab 详情位置、React StrictMode 重新挂载、全屏及模态遮挡同步；原有 Web BottomNavigation 测试继续执行。
-- `node scripts/ios/test-native-shell.mjs` 使用独立 Simulator 测试 App，直接运行生产 UIKit view，验证手机横竖屏、平板横竖屏和窄窗口的布局判断、空播放器释放空间、播放/下一首事件与键盘/模态命中测试；不启动真实音频或连接服务器。尺寸和 idiom 是测试夹具，不等同于真机分屏/Stage Manager 验收。结果与截图见 `exp/native-shell-qa/`。
-- Xcode Debug iOS Simulator 编译通过；未向真机安装。真实 iPhone/iPad 的播放、系统锁屏、键盘/VoiceOver、指针焦点、分屏/窗口变化与前后台最终交互验收仍待真机验证。
+- `test-native-shell.mjs`：独立 Simulator App 内使用真正的 `UITabBarController.bottomAccessory` 和生产播放器 view，验证 regular/inline 信息密度、控制事件、键盘及模态隐藏。结果保存到 `exp/system-accessory-qa/`。
+- `test-native-shell-bridge.mjs`：实际 Debug Capacitor App 验证最终 WK handler、系统 root、accessory 和三个 Tab；反复选择各 Tab，检查 WebView 身份和单父容器不变，并验证 UIKit 先更新索引后 delegate 仍发出 Tab 事件。iPhone 已登录页面另检查 Web 底栏隐藏；无登录的 iPad 只做外壳验证，并明确标记页面隐藏测试未适用。
+- Cypress 覆盖 React 桥接、Tab 路由、宽窗口保留搜索顶栏但隐藏重复 Web 导航、窄窗口样式、全屏/模态让位；不是对系统手势最小化的真机验收。
+- 测试图片与结构化结果随文档保存；包含真实账户内容的 Simulator 截图只留在 `/tmp/aonsoku-accessory-iphone-current/`，不提交原始页面或日志。
+- 最终构建/检查结果在本次提交前复核。未安装到真机；仍需验证实际滚动收起、VoiceOver、Stage Manager、前后台与播放连续性。
 
+## 初始化问题记录
 
-## 真实外壳桥接修复（2026-10-15）
+初版把 `aonsokuShell` 注册在 `webViewConfiguration(for:)` 中，但 Capacitor 8 随后替换了 `userContentController`，消息入口丢失。注册现固定在最终 `webView(with:configuration:)` 创建钩子；接收端验证主框架请求 URL，以兼容自定义 scheme 的 opaque security origin。
 
-用户反馈安装后仍显示 Web 底栏。根因是 Capacitor 8 在调用 `webViewConfiguration(for:)` 后，把 `WKWebViewConfiguration.userContentController` 替换为它自身的 delegation controller；之前注册在该回调里的 `aonsokuShell` 被丢弃。前端检测不到 host handler，因此保留 Web UI。
-
-已把 handler 注册移至最终 `webView(with:configuration:)` 创建钩子，并按主框架请求 URL 校验本地来源，避免自定义 scheme 的 opaque security origin 造成消息误拒绝。无需改动页面、队列或音频服务。
-
-此前独立 UIKit 测试和 Cypress 模拟桥测试没有覆盖 Capacitor 真实创建顺序，这部分验收存在缺口。新增 `test-native-shell-bridge.mjs`：使用实际 Debug Simulator App 和生产 AonsokuViewController，确认最终 WK handler 存在、真实 JS 状态消息启用原生控件、布局尺寸回传；已挂载 React 页面时同时验证 Web 导航和播放器确实隐藏。测试只在显式 Debug QA 环境变量开启时注入展示状态，不改变认证、队列或播放动作，Release 没有该测试路径。
-
-验证结果写入 `exp/native-shell-bridge-qa/results.json`；真实外壳截图留在 `/tmp/aonsoku-native-shell-bridge-qa/capacitor-shell.png`，不将 Simulator 已有账户的页面内容提交仓库。修复涉及原生二进制，需重新构建并安装 iOS App。此次验证使用 Simulator，没有更新真机。
-
-
-## 宽窗口恢复原导航（2026-10-15）
-
-用户确认原生栏生效后，要求大屏/横屏模式恢复之前的菜单设计，保留新的收起播放器。现按实际窗口宽度处理：iPad 窗口达到 768pt 时移除原生顶部导航，显示原有 Web 顶栏（搜索、账户、侧栏切换）及响应式侧栏，恢复对应内容左侧偏移和顶栏安全区；底部继续显示居中、最多 640pt 的原生迷你播放器。iPad 窗口小于 768pt 时仍使用原生底部 Tab；iPhone 仍保持原生底部 Tab。
-
-侧栏下沿跟随原生播放器预留高度，避免最后一项被播放器覆盖。宽窄窗口切换仅改变控件布局和 CSS，不重建页面、队列或播放实例。UIKit 夹具补验宽窗口顶部不保留原生导航高度且不截获 Web 顶栏触摸；截图和测量结果随本次更新覆盖 `exp/native-shell-qa/`。
-
-本次验证：UIKit 宽/窄窗口、顶部命中、播放器控制及空状态测试通过；Cypress 3 项桥接/布局测试通过，其中宽窗口确认顶栏与侧栏可见、保留 280px 内容偏移及播放器留白，再切到窄窗口确认导航隐藏和内容偏移释放。移动端构建、lint、iOS Release 编译通过；未向真机安装。
+此前独立 UIKit 和模拟 JS 桥测试遗漏了这个生命周期，因此新增了实际 Capacitor 初始化和状态往返测试。Debug 测试必须显式设置 `AONSOKU_SHELL_BRIDGE_QA=1`，Release 不包含夹具执行路径。原先的自绘底栏和宽窗口 Web 侧栏恢复版本均已由本节的系统 accessory 实现替代。

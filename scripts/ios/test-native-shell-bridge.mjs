@@ -5,7 +5,10 @@ import { resolve, join } from "node:path";
 const root = resolve(import.meta.dirname, "../..");
 const output = resolve(process.argv[2] ?? "/tmp/aonsoku-native-shell-bridge-qa");
 const devices = JSON.parse(execFileSync("xcrun", ["simctl", "list", "devices", "available", "-j"], { encoding: "utf8" }));
-const device = Object.values(devices.devices).flat().find((item) => item.state === "Booted");
+const requestedDevice = process.env.AONSOKU_QA_SIMULATOR_UDID;
+const device = Object.values(devices.devices).flat().find((item) =>
+  requestedDevice ? item.udid === requestedDevice : item.state === "Booted",
+);
 if (!device) throw new Error("Boot an iOS Simulator before running Capacitor bridge QA");
 const bundle = "github.realtvop.aonsoku";
 const settings = JSON.parse(execFileSync("xcodebuild", ["-project", "ios/App/App.xcodeproj", "-scheme", "App", "-configuration", "Debug", "-sdk", "iphonesimulator", "-destination", `platform=iOS Simulator,id=${device.udid}`, "-showBuildSettings", "-json"], { cwd: root, encoding: "utf8" }))[0].buildSettings;
@@ -32,6 +35,7 @@ try {
   });
   const container = execFileSync("xcrun", ["simctl", "get_app_container", device.udid, bundle, "data"], { encoding: "utf8" }).trim();
   cpSync(join(container, "Documents/native-shell-bridge-qa.json"), join(output, "results.json"));
+  await new Promise((resolve) => setTimeout(resolve, 1500));
   execFileSync("xcrun", ["simctl", "io", device.udid, "screenshot", join(output, "capacitor-shell.png")]);
   console.log(`Real Capacitor shell state/layout round trip passed: ${output}`);
 } finally {

@@ -56,7 +56,7 @@ cd android && ./gradlew :aonsoku-capacitor-native:testDebugUnitTest
 
 # iOS navigation/player UI (macOS + Xcode, booted iOS Simulator, no server/device)
 node scripts/ios/test-native-shell-bridge.mjs # Actual Debug Capacitor app WK state/layout round trip (build Simulator App first)
-node scripts/ios/test-native-shell.mjs # Standalone UIKit layout/control fixtures + PNGs in /tmp/aonsoku-native-shell-qa
+node scripts/ios/test-native-shell.mjs # Standalone UITabAccessory regular/inline/control fixture + PNGs in /tmp/aonsoku-native-shell-qa
 
 # iOS lock-screen artwork (macOS + Xcode, no server/device required)
 node scripts/ios/test-original-cover.mjs # Offline Mac original-source/cache-quality tests (uses Xcode-resolved GRDB)
@@ -264,13 +264,24 @@ location from inside a cached subtree unless the freeze above is extended.
 
 ### iOS / iPadOS Native Navigation and Mini Player
 
-`ios/App/App/NativeBottomShellView.swift` is a UIKit overlay on the existing
-single Capacitor WKWebView. iPhone (including landscape) and iPad windows below
-768pt use a native bottom UITabBar; regular iPad windows restore the established Web header/sidebar navigation
-with a centered, width-limited native player. iOS 26+ uses public
-UIGlassEffect; older systems use material blur. Reduce Transparency and Reduce
-Motion are respected. Empty playback releases the player space; keyboard,
-fullscreen and modal states hide the obstructing controls.
+On iOS 26+, `AonsokuNativeTabController` is the root `UITabBarController` in
+`.tabSidebar` mode with system `.onScrollDown` minimization and a
+`UITabAccessory`. UIKit owns tab/sidebar adaptation, accessory glass and its
+regular-to-inline transition; `NativeBottomShellView` adapts to the accessory
+trait by hiding artist/next and shrinking cover art inline. The single existing
+`AonsokuViewController`/WKWebView is reparented between three lightweight tab
+containers, never recreated; audio services and queue remain singletons. SceneDelegate
+is the sole programmatic root entry (Main storyboard is not auto-instantiated).
+The modern UITab delegate always sends native selections to React even after
+UIKit has updated the selected index; React updates mutate existing tab titles
+and selection without rebuilding controllers. The active container registers the
+WebView scroll view with setContentScrollView for system scroll minimization.
+The
+React header remains on wide windows for search/account. The system sidebar
+replaces duplicate Web navigation, and the system bottom Tab bar replaces Web
+bottom tabs. Compact windows also hide the Web header. Before iOS 26, the
+existing Web navigation/player UI remains in place. Reduce Transparency and
+Reduce Motion are respected.
 
 `src/app/layout/native-ios-shell.tsx` is mounted inside the shared Player and
 reuses its local/radio/remote projection. It sends deduplicated metadata/progress
@@ -283,12 +294,9 @@ request URL (custom-scheme security origins may be opaque). Debug launches with
 small app-local result; normal launches and Release contain no fixture behavior.
 Artwork is a bounded 128px copy of the existing loaded image, sent separately;
 stale track IDs are ignored. Native controls dispatch existing React Router and
-player actions, preserving fullscreen history and tab locations. Measured native
-insets feed root CSS variables; Web playback chrome hides with this host
-capability, while header/sidebar navigation hides only in compact windows.
-Regular iPad pages retain the established sidebar offsets and header safe area;
-the sidebar ends above the native player reservation. Web, Android and desktop
-keep their existing UI. Window changes
+player actions, preserving fullscreen history and tab locations. Measured
+Tab/accessory occlusion in WebView coordinates feeds root CSS variables; Web playback and duplicate navigation chrome hide
+with this host capability. Web, Android and desktop keep their existing UI. Window changes
 never replace the WebView or audio service. Native shell state is scene-local;
 the app still advertises a single scene. See `doc/ios-native/bottom.md`.
 

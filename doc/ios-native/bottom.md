@@ -117,3 +117,7 @@
 ## Tab 返回路径修正（2026-10-16）
 
 移除原生桥接中的 tabLocations 地址恢复。此前 Library → Playlists → Home → Library 会将 Playlists 作为新历史项打开，导致左上角 navigate(-1) 回到 Home。现在 Home/Library/Search 均跳转到与 Web 底栏相同的固定一级路由，已选中的 Tab 再次点击也可回到一级页面；KeepAlive 页面缓存仍由原有机制管理。同步修正既有桥接用例的 Library 目标地址，本轮按要求不运行测试。
+
+### 本地安装包资源同步遗漏
+
+用户反馈修复未生效后，检查本地 `dist` 和 `ios/App/App/public` 的 sourcemap，二者均仍含旧的 tabLocations 恢复逻辑。仅提交 TS 源码不会更新 Xcode 使用的被 git 忽略的 Web 资源。本次已重新执行 `pnpm run build:mobile` 和 `pnpm exec cap sync ios`，确认 iOS public 中的源码映射已使用固定 Tab 根路由、无旧恢复逻辑；未运行测试或安装真机。后续修改 Web/桥接代码并从本地 Xcode 安装前，必须先完成以上构建与同步。CI 原有 iOS 工作流已包含这两个步骤。

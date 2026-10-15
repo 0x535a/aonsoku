@@ -272,9 +272,10 @@ trait by hiding artist/next and shrinking cover art inline. The single existing
 `AonsokuViewController`/WKWebView is reparented between three lightweight tab
 containers, never recreated; audio services and queue remain singletons. SceneDelegate
 is the sole programmatic root entry (Main storyboard is not auto-instantiated).
-The modern UITab delegate always sends native selections to React even after
-UIKit has updated the selected index; React updates mutate existing tab titles
-and selection without rebuilding controllers. The active container registers the
+The modern UITab shouldSelectTab delegate sends user navigation intent to React,
+including reselecting the active tab. didSelectTab only hosts the bridge; it never
+sends navigation. React-driven selectedTab updates suppress user-intent dispatch
+and mutate existing tab titles/selection without rebuilding controllers. The active container registers the
 WebView scroll view with setContentScrollView for system scroll minimization.
 The
 React header remains on wide windows for search/account. The system sidebar

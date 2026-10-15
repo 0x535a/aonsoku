@@ -15,6 +15,7 @@ final class AonsokuNativeTabController: UITabBarController, UITabBarControllerDe
     private var accessoryObscured = false
     private var shellEnabled = false
     private var bridgeConstraints: [NSLayoutConstraint] = []
+    private var syncingSelection = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -77,17 +78,29 @@ final class AonsokuNativeTabController: UITabBarController, UITabBarControllerDe
         bridgeController.didMove(toParent: container)
     }
 
+    func tabBarController(_ tabBarController: UITabBarController, shouldSelectTab tab: UITab) -> Bool {
+        // User intent is separate from selection completion: route updates also
+        // change selectedTab and must never navigate back to a tab's root.
+        guard !syncingSelection,
+              let index = tabs.firstIndex(where: { $0 === tab }) else { return true }
+        bridgeController.dispatchShellEvent(["type": "tab", "index": index])
+        return true
+    }
+
     func tabBarController(_ tabBarController: UITabBarController, didSelectTab tab: UITab, previousTab: UITab?) {
         guard let index = tabs.firstIndex(where: { $0 === tab }) else { return }
-        selectTab(index, notifyWeb: true)
+        selectTab(index, notifyWeb: false)
     }
 
     func selectTab(_ index: Int, notifyWeb: Bool) {
         guard tabs.indices.contains(index) else { return }
-        if selectedTab !== tabs[index] { selectedTab = tabs[index] }
+        if selectedTab !== tabs[index] {
+            syncingSelection = true
+            selectedTab = tabs[index]
+            syncingSelection = false
+        }
         let container = tabs[index].viewController as? AonsokuTabContainerController
         if let container { hostBridge(in: container) }
-        // UIKit updates selectedTab before invoking its delegate.
         if notifyWeb { bridgeController.dispatchShellEvent(["type": "tab", "index": index]) }
     }
 
@@ -161,11 +174,15 @@ final class AonsokuNativeTabController: UITabBarController, UITabBarControllerDe
         let original = bridgeController.webView
         let originalTab = selectedIndex
         guard original != nil else { return false }
-        // Model UIKit's ordering: selectedTab is already updated at delegate entry.
+        // Selection completion alone must not turn a route update into a tap.
         let previousTab = selectedTab
-        selectedTab = tabs[2]
         let sentBefore = bridgeController.shellTabEventCount
+        selectTab(2, notifyWeb: false)
         tabBarController(self, didSelectTab: tabs[2], previousTab: previousTab)
+        guard bridgeController.shellTabEventCount == sentBefore else { return false }
+        // A real user intent, including reselecting the current tab, sends once.
+        guard tabBarController(self, shouldSelectTab: tabs[2]) else { return false }
+        tabBarController(self, didSelectTab: tabs[2], previousTab: tabs[2])
         guard bridgeController.shellTabEventCount == sentBefore + 1 else { return false }
         for index in [2, 0, 1, 2, originalTab] {
             selectTab(index, notifyWeb: false)

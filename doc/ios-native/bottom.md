@@ -87,7 +87,7 @@
 
 - **系统排布**：UIKit 负责 Tab/sidebar、玻璃背景、安全区及 accessory 的 regular/inline 转换。常规态展示 36pt 封面、曲名、艺人、播放/暂停与下一首；inline 态封面缩至 30pt，隐藏艺人及下一首，高度 44pt。控件不再自己画独立玻璃卡片。系统动效和材质遵守辅助功能设置，文字使用动态字体，控制支持 VoiceOver 和指针。
 - **单一内容实例**：三个 UITab 的轻量容器只承载同一个 `AonsokuViewController`/WKWebView。切换时移动既有 controller，清理旧约束及滚动观察，再把 WebView 的 UIScrollView 注册为当前容器的 `contentScrollView`；不创建新 WebView、音频服务或队列。Info.plist 移除了 Main storyboard 的自动根控制器声明，避免在程序化 SceneDelegate 入口之外额外构造 bridge。
-- **路由一致**：使用现代 `didSelectTab` delegate；UIKit 先更新选中项后仍必须给 React 发出导航事件，不能因索引已经相同而提前返回。React Router 管理页面历史/KeepAlive；点击 Tab 与 Web 底栏一致，始终进入对应一级路由，不恢复上次二级页面，页面内跳转反向更新系统选中项。本地化直接更新既有 UITab 标题，不重建容器。
+- **路由一致**：使用现代 `shouldSelectTab` 发送用户点击意图（含重复点击当前 Tab）；`didSelectTab` 只同步容器，不发送导航。程序化更新 selectedTab 期间禁止回传用户点击事件。React Router 管理页面历史/KeepAlive；点击 Tab 与 Web 底栏一致，始终进入对应一级路由，不恢复上次二级页面，页面内跳转反向更新系统选中项。本地化直接更新既有 UITab 标题，不重建容器。
 - **内容与留白**：隐藏重复 Web 底栏、播放器、侧栏及失效的 Web 侧栏切换按钮；宽窗口保留 Web 顶栏的搜索与账户。系统侧栏采用 tile 布局，页面随其宽度重新布局。顶部/底部占用根据系统 Tab/accessory 与实际 WebView bounds 的交集测量，回传 CSS，替代固定 64pt 估算。键盘/模态/完整播放器遮挡期间保留页面留白，避免滚动位置跳动；原生控件让位。未登录或退出共享 Player 时隐藏原生导航，空队列移除 accessory。
 - **播放复用**：使用共享 Player 已计算的本地歌曲、电台、遥控投影。原生播放/暂停与下一首继续调用现有 actions；歌曲封面/标题进入现有 React 完整播放器并保留历史行为。电台沿用原来没有完整播放器入口的边界。单独发送既有 CachedImage 的 128px JPEG，过期曲目图片被忽略；这个副本只供迷你播放器，不进入沉浸封面生成管线。进度同步为无障碍播放时间描述。
 - **平台边界**：Web、Android、桌面保持原 UI。当前仍只支持单 scene；横竖屏、分屏与 Stage Manager 按可用内容尺寸适配。真实 Web 滚动是否触发系统最小化需要在真实页面与设备确认，不能以强制 inline trait 的夹具测试替代。
@@ -95,7 +95,7 @@
 ## 验证记录
 
 - `test-native-shell.mjs`：独立 Simulator App 内使用真正的 `UITabBarController.bottomAccessory` 和生产播放器 view，验证 regular/inline 信息密度、控制事件、键盘及模态隐藏。结果保存到 `exp/system-accessory-qa/`。
-- `test-native-shell-bridge.mjs`：实际 Debug Capacitor App 验证最终 WK handler、系统 root、accessory 和三个 Tab；反复选择各 Tab，检查 WebView 身份和单父容器不变，并验证 UIKit 先更新索引后 delegate 仍发出 Tab 事件。iPhone 已登录页面另检查 Web 底栏隐藏；无登录的 iPad 只做外壳验证，并明确标记页面隐藏测试未适用。
+- `test-native-shell-bridge.mjs`：实际 Debug Capacitor App 验证最终 WK handler、系统 root、accessory 和三个 Tab；反复选择各 Tab，检查 WebView 身份和单父容器不变，并验证程序化选中/完成回调不发送导航，用户选择意图只发送一次。iPhone 已登录页面另检查 Web 底栏隐藏；无登录的 iPad 只做外壳验证，并明确标记页面隐藏测试未适用。
 - Cypress 覆盖 React 桥接、Tab 路由、宽窗口保留搜索顶栏但隐藏重复 Web 导航、窄窗口样式、全屏/模态让位；不是对系统手势最小化的真机验收。
 - 测试图片与结构化结果随文档保存；包含真实账户内容的 Simulator 截图只留在 `/tmp/aonsoku-accessory-iphone-current/`，不提交原始页面或日志。
 - 最终构建/检查结果在本次提交前复核。未安装到真机；仍需验证实际滚动收起、VoiceOver、Stage Manager、前后台与播放连续性。
@@ -121,3 +121,7 @@
 ### 本地安装包资源同步遗漏
 
 用户反馈修复未生效后，检查本地 `dist` 和 `ios/App/App/public` 的 sourcemap，二者均仍含旧的 tabLocations 恢复逻辑。仅提交 TS 源码不会更新 Xcode 使用的被 git 忽略的 Web 资源。本次已重新执行 `pnpm run build:mobile` 和 `pnpm exec cap sync ios`，确认 iOS public 中的源码映射已使用固定 Tab 根路由、无旧恢复逻辑；未运行测试或安装真机。后续修改 Web/桥接代码并从本地 Xcode 安装前，必须先完成以上构建与同步。CI 原有 iOS 工作流已包含这两个步骤。
+
+## 页面跳转反向触发 Tab 导航（2026-10-16）
+
+从 Home 打开专辑等 Library 子页面时，React 的 activeIndex 同步会程序化选中 Library。此前 didSelectTab 无条件将选中完成回传为 Tab 点击；固定根路由修复后，该回传会把详情页拉回 Library 一级页面。现在用户导航只从 shouldSelectTab 发出，didSelectTab 仅重挂既有 bridge；设置 selectedTab 时另加同步标记，防止程序化选择回传用户意图。保留用户直接点击（包括重复点击）Tab 回一级页的 Web 语义。同步更新既有原生 QA 的事件边界，未运行测试。

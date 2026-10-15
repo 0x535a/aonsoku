@@ -4,10 +4,10 @@ import { type DynamicCoverHandle, dynamicCover } from "@/native/artwork";
 
 const rank = { static: 0, camera: 1, depth: 2 };
 
-// Feather the whole composition, including its still-image fallback, into
-// the actual player backdrop. Intersect both axes to soften the corners too.
+// Keep the center clear while gradually handing the perimeter to the cover's
+// diffuse color halo, then to the real player backdrop.
 const feather =
-  "transparent 0%, rgba(0,0,0,.12) 1.5%, rgba(0,0,0,.5) 3.5%, rgba(0,0,0,.85) 5.5%, black 8%, black 92%, rgba(0,0,0,.85) 94.5%, rgba(0,0,0,.5) 96.5%, rgba(0,0,0,.12) 98.5%, transparent 100%";
+  "transparent 0%, rgba(0,0,0,.04) 2%, rgba(0,0,0,.2) 5%, rgba(0,0,0,.5) 9%, rgba(0,0,0,.8) 13%, black 18%, black 82%, rgba(0,0,0,.8) 87%, rgba(0,0,0,.5) 91%, rgba(0,0,0,.2) 95%, rgba(0,0,0,.04) 98%, transparent 100%";
 const artworkMask = `linear-gradient(to right, ${feather}), linear-gradient(to bottom, ${feather})`;
 
 type Demand = Awaited<ReturnType<typeof dynamicCover.requestGeneration>>;
@@ -18,11 +18,13 @@ export function ImmersiveArtwork({
   active,
   playing,
   children,
+  halo,
 }: {
   coverArtId: string;
   active: boolean;
   playing: boolean;
   children: ReactNode;
+  halo: ReactNode;
 }) {
   const element = useRef<HTMLDivElement>(null);
   const [intersects, setIntersects] = useState(true);
@@ -171,43 +173,56 @@ export function ImmersiveArtwork({
   }
 
   return (
-    <div
-      ref={element}
-      className="relative size-full aspect-square overflow-hidden"
-      style={{
-        maskImage: artworkMask,
-        maskComposite: "intersect",
-        WebkitMaskImage: artworkMask,
-        WebkitMaskComposite: "source-in",
-      }}
-    >
-      {children}
-      {clips
-        .filter((clip) => clip.coverArtId === coverArtId)
-        .map((clip) => (
-          <video
-            key={clip.leaseId}
-            src={clip.src}
-            muted
-            playsInline
-            loop
-            preload="auto"
-            aria-hidden="true"
-            data-stage={clip.stage}
-            className="pointer-events-none absolute inset-0 size-full object-cover"
-            style={{ opacity: displayId === clip.leaseId ? 1 : 0 }}
-            onLoadedData={(event) => ready(clip, event.currentTarget)}
-            onError={() => {
-              leases.current.delete(clip);
-              clip.release().catch(() => {});
-              if (display.current === clip) {
-                display.current = undefined;
-                setDisplayId(undefined);
-              }
-              setClips((items) => items.filter((item) => item !== clip));
-            }}
-          />
-        ))}
+    <div ref={element} className="relative isolate size-full aspect-square">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-[10%] opacity-60"
+        style={{
+          maskImage:
+            "radial-gradient(ellipse at center, black 25%, rgba(0,0,0,.75) 45%, rgba(0,0,0,.3) 58%, transparent 72%)",
+          WebkitMaskImage:
+            "radial-gradient(ellipse at center, black 25%, rgba(0,0,0,.75) 45%, rgba(0,0,0,.3) 58%, transparent 72%)",
+        }}
+      >
+        <div className="size-full scale-110 blur-2xl">{halo}</div>
+      </div>
+      <div
+        className="relative size-full overflow-hidden"
+        style={{
+          maskImage: artworkMask,
+          maskComposite: "intersect",
+          WebkitMaskImage: artworkMask,
+          WebkitMaskComposite: "source-in",
+        }}
+      >
+        {children}
+        {clips
+          .filter((clip) => clip.coverArtId === coverArtId)
+          .map((clip) => (
+            <video
+              key={clip.leaseId}
+              src={clip.src}
+              muted
+              playsInline
+              loop
+              preload="auto"
+              aria-hidden="true"
+              data-stage={clip.stage}
+              className="pointer-events-none absolute inset-0 size-full object-cover"
+              style={{ opacity: displayId === clip.leaseId ? 1 : 0 }}
+              onLoadedData={(event) => ready(clip, event.currentTarget)}
+              onError={() => {
+                leases.current.delete(clip);
+                clip.release().catch(() => {});
+                if (display.current === clip) {
+                  display.current = undefined;
+                  setDisplayId(undefined);
+                }
+                setClips((items) => items.filter((item) => item !== clip));
+              }}
+            />
+          ))}
+      </div>
     </div>
   );
 }

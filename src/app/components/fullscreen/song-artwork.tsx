@@ -51,7 +51,7 @@ export const FullscreenSongArtwork = memo(function FullscreenSongArtwork({
 
   return (
     <div
-      className={`relative flex size-full items-center justify-center overflow-hidden ${immersive ? "" : "rounded-md bg-foreground/5"}`}
+      className={`relative flex size-full items-center justify-center ${immersive ? "" : "overflow-hidden rounded-md bg-foreground/5"}`}
     >
       {showTouchDragSurface && (
         <div
@@ -75,6 +75,19 @@ export const FullscreenSongArtwork = memo(function FullscreenSongArtwork({
               coverArtId={displayCoverArt!}
               active={fullscreenOpen}
               playing={playing}
+              halo={
+                <CachedImage
+                  coverArtId={displayCoverArt}
+                  coverArtType="song"
+                  albumId={displayAlbumId}
+                  coverArtSize="300"
+                  alt=""
+                  className="size-full object-cover"
+                  wrapperClassName="size-full block"
+                  width="100%"
+                  height="100%"
+                />
+              }
             >
               {image}
             </ImmersiveArtwork>

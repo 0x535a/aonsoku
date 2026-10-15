@@ -157,3 +157,20 @@ WebGPU 能力检测需要实际申请适配器/设备并验证推理所需特性
    - 在 `src/index.css` 中为桌面端侧栏（`[data-testid="fullscreen-desktop-side-panel"] .fullscreen-queue-bg`）添加 `background: transparent;` 并屏蔽其伪元素渐变。
    - 播放列表与歌词完全共享底层的通透漫反射光芒，彻底消除视口中线处的实色阻隔，使全屏沉浸播放页面无论在歌词模式、队列模式还是单曲全幅模式下均呈现出浑然一体、空灵梦幻的流光氛围。
 
+
+### 动态封面整体放大与尺寸调节规范（2026-10-16）
+
+为补偿 20% 平滑羽化带来的核心视觉收窄，并让动态封面在宽屏/大屏上更显大气舒展，新增全局缩放控制：
+
+1. **视觉缩放倍率（`DYNAMIC_ARTWORK_SCALE`）**：
+   - 定义于 [`src/app/components/fullscreen/immersive-artwork.tsx`](../../src/app/components/fullscreen/immersive-artwork.tsx)。
+   - 默认倍率设为 `1.15`（即整体放大 15%，视觉面积增大约 32%）。
+   - 此时清晰核心从约 288px 扩展至约 331px，羽化外延扩展至约 552px，与底层散景光垫和全屏漫反射更自然地融合。
+   - 调节参数指南：
+     - `1.0`：原始基准尺寸（未放大）。
+     - `1.15`：推荐放大尺寸（视觉饱满且不挤压上下标题与控制条）。
+     - `1.20` ~ `1.25`：超大沉浸尺寸（适合大屏显示器与平板宽屏模式）。
+2. **容器上限尺寸联动**：
+   - 若需调整封面所在物理卡槽的最大极限尺寸，可调整 [`src/app/components/fullscreen/artwork-with-info.tsx`](../../src/app/components/fullscreen/artwork-with-info.tsx) 中的 `clamp(280px, 85vw, 480px)` 及其对应的 `flex-[0_1_min(480px,100cqw)]`。
+
+

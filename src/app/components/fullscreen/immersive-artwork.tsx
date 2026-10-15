@@ -18,6 +18,15 @@ const cushionMask = `linear-gradient(to right, ${cushionFade}), linear-gradient(
 
 type Demand = Awaited<ReturnType<typeof dynamicCover.requestGeneration>>;
 
+/**
+ * Visual scale multiplier for the dynamic artwork presentation.
+ * Adjust this value to manually resize the dynamic cover:
+ * - 1.0  = 100% (original base size)
+ * - 1.15 = 115% (current enlarged presentation, compensates for outer edge feathering)
+ * - 1.25 = 125% (extra large)
+ */
+export const DYNAMIC_ARTWORK_SCALE = 1.15;
+
 /** A square display mask over leased files. It never requests pixel dimensions. */
 export function ImmersiveArtwork({
   coverArtId,
@@ -25,12 +34,14 @@ export function ImmersiveArtwork({
   playing,
   children,
   halo,
+  scale = DYNAMIC_ARTWORK_SCALE,
 }: {
   coverArtId: string;
   active: boolean;
   playing: boolean;
   children: ReactNode;
   halo: ReactNode;
+  scale?: number;
 }) {
   const element = useRef<HTMLDivElement>(null);
   const [intersects, setIntersects] = useState(true);
@@ -179,7 +190,14 @@ export function ImmersiveArtwork({
   }
 
   return (
-    <div ref={element} className="relative isolate size-full aspect-square">
+    <div
+      ref={element}
+      className="relative isolate size-full aspect-square transition-transform duration-500 ease-out"
+      style={{
+        transform: `scale(${scale})`,
+        transformOrigin: "center center",
+      }}
+    >
       {/* Defocus cushion directly under the artwork feather zone */}
       <div
         aria-hidden="true"

@@ -4,12 +4,6 @@ import { type DynamicCoverHandle, dynamicCover } from "@/native/artwork";
 
 const rank = { static: 0, camera: 1, depth: 2 };
 
-// Keep the center clear while gradually handing the perimeter to the cover's
-// diffuse color halo, then to the real player backdrop.
-const feather =
-  "transparent 0%, rgba(0,0,0,.04) 2%, rgba(0,0,0,.2) 5%, rgba(0,0,0,.5) 9%, rgba(0,0,0,.8) 13%, black 18%, black 82%, rgba(0,0,0,.8) 87%, rgba(0,0,0,.5) 91%, rgba(0,0,0,.2) 95%, rgba(0,0,0,.04) 98%, transparent 100%";
-const artworkMask = `linear-gradient(to right, ${feather}), linear-gradient(to bottom, ${feather})`;
-
 type Demand = Awaited<ReturnType<typeof dynamicCover.requestGeneration>>;
 
 /** A square display mask over leased files. It never requests pixel dimensions. */
@@ -176,7 +170,7 @@ export function ImmersiveArtwork({
     <div ref={element} className="relative isolate size-full aspect-square">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -inset-[10%] opacity-60"
+        className="pointer-events-none absolute -inset-[10%] z-0 opacity-40"
         style={{
           maskImage:
             "radial-gradient(ellipse at center, black 25%, rgba(0,0,0,.75) 45%, rgba(0,0,0,.3) 58%, transparent 72%)",
@@ -187,12 +181,10 @@ export function ImmersiveArtwork({
         <div className="size-full scale-110 blur-2xl">{halo}</div>
       </div>
       <div
-        className="relative size-full overflow-hidden"
+        className="relative z-[1] size-full overflow-hidden rounded-[clamp(12px,3cqw,22px)]"
         style={{
-          maskImage: artworkMask,
-          maskComposite: "intersect",
-          WebkitMaskImage: artworkMask,
-          WebkitMaskComposite: "source-in",
+          boxShadow:
+            "0 16px 38px -18px rgba(0,0,0,.3), 0 2px 8px -3px rgba(0,0,0,.14), 0 0 0 1px rgba(255,255,255,.08)",
         }}
       >
         {children}

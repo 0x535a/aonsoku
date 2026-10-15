@@ -125,3 +125,7 @@
 ## 页面跳转反向触发 Tab 导航（2026-10-16）
 
 从 Home 打开专辑等 Library 子页面时，React 的 activeIndex 同步会程序化选中 Library。此前 didSelectTab 无条件将选中完成回传为 Tab 点击；固定根路由修复后，该回传会把详情页拉回 Library 一级页面。现在用户导航只从 shouldSelectTab 发出，didSelectTab 仅重挂既有 bridge；设置 selectedTab 时另加同步标记，防止程序化选择回传用户意图。保留用户直接点击（包括重复点击）Tab 回一级页的 Web 语义。同步更新既有原生 QA 的事件边界，未运行测试。
+
+## 搜索页键盘（2026-10-16）
+
+移除移动搜索页输入框的 autoFocus，点击 Search 导航只展示页面，用户点击输入框后才打开键盘，避免页面切换与键盘动画同时发生。输入、搜索防抖及回车收起键盘行为保留。移动 Web/Capacitor 共用该页面，均采用手动聚焦；桌面搜索不变。本轮不运行测试，完成移动端构建及 iOS 资源同步。

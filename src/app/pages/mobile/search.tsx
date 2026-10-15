@@ -206,7 +206,6 @@ export default function MobileSearch() {
             <Input
               ref={inputRef}
               data-scroll-dismiss-keyboard="true"
-              autoFocus
               defaultValue={query}
               placeholder={t("command.inputPlaceholder")}
               className="pl-9"

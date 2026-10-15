@@ -34,12 +34,16 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "resources": {
+      "native/artwork/DepthAnythingV2-LICENSE.txt": "artwork/DepthAnythingV2-LICENSE.txt"
+    },
     "icon": [
       "../resources/icons/icon.png",
       "../resources/icons/icon.icns",
       "../resources/icons/icon.ico"
     ],
     "macOS": {
+      "minimumSystemVersion": "13.0",
       "signingIdentity": "-"
     }
   }

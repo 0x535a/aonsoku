@@ -567,6 +567,13 @@
         "preAmp": "前置放大器（dB）"
       },
       "lockScreenArtwork": {
+        "macImmersiveInfo": "生成边缘连续延伸的封面视频，供播放器复用。",
+        "macWifiOnly": "仅通过非计费网络下载模型",
+        "macWifiInfo": "允许使用未标记为计费或受限的 Wi-Fi 与以太网。关闭后也可通过计费网络下载。",
+        "macGroup": "沉浸封面",
+        "macDescription": "在 macOS 本地生成沉浸封面视频。模型按需下载，已生成的视频供播放器复用。",
+        "depthPreview": "归一化深度图",
+        "diagnostics": "macOS 封面诊断",
         "group": "锁屏封面",
         "description": "需要 iOS 26+。布局与展开方式由系统决定，动态效果在设备上生成。",
         "loading": "正在读取封面设置…",

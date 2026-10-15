@@ -1,0 +1,223 @@
+{
+  "diagnostics": {
+    "leases": 2,
+    "phases": {
+      "analysis backend=camera": {
+        "detail": "mode=camera reason=camera-fallback-no-depth",
+        "elapsed": "0 ms",
+        "memory": "baseline 149, peak 149, delta 0 MiB"
+      },
+      "analysis backend=dav2-p6": {
+        "detail": "mode=parallax reason=dav2-p6",
+        "elapsed": "35625 ms",
+        "memory": "baseline 190, peak 190, delta 0 MiB"
+      },
+      "image-extension": {
+        "detail": "format=3:4",
+        "elapsed": "10 ms",
+        "memory": "baseline 112, peak 219, delta 106 MiB"
+      },
+      "model-depth-map backend=dav2-p6": {
+        "detail": "valid=true",
+        "elapsed": "3 ms",
+        "memory": "baseline 209, peak 209, delta 0 MiB"
+      },
+      "model-input backend=dav2-p6": {
+        "detail": "size=518x392",
+        "elapsed": "11 ms",
+        "memory": "baseline 110, peak 184, delta 74 MiB"
+      },
+      "model-load backend=dav2-p6": {
+        "detail": "packageBytes=19038993 compiledBytes=0",
+        "elapsed": "3775 ms",
+        "memory": "baseline 190, peak 190, delta 0 MiB"
+      },
+      "model-predict-cold backend=dav2-p6": {
+        "detail": "firstPrediction=true",
+        "elapsed": "75 ms",
+        "memory": "baseline 184, peak 209, delta 24 MiB"
+      },
+      "model-total backend=dav2-p6": {
+        "detail": "precision=palette-W6A16 computeUnits=all",
+        "elapsed": "3869 ms",
+        "memory": "baseline 190, peak 202, delta 12 MiB"
+      },
+      "motion-encode backend=camera": {
+        "detail": "success=true",
+        "elapsed": "310 ms",
+        "memory": "baseline 180, peak 190, delta 10 MiB"
+      },
+      "motion-encode backend=dav2-p6": {
+        "detail": "success=true",
+        "elapsed": "158 ms",
+        "memory": "baseline 112, peak 240, delta 127 MiB"
+      },
+      "static-encode backend=camera": {
+        "detail": "success=true",
+        "elapsed": "33 ms",
+        "memory": "baseline 146, peak 149, delta 3 MiB"
+      }
+    },
+    "renderer": "Metal ready",
+    "revision": 2,
+    "source": "originalReady",
+    "state": {
+      "deviceMemoryBytes": 19327352832,
+      "effectiveTier": "p6",
+      "generationStatus": "ready",
+      "modelRevision": "cfef6f6f2a70783dedc0bfae40cecbc2052285d3",
+      "models": [
+        {
+          "downloadBytes": 49819122,
+          "progress": 0,
+          "status": "notDownloaded",
+          "storedBytes": 0,
+          "tier": "fp16"
+        },
+        {
+          "downloadBytes": 25247952,
+          "progress": 0,
+          "status": "notDownloaded",
+          "storedBytes": 0,
+          "tier": "p8"
+        },
+        {
+          "downloadBytes": 19038993,
+          "progress": 0,
+          "status": "ready",
+          "storedBytes": 19114103,
+          "tier": "p6"
+        }
+      ],
+      "options": {
+        "dynamicEnabled": true,
+        "immersiveEnabled": true,
+        "motionAmplitude": 1.5,
+        "motionSpeed": 2,
+        "quality": "p6",
+        "wifiOnly": false
+      },
+      "recommendedTier": "fp16",
+      "supported": true
+    },
+    "variants": {
+      "1:1": {
+        "asset": "motion-v6-dav2-p6-a150-s200-720x720-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+        "backend": "dav2-p6",
+        "cache": "miss",
+        "loopDuration": "3.0 s",
+        "mode": "parallax",
+        "publishedBackend": "dav2-p6",
+        "reason": "dav2-p6",
+        "state": "ready",
+        "textRegions": "7"
+      },
+      "3:4": {
+        "asset": "motion-v5-camera-720x960-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+        "backend": "dav2-p6",
+        "cache": "miss",
+        "loopDuration": "6.0 s",
+        "mode": "parallax",
+        "publishedBackend": "camera",
+        "reason": "dav2-p6",
+        "state": "preparing",
+        "textRegions": "7"
+      }
+    }
+  },
+  "downloadTest": true,
+  "elapsedMs": 36642,
+  "observed": {
+    "camera": {
+      "assetId": "motion-v5-camera-720x720-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+      "backend": "camera",
+      "coverArtId": "fixture",
+      "duration": 6,
+      "elapsedMs": 533,
+      "format": "square",
+      "height": 720,
+      "leaseId": "4C5862E5-E645-4913-9B03-B995A820D9AE",
+      "stage": "camera",
+      "status": "ready",
+      "width": 720,
+      "encodedMedia": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 720,
+            "height": 720,
+            "avg_frame_rate": "24/1"
+          }
+        ],
+        "format": {
+          "duration": "6.000000"
+        }
+      }
+    },
+    "depth": {
+      "assetId": "motion-v6-dav2-p6-a150-s200-720x720-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+      "backend": "dav2-p6",
+      "coverArtId": "fixture",
+      "duration": 3,
+      "elapsedMs": 36639,
+      "format": "square",
+      "height": 720,
+      "leaseId": "66FA7455-3E66-4B41-BF78-F1CB31692FDB",
+      "stage": "depth",
+      "status": "ready",
+      "width": 720,
+      "encodedMedia": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 720,
+            "height": 720,
+            "avg_frame_rate": "24/1"
+          }
+        ],
+        "format": {
+          "duration": "3.000000"
+        }
+      }
+    },
+    "static": {
+      "assetId": "edge-v1-720x720-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+      "backend": "static",
+      "coverArtId": "fixture",
+      "duration": 2,
+      "elapsedMs": 213,
+      "format": "square",
+      "height": 720,
+      "leaseId": "D0E168AB-FDE6-449F-8739-9ACE820884C9",
+      "stage": "static",
+      "status": "ready",
+      "width": 720,
+      "encodedMedia": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 720,
+            "height": 720,
+            "avg_frame_rate": "15/1"
+          }
+        ],
+        "format": {
+          "duration": "0.066667"
+        }
+      }
+    }
+  },
+  "host": {
+    "cpu": "Apple M3 Pro",
+    "physicalMemoryBytes": 19327352832,
+    "macOS": "27.0.1"
+  },
+  "validationNotes": [
+    "P6 was downloaded, SHA256-verified and compiled during the initial foreground-policy check (focus-paused.json). The final inference run reused that verified compiled package.",
+    "Release phase memory values are endpoint maxima, not a 10ms-sampled process peak.",
+    "The smoke stops after square depth is published; portrait generation is supported by the same producer but was not separately timed in this run."
+  ]
+}

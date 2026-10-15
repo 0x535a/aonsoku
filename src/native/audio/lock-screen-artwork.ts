@@ -1,5 +1,9 @@
 import { AonsokuNativePreferences } from "@aonsoku/capacitor-native/preferences";
 import { Capacitor } from "@capacitor/core";
+import {
+  isMacArtworkAvailable,
+  macArtworkCommand,
+} from "@/native/artwork/tauri";
 import { getRuntime } from "@/utils/capabilities";
 
 export type ArtworkTier = "fp16" | "p8" | "p6";
@@ -47,7 +51,7 @@ export interface ArtworkState {
   models: ArtworkModelState[];
   modelRevision: string;
 }
-interface IOSArtworkPreferences {
+interface ArtworkPreferencesBridge {
   listLockScreenArtworkVideos(): Promise<{ videos: ArtworkCachedVideo[] }>;
   deleteLockScreenArtworkVideo(options: { id: string }): Promise<void>;
   clearLockScreenArtworkVideos(options: {
@@ -65,18 +69,36 @@ interface IOSArtworkPreferences {
 }
 export function isLockScreenArtworkAvailable(): boolean {
   return (
-    getRuntime() === "capacitor-ios" &&
-    Capacitor.isPluginAvailable("AonsokuNativePreferences")
+    isMacArtworkAvailable() ||
+    (getRuntime() === "capacitor-ios" &&
+      Capacitor.isPluginAvailable("AonsokuNativePreferences"))
   );
 }
-function plugin(): IOSArtworkPreferences {
+function plugin(): ArtworkPreferencesBridge {
+  if (isMacArtworkAvailable()) return macPreferences;
   if (!isLockScreenArtworkAvailable()) {
-    throw new Error("Lock-screen artwork settings require native iOS.");
+    throw new Error("Artwork settings require native iOS or macOS Tauri.");
   }
   // These methods are an iOS extension of the native preferences plugin;
   // other runtimes keep the common preferences/audio contracts unchanged.
-  return AonsokuNativePreferences as unknown as IOSArtworkPreferences;
+  return AonsokuNativePreferences as unknown as ArtworkPreferencesBridge;
 }
+const macPreferences: ArtworkPreferencesBridge = {
+  listLockScreenArtworkVideos: () => macArtworkCommand("listVideos"),
+  deleteLockScreenArtworkVideo: (options) =>
+    macArtworkCommand("deleteVideo", options),
+  clearLockScreenArtworkVideos: (options) =>
+    macArtworkCommand("clearVideos", options),
+  getLockScreenArtworkState: () => macArtworkCommand("state"),
+  configureLockScreenArtwork: (options) =>
+    macArtworkCommand("configure", options),
+  downloadLockScreenArtworkModel: (options) =>
+    macArtworkCommand("download", options),
+  cancelLockScreenArtworkDownload: (options) =>
+    macArtworkCommand("cancel", options),
+  deleteLockScreenArtworkModel: (options) =>
+    macArtworkCommand("remove", options),
+};
 export const lockScreenArtwork = {
   listVideos: async () => (await plugin().listLockScreenArtworkVideos()).videos,
   deleteVideo: (id: string) => plugin().deleteLockScreenArtworkVideo({ id }),

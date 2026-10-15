@@ -2,6 +2,7 @@ import { AonsokuNativePreferences } from "@aonsoku/capacitor-native/preferences"
 import { Capacitor } from "@capacitor/core";
 import { getRuntime } from "@/utils/capabilities";
 import { isMacOS } from "@/utils/desktop";
+import { isMacArtworkAvailable, tauriDynamicCover } from "./tauri";
 import type {
   DynamicCoverCapabilities,
   DynamicCoverHandle,
@@ -38,6 +39,7 @@ const iosProvider: DynamicCoverProvider = {
 
 function provider(): DynamicCoverProvider | undefined {
   const runtime = getRuntime();
+  if (isMacArtworkAvailable()) return tauriDynamicCover;
   if (
     runtime === "capacitor-ios" &&
     Capacitor.isPluginAvailable("AonsokuNativePreferences")

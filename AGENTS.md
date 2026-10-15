@@ -66,6 +66,11 @@ AONSOKU_TEST_MODEL_DOWNLOAD=1 node scripts/ios/test-lock-screen-artwork.mjs # Op
 python scripts/ios/prepare-motion-models.py /tmp/aonsoku-depth-models # Mac experiment models, isolated Python + coremltools
 node scripts/ios/run-motion-cover-experiment.mjs /tmp/aonsoku-depth-models # DAV2 intermediate maps/frames/videos under doc/dynamic-cover/exp
 
+# macOS Tauri dynamic artwork (isolated Swift/Core ML host, macOS + Xcode)
+cargo test --manifest-path src-tauri/Cargo.toml --lib dynamic_cover::tests::webkit_video_ranges
+node scripts/macos/test-dynamic-cover.mjs # Static/camera publication + leases, no model download
+AONSOKU_TEST_MODEL_DOWNLOAD=1 node scripts/macos/test-dynamic-cover.mjs # P6 download/verify/compile/infer; outputs doc/dynamic-cover/exp/macos-service
+
 # Electron desktop native audio
 pnpm native-audio:build   # Build the Node-API libmpv addon
 pnpm native-audio:prepare # Copy addon/runtime libs into resources/native-audio
@@ -482,18 +487,33 @@ Key files:
   in the browser cache index. Individual/type clears and asset/all-cache clears
   include these videos, skip live artwork files, and never delete model weights.
   `src/native/artwork/` defines the provider-neutral v1 video acquire/release
-  contract for iOS and macOS, with an optional macOS host bridge
-  `window.aonsokuDynamicCover`. The iOS Preferences extension exposes completed
-  published assets through `DynamicCoverRegistry`, matching the current native
-  cover/revision and pinning each leased asset against cache eviction. Reads
-  never initiate generation. Bridge destruction releases its leases; static
-  requests retain the original clip while dynamic requests select the best
-  published stage. This first adapter inherits iOS 26 system format support.
-  macOS Electron/Tauri production providers are not yet installed and report
-  unavailable; offline Mac rendering experiments do not establish app support.
-  Fullscreen UI integration and future browser/WebGPU providers follow this
-  contract; Windows/Android implementations are outside the current scope.
-  See `doc/dynamic-cover/fullscreen.md` for ownership and integration steps.
+  contract. The iOS Preferences extension exposes completed published assets
+  through `DynamicCoverRegistry`, matching the current native cover/revision
+  and pinning each leased asset against cache eviction. Its first adapter
+  inherits iOS 26 system format support. Reads never initiate generation.
+  macOS Tauri owns a separate Swift/Core ML implementation under
+  `src-tauri/native/artwork`; build.rs compiles only that platform's sources into
+  a static library (Xcode required, macOS 13+), never includes the iOS plugin, and links it through a small
+  C ABI. The Rust `dynamic_cover` module owns main-WebView sessions and the
+  `aonsoku-artwork` video protocol (active leases only, Range/HEAD support).
+  Native media-session updates feed original cover URLs into the progressive
+  static/camera/DAV2 producer, including remote playback projections. The Swift
+  host downloads/validates complete unresized originals, persists settings under
+  app-data, and manages FP16/P8/P6 download/verification/compilation/inference
+  with an exclusive model queue. App hiding, Low Power Mode, Reduce Motion,
+  thermal and VM memory pressure guard work; desktop loss of focus alone does
+  not pause generation. macOS headroom uses free+inactive VM pages with 512 MiB
+  pause, 1 GiB P6 and 2 GiB P8 caps; memory pressure pauses for 60s and limits
+  recovery to P6 for 180s. These are conservative host limits, separate from
+  the iOS process-memory limits. Both platforms use the existing audio-settings
+  and video-cache manager UI through runtime-specific adapters; macOS also
+  exposes a collapsible diagnostics/depth/timing/footprint board. Model weights
+  are optional and never bundled; the Apache license is a Tauri resource.
+  Session reload/destruction releases all leases; source revisions retain old
+  consumer leases until release. Fullscreen player UI integration is separate.
+  Electron has no new generation service. Web, Windows and Android remain
+  unchanged. See `doc/dynamic-cover/fullscreen.md` and
+  `src-tauri/native/artwork/README.md` for platform ownership and commands.
   `scripts/ios/prepare-motion-models.py` prepares only those three DAV2 tiers for
   Mac experiments. `run-motion-cover-experiment.mjs` uses the production Core ML
   and rendering sources; intermediates live under `doc/dynamic-cover/exp`.

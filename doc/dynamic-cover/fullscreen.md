@@ -4,7 +4,7 @@
 
 目标平台是 iOS/iPadOS 与 macOS。先提供统一消费接口，再替换全屏播放器中现有的方形专辑封面区域。播放控制、拖动关闭、歌词、队列及迷你播放器保持各自职责。
 
-本次补齐接口及 iOS 适配，不接入播放器 UI。macOS 后续采用 Tauri + 原生 Core ML，接入同一消费契约；目前没有生产环境桌面 Core ML 封面服务，能力查询应明确返回 `provider-not-installed`。Mac 离线实验能运行渲染器，不代表桌面应用已经支持生成。Windows、Android 暂不实现；未来浏览器 WebGPU 提供者也沿用统一消费边界，不让组件依赖 Core ML。
+接口与 iOS 适配已完成；macOS 现已接入 Tauri + 原生 Core ML，使用同一消费契约。本轮仍不替换播放器 UI。Windows、Android 暂不实现；未来浏览器 WebGPU 提供者也沿用统一消费边界，不让组件依赖 Core ML。
 
 ## 消费契约（v1）
 
@@ -25,13 +25,22 @@
 
 iOS 通过现有 Preferences 插件扩展方法访问原生发布注册表，适配器用 Capacitor 文件转换生成 WebView URL。v1 复用 iOS 26+ 系统已经请求的输出格式；不支持的系统或格式返回 unavailable，不伪装成仍在生成。后续把生成入口与系统锁屏能力解耦时，可独立支持全屏方形输出。
 
-macOS 接口预留 `window.aonsokuDynamicCover`，由 Tauri 初始化桥接实现 `DynamicCoverProvider`。宿主验证 Darwin、维护 WebView 会话租约并负责销毁清理，通过受限本地资源协议返回视频 URL。接口不允许将任意路径转成可读 URL。未安装提供者前不进行 IPC 或加载模型。现有 Electron 运行时无需随本功能增加生成服务。
+macOS Tauri 适配器通过 `dynamic_cover_command` 实现 `DynamicCoverProvider`；`window.aonsokuDynamicCover` 保留为其他宿主的可选接入口。宿主验证 Darwin、维护 WebView 会话租约并负责销毁清理，通过受限本地资源协议返回视频 URL。接口不允许将任意路径转成可读 URL。非 Tauri/macOS 运行时不调用该桥接。现有 Electron 运行时未增加生成服务。
 
 ## macOS 实现路线
 
-采用 Tauri → Rust 调度层 → Swift 原生服务 → Core ML DAV2 的调用链。Rust 负责命令入口、任务调度与受控文件访问；Swift 负责模型加载、推理和视频生成。提取 iOS 现有生成模块中的可共享部分，复用 DAV2 分档、单模型串行推理、资源释放、运动参数和缓存身份规则；锁屏发布、系统生命周期及平台资源压力处理分别适配。
+采用 Tauri → Rust 调度层 → Swift 原生服务 → Core ML DAV2 的调用链。Rust 负责命令入口、任务调度与受控文件访问；Swift 负责模型加载、推理和视频生成。macOS 源码独立放在 `src-tauri/native/artwork`，初始版本复制自 iOS `36cb9f2b`，随后独立适配；构建与源码均不引用 iOS 目录。两端对齐 DAV2 分档、单模型串行推理、资源释放、运动参数和缓存身份规则。锁屏发布及平台生命周期、资源策略各自维护。
 
-播放器通过统一接口获取已生成的视频，在 WKWebView 中播放。前端不直接加载 Core ML 模型。模型按需下载和资源限制仍由宿主管理，具体内存阈值需在 macOS 验证后确定，不能直接照搬 iPhone/iPad 的阈值。
+播放器通过统一接口获取已生成的视频，在 WKWebView 中播放。前端不直接加载 Core ML 模型。模型按需下载和资源限制由宿主管理。默认分档沿用物理 RAM 的 P6/P8/FP16 规则；macOS 使用 free+inactive VM 页估算余量：低于 512 MiB 暂停、低于 1 GiB 限 P6、低于 2 GiB 限 P8，后续按设备数据调整。内存压力暂停 60 秒，恢复期 180 秒限 P6；严重发热、低电量模式或减少动态效果会暂停动态生成。隐藏 App 暂停新工作，单纯切换窗口焦点仍可生成。
+
+## macOS 当前实现
+
+- 原生媒体元数据（本地/远程播放投影）是唯一源入口。Swift 剥离缩略图 `size` 参数并下载、验证完整原图；不将媒体会话中的 300px/base64 图片送入 DAV2。原图按 URL 摘要缓存，原始凭据不出现在文件名或诊断里。
+- 两种格式均按 static → camera → depth 发布；静态视频始终保留。DAV2 成功后退休 camera，仍在使用的租约继续保护文件。模型尚未准备好、压力暂停或推理失败时继续使用已有阶段，不写入伪 DAV2 缓存。
+- FP16/P8/P6 使用同一固定 Apple revision、字节数与 SHA256；串流下载、网络限制、取消、删除、编译延期、单模型串行推理均在 macOS 原生实现。模型推理完成后释放，视频编码复用有限像素缓冲。幅度 0.5–2x，速度对应 3–12 秒完整循环、24fps。
+- 音频设置提供开关、档位、模型管理和运动参数；离线缓存管理器接入静态/动态视频类型。macOS 设置增加折叠诊断面板，展示原图状态、发布阶段、Core ML/编码耗时与进程内存、归一化深度图。只有展开时才请求诊断。
+- Rust 启动时传入 app-data 与打包 license 路径。渲染层命令白名单不包含源 URL、文件路径、会话初始化或内部文件解析。`aonsoku-artwork://localhost/<session>/<lease>` 仅映射活跃原生租约，支持 Range/HEAD；WebView 重载和销毁时自动清理会话。
+- 构建要求 Xcode，macOS 最低 13；模型若不被当前 Core ML 运行时支持会报告错误并保留 camera/static。构建只链接 macOS 自己的 Swift 源码，license 随 Tauri 资源打包，权重不入包。参见 [`README`](../../src-tauri/native/artwork/README.md)。
 
 ## Web 实现路线与降级
 
@@ -63,3 +72,13 @@ WebGPU 能力检测需要实际申请适配器/设备并验证推理所需特性
 - iOS Release 通用设备目标编译通过（不签名、不安装设备）。Biome 定向检查通过。
 - TypeScript 未全量通过：标准 web 项目检查先遇到既有 Electron 项目引用输出缺失；去除引用、仅检查接口及其真实依赖后，仍有既有 coordination 类型导入/监听器签名和 `IAonsokuAPI.lanControl` 声明错误。新增接口文件无剩余类型诊断。本轮不修改这些无关模块。
 - 尚未验证真机 WebView 视频读取；播放器 UI 与 macOS 生产提供者留待下一步接入。
+
+
+## macOS 接通验证（2026-10-15）
+
+- 平台归属：macOS 独立 Swift 源码全部在 `src-tauri/native/artwork`；本次最终无 iOS 文件改动，Web 实现未改动。
+- Tauri/Rust/Swift 编译与链接通过，WebKit Range 边界检查通过；22 项前端定向单测通过。
+- 使用生产 C ABI 跑通原图 → static → camera → DAV2 P6 depth，完成模型网络下载/校验/编译和视频引用/缓存保护检查。测试修复了失去焦点误暂停及复制后遗漏原生 Core ML 分支的问题。后续验证复用了已验证模型，没有重复下载。
+- M3 Pro / 18 GiB / macOS 27.0.1：static 约 213ms、camera 约 533ms、首个 depth 约 36.639s；其中冷模型加载 3.775s、预测 75ms、首次含文字识别的分析 35.625s。幅度 1.5x、速度 2x 的实际输出为 720×720 / 24fps / 3s，保留完整轨迹。
+- 产物及测量边界见 [`exp/macos-service/README.md`](exp/macos-service/README.md)，包含实际视频、深度图、日志和 JSON。Release 内存是起止最大值，未声称采样峰值。
+- TypeScript 检查仍仅报告既有 coordination 类型与 `IAonsokuAPI.lanControl` 问题，新增文件无类型诊断。全量 Biome lint 在提交钩子执行。未额外跑 iOS/Android 或 Web 构建；Tauri WKWebView 全屏 UI 接入仍为下一阶段。

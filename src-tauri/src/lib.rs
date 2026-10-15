@@ -1,14 +1,50 @@
 mod desktop_audio;
 mod desktop_cache;
 #[cfg(target_os = "macos")]
+mod dynamic_cover;
+#[cfg(target_os = "macos")]
 mod macos;
 mod media;
+#[cfg(target_os = "macos")]
+use tauri::Manager;
 
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .manage(desktop_audio::DesktopAudioState::default())
-        .manage(media::MediaControlsState::default())
+        .manage(media::MediaControlsState::default());
+    #[cfg(target_os = "macos")]
+    let builder = builder
+        .manage(dynamic_cover::DynamicCoverState::default())
+        .setup(|app| dynamic_cover::initialize(app.handle()))
+        .on_page_load(|webview, payload| {
+            if payload.event() == tauri::webview::PageLoadEvent::Started {
+                dynamic_cover::reset_session(
+                    webview.app_handle().clone(),
+                    webview.label().to_string(),
+                );
+            }
+        })
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                dynamic_cover::close_session(
+                    window.app_handle().clone(),
+                    window.label().to_string(),
+                );
+            }
+        })
+        .register_asynchronous_uri_scheme_protocol(
+            "aonsoku-artwork",
+            |context, request, responder| {
+                let app = context.app_handle().clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    responder.respond(dynamic_cover::video_response(&app, request));
+                });
+            },
+        );
+    builder
         .invoke_handler(tauri::generate_handler![
+            #[cfg(target_os = "macos")]
+            dynamic_cover::dynamic_cover_command,
             desktop_audio::desktop_audio_load,
             desktop_audio::desktop_audio_play,
             desktop_audio::desktop_audio_pause,

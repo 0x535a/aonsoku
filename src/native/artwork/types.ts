@@ -25,6 +25,7 @@ export interface DynamicCoverVideo {
   backend: string;
   width: number;
   height: number;
+  /** Dynamic loop duration in seconds; nominal hold duration for static clips. */
   duration: number;
   src: string;
 }

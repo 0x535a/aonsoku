@@ -17,6 +17,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/utils/capabilities", () => ({ getRuntime: () => mocks.runtime }));
+vi.mock("@/native/artwork/tauri", () => ({
+  isMacArtworkAvailable: () => false,
+}));
 vi.mock("@capacitor/core", () => ({
   Capacitor: { isPluginAvailable: () => mocks.installed },
 }));

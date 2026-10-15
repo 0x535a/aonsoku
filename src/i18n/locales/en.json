@@ -877,6 +877,13 @@
         }
       },
       "lockScreenArtwork": {
+        "macImmersiveInfo": "Prepare cover videos with continuously extended edges for reuse by the player.",
+        "macWifiOnly": "Download models on unmetered networks only",
+        "macWifiInfo": "Allow Wi-Fi and Ethernet without metered or constrained connections. Disable to allow metered networks.",
+        "macGroup": "Immersive artwork",
+        "macDescription": "Generate immersive cover videos locally on macOS. Models download on demand; prepared videos can be reused by the player.",
+        "depthPreview": "Normalized depth map",
+        "diagnostics": "macOS artwork diagnostics",
         "group": "Lock-screen artwork",
         "description": "iOS 26+. The system controls layout and expansion; motion is generated on your device.",
         "loading": "Loading artwork settings…",

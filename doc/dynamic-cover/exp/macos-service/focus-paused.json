@@ -1,0 +1,135 @@
+{
+  "diagnostics" : {
+    "leases" : 1,
+    "phases" : {
+      "analysis backend=camera" : {
+        "detail" : "mode=camera reason=camera-fallback-no-depth",
+        "elapsed" : "0 ms",
+        "memory" : "baseline 149, peak 149, delta 0 MiB"
+      },
+      "analysis backend=dav2-p6" : {
+        "detail" : "mode=camera reason=camera-fallback-no-depth",
+        "elapsed" : "0 ms",
+        "memory" : "baseline 190, peak 190, delta 0 MiB"
+      },
+      "image-extension" : {
+        "detail" : "format=3:4",
+        "elapsed" : "6 ms",
+        "memory" : "baseline 158, peak 161, delta 3 MiB"
+      },
+      "model-compile backend=dav2-p6" : {
+        "detail" : "ready=true",
+        "elapsed" : "340 ms",
+        "memory" : "baseline 53, peak 53, delta 0 MiB"
+      },
+      "motion-encode backend=camera" : {
+        "detail" : "success=true",
+        "elapsed" : "305 ms",
+        "memory" : "baseline 178, peak 190, delta 12 MiB"
+      },
+      "static-encode backend=camera" : {
+        "detail" : "success=true",
+        "elapsed" : "31 ms",
+        "memory" : "baseline 146, peak 149, delta 3 MiB"
+      }
+    },
+    "renderer" : "not initialized (cached videos need no renderer)",
+    "revision" : 3,
+    "source" : "originalReady",
+    "state" : {
+      "deviceMemoryBytes" : 19327352832,
+      "effectiveTier" : "p6",
+      "generationStatus" : "background",
+      "modelRevision" : "cfef6f6f2a70783dedc0bfae40cecbc2052285d3",
+      "models" : [
+        {
+          "downloadBytes" : 49819122,
+          "progress" : 0,
+          "status" : "notDownloaded",
+          "storedBytes" : 0,
+          "tier" : "fp16"
+        },
+        {
+          "downloadBytes" : 25247952,
+          "progress" : 0,
+          "status" : "notDownloaded",
+          "storedBytes" : 0,
+          "tier" : "p8"
+        },
+        {
+          "downloadBytes" : 19038993,
+          "progress" : 1,
+          "status" : "ready",
+          "storedBytes" : 19114103,
+          "tier" : "p6"
+        }
+      ],
+      "options" : {
+        "dynamicEnabled" : true,
+        "immersiveEnabled" : true,
+        "motionAmplitude" : 1.5,
+        "motionSpeed" : 2,
+        "quality" : "p6",
+        "wifiOnly" : false
+      },
+      "recommendedTier" : "fp16",
+      "supported" : true
+    },
+    "variants" : {
+      "1:1" : {
+        "asset" : "motion-v5-camera-720x720-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+        "backend" : "dav2-p6",
+        "bytes" : "26210",
+        "cache" : "hit",
+        "loopDuration" : "6.0 s",
+        "mode" : "static",
+        "publishedBackend" : "camera",
+        "reason" : "camera-fallback-no-depth",
+        "state" : "ready",
+        "textRegions" : "0"
+      },
+      "3:4" : {
+        "asset" : "motion-v5-camera-720x960-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+        "backend" : "dav2-p6",
+        "bytes" : "23396",
+        "cache" : "hit",
+        "loopDuration" : "6.0 s",
+        "mode" : "static",
+        "publishedBackend" : "camera",
+        "reason" : "camera-fallback-no-depth",
+        "state" : "ready",
+        "textRegions" : "0"
+      }
+    }
+  },
+  "downloadTest" : true,
+  "elapsedMs" : 240157,
+  "observed" : {
+    "camera" : {
+      "assetId" : "motion-v5-camera-720x720-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+      "backend" : "camera",
+      "coverArtId" : "fixture",
+      "duration" : 6,
+      "elapsedMs" : 686,
+      "format" : "square",
+      "height" : 720,
+      "leaseId" : "8B2FF829-C04B-4CBC-8E00-CC9735E419D5",
+      "stage" : "camera",
+      "status" : "ready",
+      "width" : 720
+    },
+    "static" : {
+      "assetId" : "edge-v1-720x720-90578f7a52bb9ab40b4fb9bec353b81fa81d9206ec3b68439b2dfb4564bb8ccd",
+      "backend" : "static",
+      "coverArtId" : "fixture",
+      "duration" : 2,
+      "elapsedMs" : 427,
+      "format" : "square",
+      "height" : 720,
+      "leaseId" : "2F7368C7-2FCE-4360-A0AC-E2CC6015AD7D",
+      "stage" : "static",
+      "status" : "ready",
+      "width" : 720
+    }
+  }
+}

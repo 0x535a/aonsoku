@@ -77,6 +77,14 @@ pub fn media_update_session(
     state: tauri::State<'_, MediaControlsState>,
     payload: MediaSessionPayload,
 ) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    crate::dynamic_cover::update_playback(
+        if matches!(payload.playback_state, MediaPlaybackState::None) {
+            None
+        } else {
+            payload.artwork_url.clone()
+        },
+    );
     if matches!(payload.playback_state, MediaPlaybackState::None) {
         return media_clear_session(state);
     }
@@ -128,6 +136,8 @@ pub fn media_update_position(
 
 #[tauri::command]
 pub fn media_clear_session(state: tauri::State<'_, MediaControlsState>) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    crate::dynamic_cover::update_playback(None);
     set_position(&state.position_seconds, 0.0)?;
     set_playback_state(&state.playback_state, MediaPlaybackState::None)?;
     state.clear_artwork()?;

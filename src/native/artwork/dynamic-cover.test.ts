@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 vi.mock("@/utils/capabilities", () => ({ getRuntime: () => mocks.runtime }));
+vi.mock("./tauri", () => ({ isMacArtworkAvailable: () => false }));
 vi.mock("@/utils/desktop", () => ({
   get isMacOS() {
     return mocks.mac;

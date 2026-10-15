@@ -88,12 +88,14 @@ dependencies = [
  "remu-audio",
  "reqwest 0.12.28",
  "serde",
+ "serde_json",
  "souvlaki",
  "tauri",
  "tauri-build",
  "tokio",
  "tokio-util",
  "url",
+ "uuid",
 ]
 
 [[package]]

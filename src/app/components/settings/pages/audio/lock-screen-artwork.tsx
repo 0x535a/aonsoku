@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Switch } from "@/app/components/ui/switch";
+import { isMacArtworkAvailable } from "@/native/artwork/tauri";
 import {
   type ArtworkOptions,
   type ArtworkTier,
@@ -28,8 +29,9 @@ import {
   lockScreenArtwork,
 } from "@/native/audio/lock-screen-artwork";
 import { formatBytes } from "@/utils/formatBytes";
+import { MacArtworkDiagnostics } from "./macos-artwork-diagnostics";
 
-const queryKey = ["ios-lock-screen-artwork"];
+const queryKey = ["native-dynamic-cover-settings"];
 const activeStatuses = new Set([
   "queued",
   "downloading",
@@ -74,13 +76,18 @@ export function LockScreenArtworkSettings() {
   if (!available) return null;
   const state = query.data;
   const prefix = "settings.audio.lockScreenArtwork";
+  const mac = isMacArtworkAvailable();
   const disabled = !state?.supported || configure.isPending;
 
   return (
     <Root>
       <Header>
-        <HeaderTitle>{t(`${prefix}.group`)}</HeaderTitle>
-        <HeaderDescription>{t(`${prefix}.description`)}</HeaderDescription>
+        <HeaderTitle>
+          {t(`${prefix}.${mac ? "macGroup" : "group"}`)}
+        </HeaderTitle>
+        <HeaderDescription>
+          {t(`${prefix}.${mac ? "macDescription" : "description"}`)}
+        </HeaderDescription>
       </Header>
       {query.isPending && (
         <p className="text-xs text-muted-foreground">
@@ -105,7 +112,11 @@ export function LockScreenArtworkSettings() {
             </p>
           )}
           <ContentItem>
-            <ContentItemTitle info={t(`${prefix}.immersiveInfo`)}>
+            <ContentItemTitle
+              info={t(
+                `${prefix}.${mac ? "macImmersiveInfo" : "immersiveInfo"}`,
+              )}
+            >
               {t(`${prefix}.immersive`)}
             </ContentItemTitle>
             <ContentItemForm>
@@ -236,12 +247,14 @@ export function LockScreenArtworkSettings() {
             </ContentItemForm>
           </ContentItem>
           <ContentItem>
-            <ContentItemTitle info={t(`${prefix}.wifiInfo`)}>
-              {t(`${prefix}.wifiOnly`)}
+            <ContentItemTitle
+              info={t(`${prefix}.${mac ? "macWifiInfo" : "wifiInfo"}`)}
+            >
+              {t(`${prefix}.${mac ? "macWifiOnly" : "wifiOnly"}`)}
             </ContentItemTitle>
             <ContentItemForm>
               <Switch
-                aria-label={t(`${prefix}.wifiOnly`)}
+                aria-label={t(`${prefix}.${mac ? "macWifiOnly" : "wifiOnly"}`)}
                 checked={state.options.wifiOnly}
                 disabled={disabled}
                 onCheckedChange={(wifiOnly) => configure.mutate({ wifiOnly })}
@@ -295,6 +308,7 @@ export function LockScreenArtworkSettings() {
           </p>
         </Content>
       )}
+      <MacArtworkDiagnostics />
       <ContentSeparator />
     </Root>
   );

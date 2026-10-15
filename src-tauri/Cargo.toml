@@ -20,6 +20,7 @@ raw-window-handle = "0.6"
 remu-audio = "0.1.0-beta.0"
 reqwest = { version = "0.12", features = ["stream"] }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 souvlaki = "0.8.3"
 tauri = { version = "2.6.3", features = [] }
 tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
@@ -28,3 +29,4 @@ url = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2"
+uuid = { version = "1", features = ["v4"] }

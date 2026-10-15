@@ -99,7 +99,7 @@ Aonsoku 是个人自用的音乐播放器，音乐与封面主要来自 Navidrom
 
 - Mac 原生测试已覆盖两个比例的保图/边缘/EXIF、预生成/并发复用、无声/时长/FPS、循环接缝、深度平面前后景约 20px 相对位移、中性深度（误差约 0.03px）、不露空洞、文字保护、过期取消、缓存与失败回退、RAM/thermal/可用内存档位、开关独立、下载校验。
 - `AONSOKU_TEST_MODEL_DOWNLOAD=1 node scripts/ios/test-lock-screen-artwork.mjs` 在 Mac 使用**生产下载管理器**成功流式下载 P6、校验、本地编译、统一接口推理、低档回退及删除；该额外测试需要网络。
-- 三档 Mac 实验使用用户提供 `doc/ios-lock-screen/cover.png`。当前产物：`doc/ios-lock-screen/exp/dav2-product-mac/`，包含原始 `.f32` 与元数据、归一化深度 PNG、两个画布位移场、关键帧、无声循环视频、结果 JSON、阶段日志。`exp/index.html` 为本地三档比较页面；模型来源/版本/校验和在 `exp/model-manifest.json`。历史实验保留本地用于诊断，不打包发布，也不作为最终画质验收。
+- 三档 Mac 实验使用用户提供 `doc/dynamic-cover/cover.png`。当前产物：`doc/dynamic-cover/exp/dav2-product-mac/`，包含原始 `.f32` 与元数据、归一化深度 PNG、两个画布位移场、关键帧、无声循环视频、结果 JSON、阶段日志。`exp/index.html` 为本地三档比较页面；模型来源/版本/校验和在 `exp/model-manifest.json`。历史实验保留本地用于诊断，不打包发布，也不作为最终画质验收。
 - 阶段日志记录编译、加载、输入、首次预测、深度映射、编码；Debug 10ms 采样进程 footprint 的基线/峰值/增量。只有显式实验模式增加三次预热预测与原始输出导出；Release 无额外实验计算/I/O。WebView 属另一个进程，Mac 和前期 iPad 顺序实验数据均不能代表最终设备总 RAM 或最终产品真机结果。
 - 当前验证通过：Mac 原生/下载集成测试、iOS generic Release 编译、Web 与 mobile 构建、TypeScript、Biome，以及 iOS 设置桥接/其他平台隔离的 11 项 Vitest 检查。构建无真机部署；bundle size 提示是现有构建警告。
 - 前期 iPad 测过的旧渲染版本未达到分层观感，已通过 Mac 实验找出并修复内置滤镜语义与深度颜色转换问题；**最终 DAV2 三档下载/设置版本尚未真机验收**。后续需分别在 iPad、13 mini 验证冷启动、离线缓存、内存警告、低电量/温度、文字保真与播放控制，以及发热/耗电。
@@ -111,8 +111,8 @@ node scripts/ios/test-lock-screen-artwork.mjs
 AONSOKU_TEST_MODEL_DOWNLOAD=1 node scripts/ios/test-lock-screen-artwork.mjs
 # Python 环境只需 coremltools + Xcode；不再依赖 torch/ultralytics
 python scripts/ios/prepare-motion-models.py /tmp/aonsoku-depth-models
-node scripts/ios/run-motion-cover-experiment.mjs /tmp/aonsoku-depth-models doc/ios-lock-screen/cover.png doc/ios-lock-screen/exp/dav2-product-mac
-python scripts/ios/summarize-motion-experiment.py doc/ios-lock-screen/exp
+node scripts/ios/run-motion-cover-experiment.mjs /tmp/aonsoku-depth-models doc/dynamic-cover/cover.png doc/dynamic-cover/exp/dav2-product-mac
+python scripts/ios/summarize-motion-experiment.py doc/dynamic-cover/exp
 ```
 
 ## 9. 历史实验记录（已被第 8 节替代）

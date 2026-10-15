@@ -59,11 +59,12 @@ node scripts/ios/test-native-shell-bridge.mjs # Actual Debug Capacitor app WK st
 node scripts/ios/test-native-shell.mjs # Standalone UITabAccessory regular/inline/control fixture + PNGs in /tmp/aonsoku-native-shell-qa
 
 # iOS lock-screen artwork (macOS + Xcode, no server/device required)
+node scripts/ios/test-dynamic-cover-interface.mjs # Fast publication/lease checks, no model/video generation
 node scripts/ios/test-original-cover.mjs # Offline Mac original-source/cache-quality tests (uses Xcode-resolved GRDB)
 node scripts/ios/test-lock-screen-artwork.mjs # Native static/motion/Vision/video/cache tests + QA PNGs/MP4s in /tmp/aonsoku-artwork-qa
 AONSOKU_TEST_MODEL_DOWNLOAD=1 node scripts/ios/test-lock-screen-artwork.mjs # Optional network test: production P6 download/verify/compile/infer/delete on Mac
 python scripts/ios/prepare-motion-models.py /tmp/aonsoku-depth-models # Mac experiment models, isolated Python + coremltools
-node scripts/ios/run-motion-cover-experiment.mjs /tmp/aonsoku-depth-models # DAV2 intermediate maps/frames/videos under doc/ios-lock-screen/exp
+node scripts/ios/run-motion-cover-experiment.mjs /tmp/aonsoku-depth-models # DAV2 intermediate maps/frames/videos under doc/dynamic-cover/exp
 
 # Electron desktop native audio
 pnpm native-audio:build   # Build the Node-API libmpv addon
@@ -429,8 +430,8 @@ Key files:
   retrieval; ordinary launches and release builds do not write this trace.
   System layout/expansion remains OS-controlled; older iOS/SDKs and processing
   failures retain ordinary static artwork. No extra audio player/session is
-  created. See `doc/ios-lock-screen/overall.md` for the static design and device
-  checks, and `doc/ios-lock-screen/motion_cover.md` for motion decisions/benchmarks.
+  created. See `doc/dynamic-cover/overall.md` for the static design and device
+  checks, and `doc/dynamic-cover/motion_cover.md` for motion decisions/benchmarks.
   `LockScreenArtworkSettings.swift` persists independent immersive/motion switches
   and auto/FP16/P8/P6 quality in native preferences. Motion is opt-in. Auto uses
   P6 for <=4 GiB physical RAM, P8 for <=6 GiB, and FP16 above that; available
@@ -480,9 +481,22 @@ Key files:
   via iOS preferences extension methods; no derived-video entries are persisted
   in the browser cache index. Individual/type clears and asset/all-cache clears
   include these videos, skip live artwork files, and never delete model weights.
+  `src/native/artwork/` defines the provider-neutral v1 video acquire/release
+  contract for iOS and macOS, with an optional macOS host bridge
+  `window.aonsokuDynamicCover`. The iOS Preferences extension exposes completed
+  published assets through `DynamicCoverRegistry`, matching the current native
+  cover/revision and pinning each leased asset against cache eviction. Reads
+  never initiate generation. Bridge destruction releases its leases; static
+  requests retain the original clip while dynamic requests select the best
+  published stage. This first adapter inherits iOS 26 system format support.
+  macOS Electron/Tauri production providers are not yet installed and report
+  unavailable; offline Mac rendering experiments do not establish app support.
+  Fullscreen UI integration and future browser/WebGPU providers follow this
+  contract; Windows/Android implementations are outside the current scope.
+  See `doc/dynamic-cover/fullscreen.md` for ownership and integration steps.
   `scripts/ios/prepare-motion-models.py` prepares only those three DAV2 tiers for
   Mac experiments. `run-motion-cover-experiment.mjs` uses the production Core ML
-  and rendering sources; intermediates live under `doc/ios-lock-screen/exp`.
+  and rendering sources; intermediates live under `doc/dynamic-cover/exp`.
   Debug exports raw depth only for explicit Mac/benchmark experiments; Release
   performs one prediction with no experiment UI, raw exports or warm repeats.
 - `electron/preload/native-audio.ts` and `electron/main/native/audio/` —

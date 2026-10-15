@@ -7,10 +7,10 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const models = resolve(process.argv[2] ?? "/tmp/aonsoku-depth-models");
 const cover = resolve(
-  process.argv[3] ?? join(root, "doc/ios-lock-screen/cover.png"),
+  process.argv[3] ?? join(root, "doc/dynamic-cover/cover.png"),
 );
 const output = resolve(
-  process.argv[4] ?? join(root, "doc/ios-lock-screen/exp/mac-20261014"),
+  process.argv[4] ?? join(root, "doc/dynamic-cover/exp/mac-20261014"),
 );
 const build = mkdtempSync(join(tmpdir(), "aonsoku-motion-experiment-"));
 const native = join(

@@ -15,6 +15,6 @@ Mac 的 RAM/延迟不能替代 iPad/iPhone 指标；生产只做一次预测，�
 复现：
 
 ```bash
-node scripts/ios/run-motion-cover-experiment.mjs /tmp/aonsoku-depth-models doc/ios-lock-screen/cover.png doc/ios-lock-screen/exp/dav2-product-mac
+node scripts/ios/run-motion-cover-experiment.mjs /tmp/aonsoku-depth-models doc/dynamic-cover/cover.png doc/dynamic-cover/exp/dav2-product-mac
 node scripts/ios/test-lock-screen-artwork.mjs
 ```

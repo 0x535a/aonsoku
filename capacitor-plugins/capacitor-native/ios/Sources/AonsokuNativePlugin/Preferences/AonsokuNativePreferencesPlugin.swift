@@ -1,12 +1,16 @@
 import Foundation
 import Capacitor
 import GRDB
+import MediaPlayer
 
 @objc(AonsokuNativePreferencesPlugin)
 public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "AonsokuNativePreferencesPlugin"
     public let jsName = "AonsokuNativePreferences"
     public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "getDynamicCoverCapabilities", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "acquireDynamicCover", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "releaseDynamicCover", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getLockScreenArtworkState", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "listLockScreenArtworkVideos", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "deleteLockScreenArtworkVideo", returnType: CAPPluginReturnPromise),
@@ -28,6 +32,101 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private var db: DatabasePool { DatabaseManager.shared.dbPool }
     private var prefs: PreferencesManager { PreferencesManager.shared }
+
+    private let dynamicCoverOwner = UUID()
+    private var leasedCoverRegistry: DynamicCoverRegistry<LockScreenArtworkAsset>?
+
+    deinit {
+        let registry = leasedCoverRegistry
+        let owner = dynamicCoverOwner
+        DispatchQueue.main.async { registry?.releaseAll(owner: owner) }
+    }
+
+    private func dynamicCoverFormats() -> [String] {
+        #if compiler(>=6.2)
+            if #available(iOS 26.0, *) {
+                let keys = MPNowPlayingInfoCenter.supportedAnimatedArtworkKeys
+                var formats: [String] = []
+                if keys.contains(MPNowPlayingInfoProperty1x1AnimatedArtwork) { formats.append("square") }
+                if keys.contains(MPNowPlayingInfoProperty3x4AnimatedArtwork) { formats.append("portrait") }
+                return formats
+            }
+        #endif
+        return []
+    }
+
+    @objc func getDynamicCoverCapabilities(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            let formats = self.dynamicCoverFormats()
+            call.resolve(["version": 1, "available": !formats.isEmpty, "formats": formats,
+                          "reason": formats.isEmpty ? "unsupported-system" : NSNull()])
+        }
+    }
+
+    @objc func acquireDynamicCover(_ call: CAPPluginCall) {
+        guard let coverArtId = call.getString("coverArtId"), !coverArtId.isEmpty,
+            let format = call.getString("format"), ["square", "portrait"].contains(format),
+            let mode = call.getString("mode"), ["static", "dynamic"].contains(mode)
+        else { call.reject("Invalid dynamic cover request"); return }
+        DispatchQueue.main.async {
+            guard self.dynamicCoverFormats().contains(format) else {
+                call.resolve(["status": "unavailable", "reason": "unsupported-format"]); return
+            }
+            guard LockScreenArtworkSettings.shared.value.immersiveEnabled else {
+                call.resolve(["status": "disabled"]); return
+            }
+            guard let registry = AonsokuNativeAudioPlugin.dynamicCoverRegistryFromActive else {
+                call.resolve(["status": "unavailable", "reason": "no-player"]); return
+            }
+            if self.leasedCoverRegistry !== registry {
+                self.leasedCoverRegistry?.releaseAll(owner: self.dynamicCoverOwner)
+                self.leasedCoverRegistry = registry
+            }
+            guard registry.coverArtId == coverArtId else {
+                call.resolve(["status": "mismatch"]); return
+            }
+            let options = LockScreenArtworkSettings.shared.value
+            let allowMotion = options.dynamicEnabled && LockScreenArtworkMotionPolicy.shared.allowsPlayback
+            let effectiveMode = mode == "dynamic" && allowMotion ? "dynamic" : "static"
+            guard let asset = registry.current(coverArtId: coverArtId, format: format, mode: effectiveMode) else {
+                call.resolve(["status": "pending"]); return
+            }
+            let revision = registry.revision
+            // Capture the asset during the asynchronous file lookup; never encode here.
+            asset.requestVideo { url in
+                DispatchQueue.main.async {
+                    guard registry.revision == revision,
+                        AonsokuNativeAudioPlugin.dynamicCoverRegistryFromActive === registry
+                    else { call.resolve(["status": "mismatch"]); return }
+                    let latest = LockScreenArtworkSettings.shared.value
+                    guard latest.immersiveEnabled else { call.resolve(["status": "disabled"]); return }
+                    guard !asset.motion || (latest.dynamicEnabled && LockScreenArtworkMotionPolicy.shared.allowsPlayback)
+                    else { call.resolve(["status": "pending"]); return }
+                    guard let url else { call.resolve(["status": "pending"]); return }
+                    guard let leaseId = registry.retain(asset, owner: self.dynamicCoverOwner) else {
+                        call.resolve(["status": "busy", "reason": "lease-limit"]); return
+                    }
+                    call.resolve([
+                        "status": "ready", "leaseId": leaseId, "assetId": asset.id,
+                        "coverArtId": coverArtId, "format": format,
+                        "stage": asset.motion ? (asset.backend == "camera" ? "camera" : "depth") : "static",
+                        "backend": asset.motion ? asset.backend : "static",
+                        "width": asset.format.width, "height": asset.format.height,
+                        "duration": asset.motion ? asset.parameters.duration : 2,
+                        "src": url.absoluteString,
+                    ])
+                }
+            }
+        }
+    }
+
+    @objc func releaseDynamicCover(_ call: CAPPluginCall) {
+        guard let id = call.getString("leaseId") else { call.reject("Missing lease ID"); return }
+        DispatchQueue.main.async {
+            self.leasedCoverRegistry?.release(id, owner: self.dynamicCoverOwner)
+            call.resolve()
+        }
+    }
 
     @objc func listLockScreenArtworkVideos(_ call: CAPPluginCall) {
         DispatchQueue.main.async {

@@ -1,0 +1,49 @@
+export type DynamicCoverFormat = "square" | "portrait";
+export type DynamicCoverStage = "static" | "camera" | "depth";
+
+export interface DynamicCoverRequest {
+  /** Must match the currently displayed local/remote playback cover. */
+  coverArtId: string;
+  format: DynamicCoverFormat;
+  mode: "static" | "dynamic";
+}
+
+export interface DynamicCoverCapabilities {
+  version: 1;
+  available: boolean;
+  formats: DynamicCoverFormat[];
+  reason?: string;
+}
+
+export interface DynamicCoverVideo {
+  status: "ready";
+  leaseId: string;
+  assetId: string;
+  coverArtId: string;
+  format: DynamicCoverFormat;
+  stage: DynamicCoverStage;
+  backend: string;
+  width: number;
+  height: number;
+  duration: number;
+  src: string;
+}
+
+export type DynamicCoverResult =
+  | DynamicCoverVideo
+  | {
+      status: "pending" | "disabled" | "mismatch" | "unavailable" | "busy";
+      reason?: string;
+    };
+
+/** macOS hosts implement this bridge; future WebGPU can use the same contract. */
+export interface DynamicCoverProvider {
+  getCapabilities(): Promise<DynamicCoverCapabilities>;
+  acquire(request: DynamicCoverRequest): Promise<DynamicCoverResult>;
+  release(leaseId: string): Promise<void>;
+}
+
+export type DynamicCoverHandle = DynamicCoverVideo & {
+  /** Idempotent; bound to the provider that granted this lease. */
+  release(): Promise<void>;
+};

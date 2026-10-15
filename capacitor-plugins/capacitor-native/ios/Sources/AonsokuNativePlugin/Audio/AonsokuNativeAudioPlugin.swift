@@ -8,6 +8,10 @@ import UIKit
 public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     private static weak var activeInstance: AonsokuNativeAudioPlugin?
 
+    internal static var dynamicCoverRegistryFromActive: DynamicCoverRegistry<LockScreenArtworkAsset>? {
+        activeInstance?.dynamicCoverRegistry
+    }
+
     internal static func executeRemoteControlCommandFromActive(_ command: [String: Any]) -> Bool {
         guard let instance = activeInstance else {
             return false
@@ -175,6 +179,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     private var artworkResourceObservers: [NSObjectProtocol] = []
     private let artworkGeneration = LockScreenArtworkGeneration()
     private var artworkPublishedStages: [String: Int] = [:]
+    private let dynamicCoverRegistry = DynamicCoverRegistry<LockScreenArtworkAsset>()
     private var publishedArtworkSource: String?
     private var publishedArtworkOriginalReady = false
     private var remoteCommandTargets: [(command: MPRemoteCommand, target: Any)] = []
@@ -2550,6 +2555,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
             cancelCoverDownload()
         }
         artworkPublishedStages.removeAll()
+        dynamicCoverRegistry.begin(coverArtId: currentNowPlayingCoverArtId())
         nowPlayingRevision += 1
         artworkGeneration.update(nowPlayingRevision)
         let revision = nowPlayingRevision
@@ -2960,6 +2966,8 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                     let stageKey = "\(revision)-\(format.label)"
                     guard stage >= (self.artworkPublishedStages[stageKey] ?? -1) else { return }
                     self.artworkPublishedStages[stageKey] = stage
+                    self.dynamicCoverRegistry.publish(asset,
+                        format: format == .square ? "square" : "portrait", rank: stage)
                     let preview = UIImage(cgImage: asset.preview)
                     let animated = MPMediaItemAnimatedArtwork(
                         artworkID: asset.id,
@@ -3063,6 +3071,7 @@ public class AonsokuNativeAudioPlugin: CAPPlugin, CAPBridgedPlugin {
     private func clearNowPlayingInfo() {
         cancelCoverDownload()
         artworkPublishedStages.removeAll()
+        dynamicCoverRegistry.begin(coverArtId: nil)
         nowPlayingRevision += 1
         artworkGeneration.update(nowPlayingRevision)
         artworkTask?.cancel()

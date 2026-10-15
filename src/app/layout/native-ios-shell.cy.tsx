@@ -28,7 +28,7 @@ describe("iOS native shell integration", () => {
     cy.window().then((win) => win.dispatchEvent(new CustomEvent("aonsoku-native-shell", { detail: { type: "tab", index: 2 } })));
     cy.get('[data-testid="path"]').should("have.text", "/mobile/search");
     cy.window().then((win) => win.dispatchEvent(new CustomEvent("aonsoku-native-shell", { detail: { type: "tab", index: 1 } })));
-    cy.get('[data-testid="path"]').should("have.text", "/library/albums/album-1");
+    cy.get('[data-testid="path"]').should("have.text", "/mobile/library");
   });
 
   it("keeps the wide-window header and system sidebar without duplicate Web chrome", () => {

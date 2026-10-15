@@ -47,15 +47,7 @@ function ShellSync(props: NativeIOSShellProps) {
   const theme = useThemeStore((state) => state.theme);
   const latest = useRef({ props, location, navigate });
   latest.current = { props, location, navigate };
-  const tabLocations = useRef(new Map<number, string>());
   const activeIndex = nativeShellTabIndex(location.pathname);
-  tabLocations.current.set(
-    activeIndex,
-    location.pathname +
-      location.search
-        .replace(/([?&])player=[^&]+&?/, "$1")
-        .replace(/[?&]$/, ""),
-  );
   const lastState = useRef("");
   const lastArtwork = useRef("");
 
@@ -87,10 +79,9 @@ function ShellSync(props: NativeIOSShellProps) {
         action.index >= 0 &&
         action.index <= 2
       ) {
-        current.navigate(
-          tabLocations.current.get(action.index) ??
-            nativeShellTabs[action.index],
-        );
+        // Match the Web bottom links: selecting a tab opens its root, rather
+        // than pushing a remembered detail page onto another tab's history.
+        current.navigate(nativeShellTabs[action.index]);
       } else if (action.type === "back") {
         current.navigate(-1);
       } else if (action.type === "openPlayer" && current.props.canOpenPlayer) {

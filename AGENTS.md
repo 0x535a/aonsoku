@@ -294,7 +294,8 @@ request URL (custom-scheme security origins may be opaque). Debug launches with
 small app-local result; normal launches and Release contain no fixture behavior.
 Artwork is a bounded 128px copy of the existing loaded image, sent separately;
 stale track IDs are ignored. Native controls dispatch existing React Router and
-player actions, preserving fullscreen history and tab locations. Measured
+player actions, preserving fullscreen history. Tab selections open the same
+root routes as the Web bottom links; they do not restore remembered detail URLs. Measured
 Tab/accessory occlusion in WebView coordinates feeds root CSS variables; Web playback and duplicate navigation chrome hide
 with this host capability. Web, Android and desktop keep their existing UI. Window changes
 never replace the WebView or audio service. Native shell state is scene-local;

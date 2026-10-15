@@ -57,8 +57,8 @@ final class NativeBottomShellView: UIView {
         inline = nextInline
         subtitle.isHidden = inline || !enabled
         nextButton.isHidden = inline
-        artworkWidth.constant = inline ? 30 : 46
-        artworkHeight.constant = inline ? 30 : 46
+        artworkWidth.constant = inline ? 30 : 36
+        artworkHeight.constant = inline ? 30 : 36
         invalidateIntrinsicContentSize()
         setNeedsLayout()
         onLayoutChanged?()
@@ -70,7 +70,7 @@ final class NativeBottomShellView: UIView {
         subtitle.isHidden = !regular || !enabled
         nextButton.isHidden = !regular
         row.spacing = inline ? 8 : 10
-        let size: CGFloat = inline ? 30 : 46
+        let size: CGFloat = inline ? 30 : 36
         artworkWidth.constant = size
         artworkHeight.constant = size
         onLayoutChanged?()
@@ -117,6 +117,7 @@ final class NativeBottomShellView: UIView {
 
     private func build() {
         backgroundColor = .clear
+        insetsLayoutMarginsFromSafeArea = false
         directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12)
         artwork.contentMode = .scaleAspectFill
         artwork.clipsToBounds = true
@@ -149,8 +150,8 @@ final class NativeBottomShellView: UIView {
         textStack.addArrangedSubview(subtitle)
 
         isHidden = true
-        artworkWidth = artwork.widthAnchor.constraint(equalToConstant: 46)
-        artworkHeight = artwork.heightAnchor.constraint(equalToConstant: 46)
+        artworkWidth = artwork.widthAnchor.constraint(equalToConstant: 36)
+        artworkHeight = artwork.heightAnchor.constraint(equalToConstant: 36)
         playButton.setImage(UIImage(systemName: "play.fill"), for: .normal)
         playButton.tintColor = .label
         playButton.accessibilityLabel = "Play or pause"
@@ -170,6 +171,7 @@ final class NativeBottomShellView: UIView {
         row.axis = .horizontal
         row.alignment = .center
         row.spacing = 10
+        row.insetsLayoutMarginsFromSafeArea = false
         row.isLayoutMarginsRelativeArrangement = true
         row.directionalLayoutMargins = .zero
         row.addArrangedSubview(artwork)
@@ -182,8 +184,9 @@ final class NativeBottomShellView: UIView {
             artworkWidth, artworkHeight,
             row.leadingAnchor.constraint(equalTo: layoutMarginsGuide.leadingAnchor),
             row.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor),
-            row.topAnchor.constraint(equalTo: topAnchor),
-            row.bottomAnchor.constraint(equalTo: bottomAnchor),
+            // UIKit chooses the accessory height; center the natural-height row
+            // rather than stretching it or inheriting asymmetric safe-area margins.
+            row.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
         for target in [artwork, textStack] {
             target.isUserInteractionEnabled = true

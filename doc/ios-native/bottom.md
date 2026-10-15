@@ -85,7 +85,7 @@
 
 实际工程是 React + Capacitor 8、最低 iOS 15。iOS 26+ 现在使用 `AonsokuNativeTabController`（UIKit `UITabBarController`）作为根控制器，配置 `.tabSidebar` 与 `.onScrollDown`，通过 `UITabAccessory` 安装迷你播放器。iOS 15–25 保留原 Web 导航和播放器。
 
-- **系统排布**：UIKit 负责 Tab/sidebar、玻璃背景、安全区及 accessory 的 regular/inline 转换。常规态展示 46pt 封面、曲名、艺人、播放/暂停与下一首；inline 态封面缩至 30pt，隐藏艺人及下一首，高度 44pt。控件不再自己画独立玻璃卡片。系统动效和材质遵守辅助功能设置，文字使用动态字体，控制支持 VoiceOver 和指针。
+- **系统排布**：UIKit 负责 Tab/sidebar、玻璃背景、安全区及 accessory 的 regular/inline 转换。常规态展示 36pt 封面、曲名、艺人、播放/暂停与下一首；inline 态封面缩至 30pt，隐藏艺人及下一首，高度 44pt。控件不再自己画独立玻璃卡片。系统动效和材质遵守辅助功能设置，文字使用动态字体，控制支持 VoiceOver 和指针。
 - **单一内容实例**：三个 UITab 的轻量容器只承载同一个 `AonsokuViewController`/WKWebView。切换时移动既有 controller，清理旧约束及滚动观察，再把 WebView 的 UIScrollView 注册为当前容器的 `contentScrollView`；不创建新 WebView、音频服务或队列。Info.plist 移除了 Main storyboard 的自动根控制器声明，避免在程序化 SceneDelegate 入口之外额外构造 bridge。
 - **路由一致**：使用现代 `didSelectTab` delegate；UIKit 先更新选中项后仍必须给 React 发出导航事件，不能因索引已经相同而提前返回。React Router 管理页面历史/KeepAlive 和各 Tab 最后位置，页面内跳转反向更新系统选中项。本地化直接更新既有 UITab 标题，不重建容器。
 - **内容与留白**：隐藏重复 Web 底栏、播放器、侧栏及失效的 Web 侧栏切换按钮；宽窗口保留 Web 顶栏的搜索与账户。系统侧栏采用 tile 布局，页面随其宽度重新布局。顶部/底部占用根据系统 Tab/accessory 与实际 WebView bounds 的交集测量，回传 CSS，替代固定 64pt 估算。键盘/模态/完整播放器遮挡期间保留页面留白，避免滚动位置跳动；原生控件让位。未登录或退出共享 Player 时隐藏原生导航，空队列移除 accessory。
@@ -105,3 +105,7 @@
 初版把 `aonsokuShell` 注册在 `webViewConfiguration(for:)` 中，但 Capacitor 8 随后替换了 `userContentController`，消息入口丢失。注册现固定在最终 `webView(with:configuration:)` 创建钩子；接收端验证主框架请求 URL，以兼容自定义 scheme 的 opaque security origin。
 
 此前独立 UIKit 和模拟 JS 桥测试遗漏了这个生命周期，因此新增了实际 Capacitor 初始化和状态往返测试。Debug 测试必须显式设置 `AONSOKU_SHELL_BRIDGE_QA=1`，Release 不包含夹具执行路径。原先的自绘底栏和宽窗口 Web 侧栏恢复版本均已由本节的系统 accessory 实现替代。
+
+## 播放器间距修正（2026-10-15）
+
+根据真机截图，常规态封面从 46pt 缩为 36pt，为系统 accessory 上下留白；inline 态保留 30pt。内容行按自身高度相对 accessory 垂直居中，不再上下拉伸，并禁用内容行及其容器自动叠加 safe-area margins，避免收起态内容向上偏移。系统继续管理玻璃背景和 accessory 高度。本轮按用户要求不追加测试，待实际使用反馈。

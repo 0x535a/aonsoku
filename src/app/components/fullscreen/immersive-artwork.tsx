@@ -4,6 +4,12 @@ import { type DynamicCoverHandle, dynamicCover } from "@/native/artwork";
 
 const rank = { static: 0, camera: 1, depth: 2 };
 
+// A narrow edge transition keeps the opaque foreground while removing the
+// card silhouette. The cover-colored halo underneath supplies the edge color.
+const edgeFade =
+  "transparent 0%, rgba(0,0,0,.15) .6%, rgba(0,0,0,.5) 1.5%, rgba(0,0,0,.85) 2.6%, black 4%, black 96%, rgba(0,0,0,.85) 97.4%, rgba(0,0,0,.5) 98.5%, rgba(0,0,0,.15) 99.4%, transparent 100%";
+const edgeMask = `linear-gradient(to right, ${edgeFade}), linear-gradient(to bottom, ${edgeFade})`;
+
 type Demand = Awaited<ReturnType<typeof dynamicCover.requestGeneration>>;
 
 /** A square display mask over leased files. It never requests pixel dimensions. */
@@ -170,7 +176,7 @@ export function ImmersiveArtwork({
     <div ref={element} className="relative isolate size-full aspect-square">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -inset-[10%] z-0 opacity-40"
+        className="pointer-events-none absolute -inset-[10%] z-0 opacity-55"
         style={{
           maskImage:
             "radial-gradient(ellipse at center, black 25%, rgba(0,0,0,.75) 45%, rgba(0,0,0,.3) 58%, transparent 72%)",
@@ -181,10 +187,12 @@ export function ImmersiveArtwork({
         <div className="size-full scale-110 blur-2xl">{halo}</div>
       </div>
       <div
-        className="relative z-[1] size-full overflow-hidden rounded-[clamp(12px,3cqw,22px)]"
+        className="relative z-[1] size-full overflow-hidden"
         style={{
-          boxShadow:
-            "0 16px 38px -18px rgba(0,0,0,.3), 0 2px 8px -3px rgba(0,0,0,.14), 0 0 0 1px rgba(255,255,255,.08)",
+          maskImage: edgeMask,
+          maskComposite: "intersect",
+          WebkitMaskImage: edgeMask,
+          WebkitMaskComposite: "source-in",
         }}
       >
         {children}

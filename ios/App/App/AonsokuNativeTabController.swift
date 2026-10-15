@@ -108,6 +108,13 @@ final class AonsokuNativeTabController: UITabBarController, UITabBarControllerDe
 
     func updateAccessoryVisibility() {
         let hideNavigation = !shellEnabled || accessoryObscured || miniPlayer.keyboardVisible
+        // Web fullscreen/dialogs share the registered WK scroll view. Hiding
+        // native chrome alone leaves UIKit's edge scrim over the Web overlay.
+        // Restore normal edge effects when native navigation returns.
+        if let scrollView = bridgeController.webView?.scrollView {
+            scrollView.topEdgeEffect.isHidden = hideNavigation
+            scrollView.bottomEdgeEffect.isHidden = hideNavigation
+        }
         if isTabBarHidden != hideNavigation { setTabBarHidden(hideNavigation, animated: false) }
         if hideNavigation && !sidebar.isHidden { sidebar.isHidden = true }
         let shouldShow = shellEnabled && hasPlayerContent && !accessoryObscured && !miniPlayer.keyboardVisible

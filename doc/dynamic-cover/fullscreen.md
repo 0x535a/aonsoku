@@ -186,16 +186,19 @@ WebGPU 能力检测需要实际申请适配器/设备并验证推理所需特性
 根据用户体验需求，移除了底层漫反射光晕的 7 秒慢呼吸缩放动效（`animate-dreamy-breathe` 与 `@keyframes dreamy-aura-breathe`），转为纯粹、稳重、优雅的静态高斯漫溢渲染（`opacity-65 scale-106`），既避免背景光芒持续起伏对歌词/封面观感的干扰，又降低了 GPU 持续合成消耗。
 
 
-### 四周镜像延伸架构与封面边角无损呈现（2026-10-16）
+### 实时视频镜像外延与原版雾化复原（2026-10-16）
 
-- **背景与痛点**：此前的边缘羽化遮罩（Smootherstep Edge Mask）直接施加在 $100\% \times 100\%$ 的原始封面容器上。在双向相交羽化下，专辑封面的四角和四周边缘透明度衰减至 0，导致封面四角的人物细节、文字、排版被雾化截断遮挡。
-- **镜像延伸原理**：
-  1. **原图 100% 完整无损**：中央原始专辑封面（静态图与 DAV2 动态视频）保留在核心 $[0, 100\%]$ 区域，不叠加任何裁切或羽化遮罩，四角与四周保持 100% 原始不透明度与完整解析度。
-  2. **8 方向外延镜像**：通过 `MirroredPerimeter` 组件，将封面边缘像素在四周（上、下、左、右）和四角（左上、右上、左下、右下）8 个方向向外翻转镜像翻折（利用 `clipPath: inset(...)` 配合 `scaleX(-1)` / `scaleY(-1)` / `scale(-1, -1)`），在视觉与像素上与原封面 1:1 无缝衔接。
-  3. **羽化仅作用于镜像区**：通过外延容器（默认外展 15%，即 $1.30 \times$ 尺寸）与专用 Smootherstep 边缘遮罩，从原封面接缝处的 100% 不透明度平滑衰减至外围的 0.00% 纯透明，使雾化消融仅发生在镜像延伸出的内容上，实现真正“零吃角、零硬边、梦幻融入背景”。
-- **调节参数**：
-  - 常量 `DYNAMIC_ARTWORK_MIRROR_RATIO = 0.15`（定义于 [`src/app/components/fullscreen/immersive-artwork.tsx`](../../src/app/components/fullscreen/immersive-artwork.tsx)），可手动调节延伸幅度（如 `0.10`、`0.15`、`0.20` 等）。
-  - `ImmersiveArtwork` 组件签名同步暴露 `mirrorRatio?: number` 与 `scale?: number`（默认 `DYNAMIC_ARTWORK_SCALE = 1.0`）。
+- **雾化与散景原貌复原**：
+  1. 完整恢复原版 `edgeFade` 与 `edgeMask`（20% 宽幅 Perlin Smootherstep 边缘羽化渐变）及 `cushionFade` 与 `cushionMask`（26% 宽幅 Defocus 散景遮罩）。
+  2. Layer 1 散景垫底恢复为原始 `-inset-[12%]`、`maskImage: cushionMask` 与 `blur-2xl opacity-95 scale-106`，完全保留底层大面积弥散、空灵梦幻的高斯漫溢光泽。
+  3. `DYNAMIC_ARTWORK_SCALE` 恢复为基准放大倍率 `1.15`。
+- **动态视频实时镜像（Canvas 2D）**：
+  1. **实时逐帧同步**：引入 `<canvas>` 镜像渲染层，通过 `requestVideoFrameCallback`（降级至 `requestAnimationFrame`）逐帧读取活跃 `<video>` 的当前像素，实时计算并绘制 8 个方向（上、下、左、右及四角）的镜像翻转，与中央动态视频 100% 毫秒级动作同步。
+  2. **硬件解码安全**：维持单 `<video>` 硬件解码播放，彻底规避 iOS/WebKit 对并发视频解码器的数量限制，避免多视频并发导致的 `AbortError`、发热或丢帧。
+  3. **静止平滑兜底**：当视频处于暂停或歌曲为普通静态封面时，Canvas 同步读取并绘制静态封面图的 8 方向镜像。
+- **镜像尺寸独立控制**：
+  - 暴露常量 `DYNAMIC_ARTWORK_MIRROR_RATIO = 0.20`（定义于 [`src/app/components/fullscreen/immersive-artwork.tsx`](../../src/app/components/fullscreen/immersive-artwork.tsx)），中央原封面置于 `inset: ${mirrorRatio * 100}%`。
+  - 在 `0.20` 推荐比例下，中央封面恰好位于 `edgeMask` 的 100% 不透明黑心区，四角 100% 完整无遮挡；外围 20% 镜像部分承载平滑羽化消融。用户可单独微调该参数改变镜像宽度。
 
 
 

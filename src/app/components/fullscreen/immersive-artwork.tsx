@@ -1,211 +1,145 @@
 import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { useReducedMotion } from "framer-motion";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { type DynamicCoverHandle, dynamicCover } from "@/native/artwork";
 
 const rank = { static: 0, camera: 1, depth: 2 };
 
+// A wide, continuous Perlin smootherstep (6t^5 - 15t^4 + 10t^3) transition across 20%
+// ensuring zero slope/knee at both the opaque central core (60%) and the outer perimeter.
+// This prevents any visible transition boundary even on static freeze-frames during pause.
+const edgeFade =
+  "transparent 0%, rgba(0,0,0,0.01) 2%, rgba(0,0,0,0.06) 4%, rgba(0,0,0,0.2) 7%, rgba(0,0,0,0.5) 10%, rgba(0,0,0,0.8) 13%, rgba(0,0,0,0.94) 16%, rgba(0,0,0,0.99) 18%, black 20%, black 80%, rgba(0,0,0,0.99) 82%, rgba(0,0,0,0.94) 84%, rgba(0,0,0,0.8) 87%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.2) 93%, rgba(0,0,0,0.06) 96%, rgba(0,0,0,0.01) 98%, transparent 100%";
+const edgeMask = `linear-gradient(to right, ${edgeFade}), linear-gradient(to bottom, ${edgeFade})`;
+
+// Defocus cushion mask directly behind the foreground feather zone (-inset-[12%])
+const cushionFade =
+  "transparent 0%, rgba(0,0,0,0.12) 4%, rgba(0,0,0,0.45) 10%, rgba(0,0,0,0.85) 18%, black 26%, black 74%, rgba(0,0,0,0.85) 82%, rgba(0,0,0,0.45) 90%, rgba(0,0,0,0.12) 96%, transparent 100%";
+const cushionMask = `linear-gradient(to right, ${cushionFade}), linear-gradient(to bottom, ${cushionFade})`;
+
 /**
- * Mirror extension size ratio relative to the original album cover.
- * Adjust this value to manually control how much the mirrored edge extends outwards:
- * - 0.08 = 8% subtle extension
- * - 0.15 = 15% (recommended default: extends 15% mirrored border outwards,
- *               100% of the original cover remains pristine, fog only fades the mirror)
- * - 0.22 = 22% wide extension
+ * Mirror perimeter size ratio relative to the outer container.
+ * Adjust this value to manually control the width of the mirrored perimeter:
+ * - 0.15 = 15% mirror width
+ * - 0.20 = 20% mirror width (matches the 20% edgeMask feathering zone exactly,
+ *               leaving the central 60% cover 100% opaque and pristine)
+ * - 0.25 = 25% wide mirror
  */
-export const DYNAMIC_ARTWORK_MIRROR_RATIO = 0.15;
+export const DYNAMIC_ARTWORK_MIRROR_RATIO = 0.2;
 
 /**
  * Visual scale multiplier for the dynamic artwork presentation.
- * With the mirrored perimeter extending by default, 1.0 preserves the original
- * card size while the mirrored edges bloom outwards.
+ * Adjust this value to manually resize the dynamic cover:
+ * - 1.0  = 100% (original base size)
+ * - 1.15 = 115% (current enlarged presentation, compensates for outer edge feathering)
+ * - 1.25 = 125% (extra large)
  */
-export const DYNAMIC_ARTWORK_SCALE = 1.0;
+export const DYNAMIC_ARTWORK_SCALE = 1.15;
 
-/**
- * Generates an ultra-smooth Perlin Smootherstep (6t^5 - 15t^4 + 10t^3) fade mask
- * that keeps the central original artwork 100% opaque (0% fogged/clipped),
- * and smoothly dissolves ONLY the surrounding mirrored extension from 100% to 0%.
- */
-function createMirrorEdgeMask(mirrorRatio: number) {
-  // Relative width of the mirror border in the extended container:
-  // e.g. for mirrorRatio = 0.15: extended size = 1 + 2 * 0.15 = 1.30
-  // mirror border = 0.15 / 1.30 ≈ 11.538%
-  const w = (mirrorRatio / (1 + 2 * mirrorRatio)) * 100;
-  const leftSeam = w;
-  const rightSeam = 100 - w;
-
-  // Smootherstep samples for the fade band (zero 1st and 2nd derivatives at seams and outer edges)
-  const stops = [
-    { t: 0, alpha: 0 },
-    { t: 0.1, alpha: 0.01 },
-    { t: 0.2, alpha: 0.06 },
-    { t: 0.35, alpha: 0.24 },
-    { t: 0.5, alpha: 0.5 },
-    { t: 0.65, alpha: 0.76 },
-    { t: 0.8, alpha: 0.94 },
-    { t: 0.9, alpha: 0.99 },
-    { t: 1.0, alpha: 1.0 },
-  ];
-
-  const leftFade = stops
-    .map(({ t, alpha }) => {
-      const pos = (t * leftSeam).toFixed(2);
-      return alpha === 0
-        ? `transparent ${pos}%`
-        : alpha === 1
-          ? `black ${pos}%`
-          : `rgba(0,0,0,${alpha}) ${pos}%`;
-    })
-    .join(", ");
-
-  const rightFade = [...stops]
-    .reverse()
-    .map(({ t, alpha }) => {
-      const pos = (rightSeam + (1 - t) * (100 - rightSeam)).toFixed(2);
-      return alpha === 0
-        ? `transparent ${pos}%`
-        : alpha === 1
-          ? `black ${pos}%`
-          : `rgba(0,0,0,${alpha}) ${pos}%`;
-    })
-    .join(", ");
-
-  const fadeString = `${leftFade}, black ${rightSeam.toFixed(2)}%, ${rightFade}`;
-  const gradient = `linear-gradient(to right, ${fadeString}), linear-gradient(to bottom, ${fadeString})`;
-
-  return {
-    maskImage: gradient,
-    WebkitMaskImage: gradient,
-    maskComposite: "intersect" as const,
-    WebkitMaskComposite: "source-in" as const,
-  };
+interface VideoWithFrameCallback extends HTMLVideoElement {
+  requestVideoFrameCallback?: (
+    callback: (now: DOMHighResTimeStamp, metadata: unknown) => void,
+  ) => number;
+  cancelVideoFrameCallback?: (handle: number) => void;
 }
 
 /**
- * Renders 8 directional mirrored reflection tiles surrounding the central artwork:
- * Top, Bottom, Left, Right edges and 4 Corners, matching the edge pixels 1:1.
+ * Real-time 8-direction mirrored reflection renderer.
+ * Captures current video frames (or static cover image) and mirrors the 4 edges
+ * and 4 corners into the outer perimeter band, matching the center pixels 1:1.
  */
-function MirroredPerimeter({
-  halo,
-  mirrorRatio,
-}: {
-  halo: ReactNode;
-  mirrorRatio: number;
-}) {
-  const invM = (100 - mirrorRatio * 100).toFixed(2);
+function drawMirroredPerimeter(
+  canvas: HTMLCanvasElement,
+  source: HTMLVideoElement | HTMLImageElement,
+  mirrorRatio: number,
+) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
 
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 size-full select-none"
-    >
-      {/* 1. Top Edge */}
-      <div
-        className="pointer-events-none absolute inset-0 size-full select-none"
-        style={{
-          clipPath: `inset(0% 0% ${invM}% 0%)`,
-          WebkitClipPath: `inset(0% 0% ${invM}% 0%)`,
-          transform: "scaleY(-1)",
-          transformOrigin: "center top",
-        }}
-      >
-        {halo}
-      </div>
+  const sw = "videoWidth" in source ? source.videoWidth : source.naturalWidth;
+  const sh = "videoHeight" in source ? source.videoHeight : source.naturalHeight;
+  if (!sw || !sh) return;
 
-      {/* 2. Bottom Edge */}
-      <div
-        className="pointer-events-none absolute inset-0 size-full select-none"
-        style={{
-          clipPath: `inset(${invM}% 0% 0% 0%)`,
-          WebkitClipPath: `inset(${invM}% 0% 0% 0%)`,
-          transform: "scaleY(-1)",
-          transformOrigin: "center bottom",
-        }}
-      >
-        {halo}
-      </div>
+  const targetSize = Math.min(Math.max(sw, sh), 720);
+  if (canvas.width !== targetSize || canvas.height !== targetSize) {
+    canvas.width = targetSize;
+    canvas.height = targetSize;
+  }
 
-      {/* 3. Left Edge */}
-      <div
-        className="pointer-events-none absolute inset-0 size-full select-none"
-        style={{
-          clipPath: `inset(0% ${invM}% 0% 0%)`,
-          WebkitClipPath: `inset(0% ${invM}% 0% 0%)`,
-          transform: "scaleX(-1)",
-          transformOrigin: "left center",
-        }}
-      >
-        {halo}
-      </div>
+  const cw = canvas.width;
+  const ch = canvas.height;
 
-      {/* 4. Right Edge */}
-      <div
-        className="pointer-events-none absolute inset-0 size-full select-none"
-        style={{
-          clipPath: `inset(0% 0% 0% ${invM}%)`,
-          WebkitClipPath: `inset(0% 0% 0% ${invM}%)`,
-          transform: "scaleX(-1)",
-          transformOrigin: "right center",
-        }}
-      >
-        {halo}
-      </div>
+  ctx.clearRect(0, 0, cw, ch);
 
-      {/* 5. Top-Left Corner */}
-      <div
-        className="pointer-events-none absolute inset-0 size-full select-none"
-        style={{
-          clipPath: `inset(0% ${invM}% ${invM}% 0%)`,
-          WebkitClipPath: `inset(0% ${invM}% ${invM}% 0%)`,
-          transform: "scale(-1, -1)",
-          transformOrigin: "left top",
-        }}
-      >
-        {halo}
-      </div>
+  const x0 = cw * mirrorRatio;
+  const y0 = ch * mirrorRatio;
+  const w0 = cw * (1 - 2 * mirrorRatio);
+  const h0 = ch * (1 - 2 * mirrorRatio);
+  const deltaX = x0;
+  const deltaY = y0;
 
-      {/* 6. Top-Right Corner */}
-      <div
-        className="pointer-events-none absolute inset-0 size-full select-none"
-        style={{
-          clipPath: `inset(0% 0% ${invM}% ${invM}%)`,
-          WebkitClipPath: `inset(0% 0% ${invM}% ${invM}%)`,
-          transform: "scale(-1, -1)",
-          transformOrigin: "right top",
-        }}
-      >
-        {halo}
-      </div>
+  const sliceW = sw * mirrorRatio;
+  const sliceH = sh * mirrorRatio;
 
-      {/* 7. Bottom-Left Corner */}
-      <div
-        className="pointer-events-none absolute inset-0 size-full select-none"
-        style={{
-          clipPath: `inset(${invM}% ${invM}% 0% 0%)`,
-          WebkitClipPath: `inset(${invM}% ${invM}% 0% 0%)`,
-          transform: "scale(-1, -1)",
-          transformOrigin: "left bottom",
-        }}
-      >
-        {halo}
-      </div>
+  // Central backdrop
+  ctx.drawImage(source, 0, 0, sw, sh, x0, y0, w0, h0);
 
-      {/* 8. Bottom-Right Corner */}
-      <div
-        className="pointer-events-none absolute inset-0 size-full select-none"
-        style={{
-          clipPath: `inset(${invM}% 0% 0% ${invM}%)`,
-          WebkitClipPath: `inset(${invM}% 0% 0% ${invM}%)`,
-          transform: "scale(-1, -1)",
-          transformOrigin: "right bottom",
-        }}
-      >
-        {halo}
-      </div>
-    </div>
-  );
+  // 1. Top Edge
+  ctx.save();
+  ctx.translate(x0, y0);
+  ctx.scale(1, -1);
+  ctx.drawImage(source, 0, 0, sw, sliceH, 0, 0, w0, deltaY);
+  ctx.restore();
+
+  // 2. Bottom Edge
+  ctx.save();
+  ctx.translate(x0, y0 + h0);
+  ctx.scale(1, -1);
+  ctx.drawImage(source, 0, sh - sliceH, sw, sliceH, 0, -deltaY, w0, deltaY);
+  ctx.restore();
+
+  // 3. Left Edge
+  ctx.save();
+  ctx.translate(x0, y0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(source, 0, 0, sliceW, sh, 0, 0, deltaX, h0);
+  ctx.restore();
+
+  // 4. Right Edge
+  ctx.save();
+  ctx.translate(x0 + w0, y0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(source, sw - sliceW, 0, sliceW, sh, -deltaX, 0, deltaX, h0);
+  ctx.restore();
+
+  // 5. Top-Left Corner
+  ctx.save();
+  ctx.translate(x0, y0);
+  ctx.scale(-1, -1);
+  ctx.drawImage(source, 0, 0, sliceW, sliceH, 0, 0, deltaX, deltaY);
+  ctx.restore();
+
+  // 6. Top-Right Corner
+  ctx.save();
+  ctx.translate(x0 + w0, y0);
+  ctx.scale(-1, -1);
+  ctx.drawImage(source, sw - sliceW, 0, sliceW, sliceH, -deltaX, 0, deltaX, deltaY);
+  ctx.restore();
+
+  // 7. Bottom-Left Corner
+  ctx.save();
+  ctx.translate(x0, y0 + h0);
+  ctx.scale(-1, -1);
+  ctx.drawImage(source, 0, sh - sliceH, sliceW, sliceH, 0, -deltaY, deltaX, deltaY);
+  ctx.restore();
+
+  // 8. Bottom-Right Corner
+  ctx.save();
+  ctx.translate(x0 + w0, y0 + h0);
+  ctx.scale(-1, -1);
+  ctx.drawImage(source, sw - sliceW, sh - sliceH, sliceW, sliceH, -deltaX, -deltaY, deltaX, deltaY);
+  ctx.restore();
 }
 
 type Demand = Awaited<ReturnType<typeof dynamicCover.requestGeneration>>;
@@ -454,14 +388,96 @@ export function ImmersiveArtwork({
     }
   }
 
-  const extendedSize = 1 + 2 * mirrorRatio;
-  const offsetPercent = `-${(mirrorRatio * 100).toFixed(4)}%`;
-  const extendedSizePercent = `${(extendedSize * 100).toFixed(4)}%`;
-  const centerInset = `${((mirrorRatio / extendedSize) * 100).toFixed(4)}%`;
-  const mirrorMask = useMemo(
-    () => createMirrorEdgeMask(mirrorRatio),
-    [mirrorRatio],
-  );
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Animation loop for real-time video-driven and static-image-driven mirror reflection
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Resume events, clip mounts, and cover changes must refresh mirror canvas frames.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    let disposed = false;
+    let videoCallbackHandle: number | undefined;
+    let rafHandle: number | undefined;
+
+    const findActiveVideo = (): HTMLVideoElement | null => {
+      const activeVideo =
+        (displayId
+          ? element.current?.querySelector<HTMLVideoElement>(
+              `video[data-lease-id="${displayId}"]`,
+            )
+          : null) ??
+        element.current?.querySelector<HTMLVideoElement>("video") ??
+        null;
+      if (
+        activeVideo &&
+        canMove &&
+        !activeVideo.paused &&
+        activeVideo.readyState >= 2
+      ) {
+        return activeVideo;
+      }
+      return null;
+    };
+
+    const findActiveImg = (): HTMLImageElement | null => {
+      return element.current?.querySelector<HTMLImageElement>("img") ?? null;
+    };
+
+    const scheduleNextFrame = (video: VideoWithFrameCallback) => {
+      if (disposed) return;
+      if (typeof video.requestVideoFrameCallback === "function") {
+        videoCallbackHandle = video.requestVideoFrameCallback(() => {
+          videoCallbackHandle = undefined;
+          render();
+        });
+      } else {
+        rafHandle = requestAnimationFrame(() => {
+          rafHandle = undefined;
+          render();
+        });
+      }
+    };
+
+    const render = () => {
+      if (disposed || !canvas) return;
+
+      const video = findActiveVideo();
+      if (video) {
+        drawMirroredPerimeter(canvas, video, mirrorRatio);
+        scheduleNextFrame(video as VideoWithFrameCallback);
+        return;
+      }
+
+      // Fallback to static image when video is not playing
+      const img = findActiveImg();
+      if (img) {
+        if (img.complete && img.naturalWidth > 0) {
+          drawMirroredPerimeter(canvas, img, mirrorRatio);
+        } else {
+          img.addEventListener("load", render, { once: true });
+        }
+      }
+    };
+
+    render();
+
+    return () => {
+      disposed = true;
+      if (videoCallbackHandle !== undefined) {
+        const video =
+          element.current?.querySelector<VideoWithFrameCallback>("video");
+        if (typeof video?.cancelVideoFrameCallback === "function") {
+          video.cancelVideoFrameCallback(videoCallbackHandle);
+        }
+      }
+      if (rafHandle !== undefined) {
+        cancelAnimationFrame(rafHandle);
+      }
+    };
+  }, [canMove, clips, displayId, mirrorRatio, coverArtId, resumeRevision]);
+
+  const centerInset = `${(mirrorRatio * 100).toFixed(4)}%`;
 
   return (
     <div
@@ -472,41 +488,38 @@ export function ImmersiveArtwork({
         transformOrigin: "center center",
       }}
     >
-      {/* Layer 1: Defocus cushion directly under the artwork feather zone */}
+      {/* Defocus cushion directly under the artwork feather zone */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute z-[1] select-none"
+        className="pointer-events-none absolute -inset-[12%] z-[1] select-none"
         style={{
-          left: offsetPercent,
-          top: offsetPercent,
-          width: extendedSizePercent,
-          height: extendedSizePercent,
-          ...mirrorMask,
+          maskImage: cushionMask,
+          maskComposite: "intersect",
+          WebkitMaskImage: cushionMask,
+          WebkitMaskComposite: "source-in",
         }}
       >
-        <div className="size-full blur-2xl opacity-90 scale-105">{halo}</div>
+        <div className="size-full blur-2xl opacity-95 scale-106">{halo}</div>
       </div>
 
-      {/* Layer 2: Extended artwork container (Mirrored perimeter + Pristine central artwork) */}
+      {/* Layer 2: Foreground artwork with wide, dreamy transition into the blur */}
       <div
-        className="pointer-events-none absolute z-[2]"
+        className="relative z-[2] size-full overflow-hidden"
         style={{
-          left: offsetPercent,
-          top: offsetPercent,
-          width: extendedSizePercent,
-          height: extendedSizePercent,
-          ...mirrorMask,
+          maskImage: edgeMask,
+          maskComposite: "intersect",
+          WebkitMaskImage: edgeMask,
+          WebkitMaskComposite: "source-in",
         }}
       >
-        {/* Mirrored perimeter reflections: 8 directions, matching edge pixels 1:1 */}
-        <div
-          className="pointer-events-none absolute select-none z-[1]"
-          style={{ inset: centerInset }}
-        >
-          <MirroredPerimeter halo={halo} mirrorRatio={mirrorRatio} />
-        </div>
+        {/* Real-time video-driven mirror perimeter */}
+        <canvas
+          ref={canvasRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 size-full select-none z-[1]"
+        />
 
-        {/* Central original artwork: 100% crisp, unclipped corners, 100% opaque */}
+        {/* Central original artwork: pristine, unclipped corners */}
         <div
           className="pointer-events-auto absolute overflow-hidden z-[2]"
           style={{ inset: centerInset }}
@@ -524,6 +537,7 @@ export function ImmersiveArtwork({
                 preload="auto"
                 aria-hidden="true"
                 data-stage={clip.stage}
+                data-lease-id={clip.leaseId}
                 className="pointer-events-none absolute inset-0 size-full object-cover transition-opacity duration-1000 ease-in-out"
                 style={{ opacity: displayId === clip.leaseId ? 1 : 0 }}
                 onLoadedData={(event) => ready(clip, event.currentTarget)}

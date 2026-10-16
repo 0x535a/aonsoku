@@ -589,6 +589,41 @@ svg#bars .eq-bar--4 {
   @apply w-fit m-auto max-w-[80%] text-balance;
 }
 
+/* Scale the original inside the line, preserving AMLL's spring transforms and
+ * opacity. Static font faces transition through the available weight steps.
+ * Translation/romaji rows keep their own size and weight.
+ */
+.lrc-box .amll-lyric-player
+  > div[class*="_lyricLine_"]
+  > div[class*="_lyricMainLine_"] {
+  font-size: 1.16em;
+  font-weight: 400;
+  line-height: 1.2;
+  transform: scale(0.862069);
+  transform-origin: 1em center;
+  transition:
+    opacity 0.3s 0.1s,
+    transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+    font-weight 0.42s ease-in-out;
+}
+
+.lrc-box
+  .amll-lyric-player
+  > div[class*="_lyricLine_"][class*="_active_"]
+  > div[class*="_lyricMainLine_"] {
+  font-weight: 600;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lrc-box
+    .amll-lyric-player
+    > div[class*="_lyricLine_"]
+    > div[class*="_lyricMainLine_"] {
+    transition: none;
+  }
+}
+
 /* Fix synced lyrics visibility on light themes and light player backdrops */
 :is(
     .light,

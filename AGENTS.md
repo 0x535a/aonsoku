@@ -558,6 +558,10 @@ Key files:
   `FullscreenSongArtwork` mounts an Apple-only `ImmersiveArtwork` consumer with
   a square object-cover mask. Silent leased clips swap only after the new first
   frame is ready and pause for playback, visibility and accessibility policy.
+  Native App state, document visibility, pageshow and window focus explicitly
+  retry fullscreen video playback on foreground return, even when permission
+  and asset IDs are unchanged. Clip mounts/canplay and unexpected pauses also
+  recover playback with bounded retries; cleanup cancels listeners and timers.
   Resource restrictions pause new static/camera/depth generation and model work,
   not completed-video playback. Cache restoration precedes generation guards on
   iOS and macOS; `motionAllowed` excludes thermal/Low Power/memory restrictions.

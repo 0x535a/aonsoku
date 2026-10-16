@@ -1,3 +1,5 @@
+import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import { useReducedMotion } from "framer-motion";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { type DynamicCoverHandle, dynamicCover } from "@/native/artwork";
@@ -48,6 +50,7 @@ export function ImmersiveArtwork({
   const [foreground, setForeground] = useState(
     document.visibilityState !== "hidden",
   );
+  const [resumeRevision, setResumeRevision] = useState(0);
   const reduced = useReducedMotion() ?? false;
   const mode = playing && !reduced ? "dynamic" : "static";
   const modeRef = useRef<"dynamic" | "static">(mode);
@@ -65,8 +68,27 @@ export function ImmersiveArtwork({
   const visible = active && intersects && foreground;
 
   useEffect(() => {
-    const update = () => setForeground(document.visibilityState !== "hidden");
+    let disposed = false;
+    let nativeActive = true;
+    const update = () => {
+      if (disposed) return;
+      const foreground = nativeActive && document.visibilityState !== "hidden";
+      setForeground(foreground);
+      // WebKit may pause media without changing our last rendered visibility.
+      // An explicit resume must retry playback even if canMove stays true.
+      if (foreground) setResumeRevision((revision) => revision + 1);
+    };
     document.addEventListener("visibilitychange", update);
+    window.addEventListener("pageshow", update);
+    window.addEventListener("focus", update);
+    const appStateHandle = Capacitor.isNativePlatform()
+      ? App.addListener("appStateChange", ({ isActive }) => {
+          nativeActive = isActive;
+          update();
+        }).catch((error: unknown) => {
+          console.warn("[ImmersiveArtwork] App state listener failed", error);
+        })
+      : undefined;
     const observer =
       typeof IntersectionObserver !== "undefined"
         ? new IntersectionObserver(([entry]) => {
@@ -75,7 +97,11 @@ export function ImmersiveArtwork({
         : undefined;
     if (element.current) observer?.observe(element.current);
     return () => {
+      disposed = true;
       document.removeEventListener("visibilitychange", update);
+      window.removeEventListener("pageshow", update);
+      window.removeEventListener("focus", update);
+      appStateHandle?.then((handle) => handle?.remove()).catch(() => {});
       observer?.disconnect();
     };
   }, []);
@@ -166,13 +192,69 @@ export function ImmersiveArtwork({
     !reduced &&
     nativeMotion.mode === "dynamic" &&
     nativeMotion.allowed;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Resume events and clip mounts must retry even when canMove is unchanged.
   useEffect(() => {
+    // Include the resume signal and actual elements: neither an unchanged
+    // permission nor an unchanged asset ID proves the video is still playing.
+    const cleanups: (() => void)[] = [];
     for (const video of element.current?.querySelectorAll("video") ?? []) {
-      if (canMove && video.dataset.stage !== "static")
-        video.play().catch(() => {});
-      else video.pause();
+      if (!canMove || video.dataset.stage === "static") {
+        video.pause();
+        continue;
+      }
+      let disposed = false;
+      let pending = false;
+      let attempts = 0;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const delays = [300, 1000, 2500];
+      const retry = () => {
+        if (disposed || timer || attempts > delays.length) return;
+        timer = setTimeout(
+          () => {
+            timer = undefined;
+            play();
+          },
+          delays[Math.max(0, attempts - 1)],
+        );
+      };
+      const play = () => {
+        if (disposed || pending || !video.paused || attempts > delays.length)
+          return;
+        pending = true;
+        attempts += 1;
+        video
+          .play()
+          .catch((error: unknown) => {
+            if (!disposed && attempts > delays.length) {
+              console.warn("[ImmersiveArtwork] Video resume failed", error);
+            }
+          })
+          .finally(() => {
+            pending = false;
+            if (video.paused) retry();
+          });
+      };
+      const didPlay = () => {
+        attempts = 0;
+        clearTimeout(timer);
+        timer = undefined;
+      };
+      video.addEventListener("canplay", play);
+      video.addEventListener("pause", retry);
+      video.addEventListener("playing", didPlay);
+      play();
+      cleanups.push(() => {
+        disposed = true;
+        clearTimeout(timer);
+        video.removeEventListener("canplay", play);
+        video.removeEventListener("pause", retry);
+        video.removeEventListener("playing", didPlay);
+      });
     }
-  }, [canMove]);
+    return () => {
+      for (const cleanup of cleanups) cleanup();
+    };
+  }, [canMove, clips, resumeRevision]);
 
   function ready(clip: DynamicCoverHandle, video: HTMLVideoElement) {
     if (!leases.current.has(clip) || clip.coverArtId !== currentCover.current)
@@ -181,8 +263,8 @@ export function ImmersiveArtwork({
     display.current = clip;
     setDisplayId(clip.leaseId);
     setClips([clip]);
-    if (canMove && clip.stage !== "static") video.play().catch(() => {});
-    else video.pause();
+    // Updating clips runs the playback effect after this element is mounted.
+    if (!canMove || clip.stage === "static") video.pause();
     if (old && old !== clip) {
       leases.current.delete(old);
       old.release().catch(() => {});

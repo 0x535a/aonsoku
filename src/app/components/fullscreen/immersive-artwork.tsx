@@ -3,6 +3,7 @@ import { Capacitor } from "@capacitor/core";
 import { useReducedMotion } from "framer-motion";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { type DynamicCoverHandle, dynamicCover } from "@/native/artwork";
+import { renderArtworkRegion } from "./artwork-region-renderer";
 
 const rank = { static: 0, camera: 1, depth: 2 };
 
@@ -36,111 +37,6 @@ export const DYNAMIC_ARTWORK_MIRROR_RATIO = 0.04;
  * - 1.25 = 125% (extra large)
  */
 export const DYNAMIC_ARTWORK_SCALE = 1.15;
-
-interface VideoWithFrameCallback extends HTMLVideoElement {
-  requestVideoFrameCallback?: (
-    callback: (now: DOMHighResTimeStamp, metadata: unknown) => void,
-  ) => number;
-  cancelVideoFrameCallback?: (handle: number) => void;
-}
-
-/**
- * Real-time 8-direction mirrored reflection renderer.
- * Captures current video frames (or static cover image) and mirrors the 4 edges
- * and 4 corners into the outer perimeter band, matching the center pixels 1:1.
- */
-function drawMirroredPerimeter(
-  canvas: HTMLCanvasElement,
-  source: HTMLVideoElement | HTMLImageElement,
-  mirrorRatio: number,
-) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  const sw = "videoWidth" in source ? source.videoWidth : source.naturalWidth;
-  const sh = "videoHeight" in source ? source.videoHeight : source.naturalHeight;
-  if (!sw || !sh) return;
-
-  const targetSize = Math.min(Math.max(sw, sh), 720);
-  if (canvas.width !== targetSize || canvas.height !== targetSize) {
-    canvas.width = targetSize;
-    canvas.height = targetSize;
-  }
-
-  const cw = canvas.width;
-  const ch = canvas.height;
-
-  ctx.clearRect(0, 0, cw, ch);
-
-  const x0 = cw * mirrorRatio;
-  const y0 = ch * mirrorRatio;
-  const w0 = cw * (1 - 2 * mirrorRatio);
-  const h0 = ch * (1 - 2 * mirrorRatio);
-  const deltaX = x0;
-  const deltaY = y0;
-
-  const sliceW = sw * mirrorRatio;
-  const sliceH = sh * mirrorRatio;
-
-  // Central backdrop
-  ctx.drawImage(source, 0, 0, sw, sh, x0, y0, w0, h0);
-
-  // 1. Top Edge
-  ctx.save();
-  ctx.translate(x0, y0);
-  ctx.scale(1, -1);
-  ctx.drawImage(source, 0, 0, sw, sliceH, 0, 0, w0, deltaY);
-  ctx.restore();
-
-  // 2. Bottom Edge
-  ctx.save();
-  ctx.translate(x0, y0 + h0);
-  ctx.scale(1, -1);
-  ctx.drawImage(source, 0, sh - sliceH, sw, sliceH, 0, -deltaY, w0, deltaY);
-  ctx.restore();
-
-  // 3. Left Edge
-  ctx.save();
-  ctx.translate(x0, y0);
-  ctx.scale(-1, 1);
-  ctx.drawImage(source, 0, 0, sliceW, sh, 0, 0, deltaX, h0);
-  ctx.restore();
-
-  // 4. Right Edge
-  ctx.save();
-  ctx.translate(x0 + w0, y0);
-  ctx.scale(-1, 1);
-  ctx.drawImage(source, sw - sliceW, 0, sliceW, sh, -deltaX, 0, deltaX, h0);
-  ctx.restore();
-
-  // 5. Top-Left Corner
-  ctx.save();
-  ctx.translate(x0, y0);
-  ctx.scale(-1, -1);
-  ctx.drawImage(source, 0, 0, sliceW, sliceH, 0, 0, deltaX, deltaY);
-  ctx.restore();
-
-  // 6. Top-Right Corner
-  ctx.save();
-  ctx.translate(x0 + w0, y0);
-  ctx.scale(-1, -1);
-  ctx.drawImage(source, sw - sliceW, 0, sliceW, sliceH, -deltaX, 0, deltaX, deltaY);
-  ctx.restore();
-
-  // 7. Bottom-Left Corner
-  ctx.save();
-  ctx.translate(x0, y0 + h0);
-  ctx.scale(-1, -1);
-  ctx.drawImage(source, 0, sh - sliceH, sliceW, sliceH, 0, -deltaY, deltaX, deltaY);
-  ctx.restore();
-
-  // 8. Bottom-Right Corner
-  ctx.save();
-  ctx.translate(x0 + w0, y0 + h0);
-  ctx.scale(-1, -1);
-  ctx.drawImage(source, sw - sliceW, sh - sliceH, sliceW, sliceH, -deltaX, -deltaY, deltaX, deltaY);
-  ctx.restore();
-}
 
 type Demand = Awaited<ReturnType<typeof dynamicCover.requestGeneration>>;
 
@@ -389,93 +285,18 @@ export function ImmersiveArtwork({
   }
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sourceRef = useRef<HTMLDivElement>(null);
+  const [composed, setComposed] = useState(false);
 
-  // Animation loop for real-time video-driven and static-image-driven mirror reflection
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Resume events, clip mounts, and cover changes must refresh mirror canvas frames.
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    let disposed = false;
-    let videoCallbackHandle: number | undefined;
-    let rafHandle: number | undefined;
-
-    const findActiveVideo = (): HTMLVideoElement | null => {
-      const activeVideo =
-        (displayId
-          ? element.current?.querySelector<HTMLVideoElement>(
-              `video[data-lease-id="${displayId}"]`,
-            )
-          : null) ??
-        element.current?.querySelector<HTMLVideoElement>("video") ??
-        null;
-      if (
-        activeVideo &&
-        canMove &&
-        !activeVideo.paused &&
-        activeVideo.readyState >= 2
-      ) {
-        return activeVideo;
-      }
-      return null;
-    };
-
-    const findActiveImg = (): HTMLImageElement | null => {
-      return element.current?.querySelector<HTMLImageElement>("img") ?? null;
-    };
-
-    const scheduleNextFrame = (video: VideoWithFrameCallback) => {
-      if (disposed) return;
-      if (typeof video.requestVideoFrameCallback === "function") {
-        videoCallbackHandle = video.requestVideoFrameCallback(() => {
-          videoCallbackHandle = undefined;
-          render();
-        });
-      } else {
-        rafHandle = requestAnimationFrame(() => {
-          rafHandle = undefined;
-          render();
-        });
-      }
-    };
-
-    const render = () => {
-      if (disposed || !canvas) return;
-
-      const video = findActiveVideo();
-      if (video) {
-        drawMirroredPerimeter(canvas, video, mirrorRatio);
-        scheduleNextFrame(video as VideoWithFrameCallback);
-        return;
-      }
-
-      // Fallback to static image when video is not playing
-      const img = findActiveImg();
-      if (img) {
-        if (img.complete && img.naturalWidth > 0) {
-          drawMirroredPerimeter(canvas, img, mirrorRatio);
-        } else {
-          img.addEventListener("load", render, { once: true });
-        }
-      }
-    };
-
-    render();
-
-    return () => {
-      disposed = true;
-      if (videoCallbackHandle !== undefined) {
-        const video =
-          element.current?.querySelector<VideoWithFrameCallback>("video");
-        if (typeof video?.cancelVideoFrameCallback === "function") {
-          video.cancelVideoFrameCallback(videoCallbackHandle);
-        }
-      }
-      if (rafHandle !== undefined) {
-        cancelAnimationFrame(rafHandle);
-      }
-    };
-  }, [canMove, clips, displayId, mirrorRatio, coverArtId, resumeRevision]);
+    if (!visible || !canvasRef.current || !sourceRef.current) return;
+    return renderArtworkRegion(
+      canvasRef.current,
+      sourceRef.current,
+      mirrorRatio,
+      () => setComposed(true),
+    );
+  }, [visible, mirrorRatio]);
 
   const centerInset = `${(mirrorRatio * 100).toFixed(4)}%`;
 
@@ -512,17 +333,18 @@ export function ImmersiveArtwork({
           WebkitMaskComposite: "source-in",
         }}
       >
-        {/* Real-time video-driven mirror perimeter */}
+        {/* Central content and all reflections share the same composed frame. */}
         <canvas
           ref={canvasRef}
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 size-full select-none z-[1]"
+          className="pointer-events-none absolute inset-0 size-full select-none z-[3]"
         />
 
-        {/* Central original artwork: pristine, unclipped corners */}
+        {/* Media/placeholder sources remain mounted for loading and decoding. */}
         <div
+          ref={sourceRef}
           className="pointer-events-auto absolute overflow-hidden z-[2]"
-          style={{ inset: centerInset }}
+          style={{ inset: centerInset, opacity: composed ? 0 : 1 }}
         >
           {children}
           {clips

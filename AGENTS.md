@@ -558,6 +558,15 @@ Key files:
   `FullscreenSongArtwork` mounts an Apple-only `ImmersiveArtwork` consumer with
   a square object-cover mask. Silent leased clips swap only after the new first
   frame is ready and pause for playback, visibility and accessibility policy.
+  `artwork-region-renderer.ts` composes the central CachedImage/video region
+  once and draws its center plus eight reflected neighbors from the same frame.
+  It handles centered object-cover cropping, paused video frames, solid loading/
+  fallback backgrounds, the default SVG and nested opacity transitions; new
+  artwork layer types must explicitly join this composition (it does not capture
+  arbitrary DOM). Only the central source subtree is sampled, never the halo.
+  Video frame callbacks and short-lived transition animation frames drive redraws;
+  static idle regions stop drawing, and hidden/unmounted regions cancel callbacks.
+  Display buffers are bounded to 1440px without changing native asset resolution.
   Native App state, document visibility, pageshow and window focus explicitly
   retry fullscreen video playback on foreground return, even when permission
   and asset IDs are unchanged. Clip mounts/canplay and unexpected pauses also

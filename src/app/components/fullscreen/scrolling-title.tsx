@@ -11,7 +11,14 @@ const INITIAL_DELAY = 2;
 const PAUSE_DURATION = 3;
 const EDGE_EASE_DURATION = 0.35;
 const TEXT_GAP = 80;
+const FADE_WIDTH = 20;
 const MIN_LINEAR_DISTANCE = 1;
+
+const MASK_STYLE = {
+  left: -FADE_WIDTH,
+  right: 0,
+  maskImage: `linear-gradient(90deg, transparent 0px, rgb(0, 0, 0) ${FADE_WIDTH}px, rgb(0, 0, 0) calc(100% - ${FADE_WIDTH}px), transparent 100%)`,
+} as const;
 
 function createScrollAnimation(scrollDistance: number) {
   const duration = scrollDistance / SCROLL_SPEED;
@@ -117,11 +124,15 @@ export function ScrollingTitle({ children }: ScrollingTitleProps) {
       }}
       data-testid="scrolling-title"
     >
-      {/* Plain clipping avoids a masked scrolling layer over WebKit video. */}
-      <div className="absolute inset-0 overflow-hidden" aria-hidden>
+      <div
+        className="absolute inset-y-0 overflow-hidden"
+        style={MASK_STYLE}
+        aria-hidden
+      >
         <motion.div
           animate={controls}
           className="inline-flex whitespace-nowrap"
+          style={{ marginLeft: FADE_WIDTH }}
         >
           <div ref={textRef}>{children}</div>
           <div style={{ paddingLeft: TEXT_GAP }} aria-hidden>

@@ -26,7 +26,7 @@ const cushionMask = `linear-gradient(to right, ${cushionFade}), linear-gradient(
  *               leaving the central 60% cover 100% opaque and pristine)
  * - 0.25 = 25% wide mirror
  */
-export const DYNAMIC_ARTWORK_MIRROR_RATIO = 0.2;
+export const DYNAMIC_ARTWORK_MIRROR_RATIO = 0.04;
 
 /**
  * Visual scale multiplier for the dynamic artwork presentation.

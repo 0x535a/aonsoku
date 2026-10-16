@@ -1,33 +1,214 @@
 import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { useReducedMotion } from "framer-motion";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { type DynamicCoverHandle, dynamicCover } from "@/native/artwork";
 
 const rank = { static: 0, camera: 1, depth: 2 };
 
-// A wide, continuous Perlin smootherstep (6t^5 - 15t^4 + 10t^3) transition across 20%
-// ensuring zero slope/knee at both the opaque central core (60%) and the outer perimeter.
-// This prevents any visible transition boundary even on static freeze-frames during pause.
-const edgeFade =
-  "transparent 0%, rgba(0,0,0,0.01) 2%, rgba(0,0,0,0.06) 4%, rgba(0,0,0,0.2) 7%, rgba(0,0,0,0.5) 10%, rgba(0,0,0,0.8) 13%, rgba(0,0,0,0.94) 16%, rgba(0,0,0,0.99) 18%, black 20%, black 80%, rgba(0,0,0,0.99) 82%, rgba(0,0,0,0.94) 84%, rgba(0,0,0,0.8) 87%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.2) 93%, rgba(0,0,0,0.06) 96%, rgba(0,0,0,0.01) 98%, transparent 100%";
-const edgeMask = `linear-gradient(to right, ${edgeFade}), linear-gradient(to bottom, ${edgeFade})`;
-
-// Defocus cushion mask directly behind the foreground feather zone (-inset-[12%])
-const cushionFade =
-  "transparent 0%, rgba(0,0,0,0.12) 4%, rgba(0,0,0,0.45) 10%, rgba(0,0,0,0.85) 18%, black 26%, black 74%, rgba(0,0,0,0.85) 82%, rgba(0,0,0,0.45) 90%, rgba(0,0,0,0.12) 96%, transparent 100%";
-const cushionMask = `linear-gradient(to right, ${cushionFade}), linear-gradient(to bottom, ${cushionFade})`;
-
-type Demand = Awaited<ReturnType<typeof dynamicCover.requestGeneration>>;
+/**
+ * Mirror extension size ratio relative to the original album cover.
+ * Adjust this value to manually control how much the mirrored edge extends outwards:
+ * - 0.08 = 8% subtle extension
+ * - 0.15 = 15% (recommended default: extends 15% mirrored border outwards,
+ *               100% of the original cover remains pristine, fog only fades the mirror)
+ * - 0.22 = 22% wide extension
+ */
+export const DYNAMIC_ARTWORK_MIRROR_RATIO = 0.15;
 
 /**
  * Visual scale multiplier for the dynamic artwork presentation.
- * Adjust this value to manually resize the dynamic cover:
- * - 1.0  = 100% (original base size)
- * - 1.15 = 115% (current enlarged presentation, compensates for outer edge feathering)
- * - 1.25 = 125% (extra large)
+ * With the mirrored perimeter extending by default, 1.0 preserves the original
+ * card size while the mirrored edges bloom outwards.
  */
-export const DYNAMIC_ARTWORK_SCALE = 1.15;
+export const DYNAMIC_ARTWORK_SCALE = 1.0;
+
+/**
+ * Generates an ultra-smooth Perlin Smootherstep (6t^5 - 15t^4 + 10t^3) fade mask
+ * that keeps the central original artwork 100% opaque (0% fogged/clipped),
+ * and smoothly dissolves ONLY the surrounding mirrored extension from 100% to 0%.
+ */
+function createMirrorEdgeMask(mirrorRatio: number) {
+  // Relative width of the mirror border in the extended container:
+  // e.g. for mirrorRatio = 0.15: extended size = 1 + 2 * 0.15 = 1.30
+  // mirror border = 0.15 / 1.30 ≈ 11.538%
+  const w = (mirrorRatio / (1 + 2 * mirrorRatio)) * 100;
+  const leftSeam = w;
+  const rightSeam = 100 - w;
+
+  // Smootherstep samples for the fade band (zero 1st and 2nd derivatives at seams and outer edges)
+  const stops = [
+    { t: 0, alpha: 0 },
+    { t: 0.1, alpha: 0.01 },
+    { t: 0.2, alpha: 0.06 },
+    { t: 0.35, alpha: 0.24 },
+    { t: 0.5, alpha: 0.5 },
+    { t: 0.65, alpha: 0.76 },
+    { t: 0.8, alpha: 0.94 },
+    { t: 0.9, alpha: 0.99 },
+    { t: 1.0, alpha: 1.0 },
+  ];
+
+  const leftFade = stops
+    .map(({ t, alpha }) => {
+      const pos = (t * leftSeam).toFixed(2);
+      return alpha === 0
+        ? `transparent ${pos}%`
+        : alpha === 1
+          ? `black ${pos}%`
+          : `rgba(0,0,0,${alpha}) ${pos}%`;
+    })
+    .join(", ");
+
+  const rightFade = [...stops]
+    .reverse()
+    .map(({ t, alpha }) => {
+      const pos = (rightSeam + (1 - t) * (100 - rightSeam)).toFixed(2);
+      return alpha === 0
+        ? `transparent ${pos}%`
+        : alpha === 1
+          ? `black ${pos}%`
+          : `rgba(0,0,0,${alpha}) ${pos}%`;
+    })
+    .join(", ");
+
+  const fadeString = `${leftFade}, black ${rightSeam.toFixed(2)}%, ${rightFade}`;
+  const gradient = `linear-gradient(to right, ${fadeString}), linear-gradient(to bottom, ${fadeString})`;
+
+  return {
+    maskImage: gradient,
+    WebkitMaskImage: gradient,
+    maskComposite: "intersect" as const,
+    WebkitMaskComposite: "source-in" as const,
+  };
+}
+
+/**
+ * Renders 8 directional mirrored reflection tiles surrounding the central artwork:
+ * Top, Bottom, Left, Right edges and 4 Corners, matching the edge pixels 1:1.
+ */
+function MirroredPerimeter({
+  halo,
+  mirrorRatio,
+}: {
+  halo: ReactNode;
+  mirrorRatio: number;
+}) {
+  const invM = (100 - mirrorRatio * 100).toFixed(2);
+
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 size-full select-none"
+    >
+      {/* 1. Top Edge */}
+      <div
+        className="pointer-events-none absolute inset-0 size-full select-none"
+        style={{
+          clipPath: `inset(0% 0% ${invM}% 0%)`,
+          WebkitClipPath: `inset(0% 0% ${invM}% 0%)`,
+          transform: "scaleY(-1)",
+          transformOrigin: "center top",
+        }}
+      >
+        {halo}
+      </div>
+
+      {/* 2. Bottom Edge */}
+      <div
+        className="pointer-events-none absolute inset-0 size-full select-none"
+        style={{
+          clipPath: `inset(${invM}% 0% 0% 0%)`,
+          WebkitClipPath: `inset(${invM}% 0% 0% 0%)`,
+          transform: "scaleY(-1)",
+          transformOrigin: "center bottom",
+        }}
+      >
+        {halo}
+      </div>
+
+      {/* 3. Left Edge */}
+      <div
+        className="pointer-events-none absolute inset-0 size-full select-none"
+        style={{
+          clipPath: `inset(0% ${invM}% 0% 0%)`,
+          WebkitClipPath: `inset(0% ${invM}% 0% 0%)`,
+          transform: "scaleX(-1)",
+          transformOrigin: "left center",
+        }}
+      >
+        {halo}
+      </div>
+
+      {/* 4. Right Edge */}
+      <div
+        className="pointer-events-none absolute inset-0 size-full select-none"
+        style={{
+          clipPath: `inset(0% 0% 0% ${invM}%)`,
+          WebkitClipPath: `inset(0% 0% 0% ${invM}%)`,
+          transform: "scaleX(-1)",
+          transformOrigin: "right center",
+        }}
+      >
+        {halo}
+      </div>
+
+      {/* 5. Top-Left Corner */}
+      <div
+        className="pointer-events-none absolute inset-0 size-full select-none"
+        style={{
+          clipPath: `inset(0% ${invM}% ${invM}% 0%)`,
+          WebkitClipPath: `inset(0% ${invM}% ${invM}% 0%)`,
+          transform: "scale(-1, -1)",
+          transformOrigin: "left top",
+        }}
+      >
+        {halo}
+      </div>
+
+      {/* 6. Top-Right Corner */}
+      <div
+        className="pointer-events-none absolute inset-0 size-full select-none"
+        style={{
+          clipPath: `inset(0% 0% ${invM}% ${invM}%)`,
+          WebkitClipPath: `inset(0% 0% ${invM}% ${invM}%)`,
+          transform: "scale(-1, -1)",
+          transformOrigin: "right top",
+        }}
+      >
+        {halo}
+      </div>
+
+      {/* 7. Bottom-Left Corner */}
+      <div
+        className="pointer-events-none absolute inset-0 size-full select-none"
+        style={{
+          clipPath: `inset(${invM}% ${invM}% 0% 0%)`,
+          WebkitClipPath: `inset(${invM}% ${invM}% 0% 0%)`,
+          transform: "scale(-1, -1)",
+          transformOrigin: "left bottom",
+        }}
+      >
+        {halo}
+      </div>
+
+      {/* 8. Bottom-Right Corner */}
+      <div
+        className="pointer-events-none absolute inset-0 size-full select-none"
+        style={{
+          clipPath: `inset(${invM}% 0% 0% ${invM}%)`,
+          WebkitClipPath: `inset(${invM}% 0% 0% ${invM}%)`,
+          transform: "scale(-1, -1)",
+          transformOrigin: "right bottom",
+        }}
+      >
+        {halo}
+      </div>
+    </div>
+  );
+}
+
+type Demand = Awaited<ReturnType<typeof dynamicCover.requestGeneration>>;
 
 /** A square display mask over leased files. It never requests pixel dimensions. */
 export function ImmersiveArtwork({
@@ -37,6 +218,7 @@ export function ImmersiveArtwork({
   children,
   halo,
   scale = DYNAMIC_ARTWORK_SCALE,
+  mirrorRatio = DYNAMIC_ARTWORK_MIRROR_RATIO,
 }: {
   coverArtId: string;
   active: boolean;
@@ -44,6 +226,7 @@ export function ImmersiveArtwork({
   children: ReactNode;
   halo: ReactNode;
   scale?: number;
+  mirrorRatio?: number;
 }) {
   const element = useRef<HTMLDivElement>(null);
   const [intersects, setIntersects] = useState(true);
@@ -271,6 +454,15 @@ export function ImmersiveArtwork({
     }
   }
 
+  const extendedSize = 1 + 2 * mirrorRatio;
+  const offsetPercent = `-${(mirrorRatio * 100).toFixed(4)}%`;
+  const extendedSizePercent = `${(extendedSize * 100).toFixed(4)}%`;
+  const centerInset = `${((mirrorRatio / extendedSize) * 100).toFixed(4)}%`;
+  const mirrorMask = useMemo(
+    () => createMirrorEdgeMask(mirrorRatio),
+    [mirrorRatio],
+  );
+
   return (
     <div
       ref={element}
@@ -280,57 +472,73 @@ export function ImmersiveArtwork({
         transformOrigin: "center center",
       }}
     >
-      {/* Defocus cushion directly under the artwork feather zone */}
+      {/* Layer 1: Defocus cushion directly under the artwork feather zone */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -inset-[12%] z-[1] select-none"
+        className="pointer-events-none absolute z-[1] select-none"
         style={{
-          maskImage: cushionMask,
-          maskComposite: "intersect",
-          WebkitMaskImage: cushionMask,
-          WebkitMaskComposite: "source-in",
+          left: offsetPercent,
+          top: offsetPercent,
+          width: extendedSizePercent,
+          height: extendedSizePercent,
+          ...mirrorMask,
         }}
       >
-        <div className="size-full blur-2xl opacity-95 scale-106">{halo}</div>
+        <div className="size-full blur-2xl opacity-90 scale-105">{halo}</div>
       </div>
 
-      {/* Layer 2: Foreground artwork with wide, dreamy transition into the blur */}
+      {/* Layer 2: Extended artwork container (Mirrored perimeter + Pristine central artwork) */}
       <div
-        className="relative z-[2] size-full overflow-hidden"
+        className="pointer-events-none absolute z-[2]"
         style={{
-          maskImage: edgeMask,
-          maskComposite: "intersect",
-          WebkitMaskImage: edgeMask,
-          WebkitMaskComposite: "source-in",
+          left: offsetPercent,
+          top: offsetPercent,
+          width: extendedSizePercent,
+          height: extendedSizePercent,
+          ...mirrorMask,
         }}
       >
-        {children}
-        {clips
-          .filter((clip) => clip.coverArtId === coverArtId)
-          .map((clip) => (
-            <video
-              key={clip.leaseId}
-              src={clip.src}
-              muted
-              playsInline
-              loop
-              preload="auto"
-              aria-hidden="true"
-              data-stage={clip.stage}
-              className="pointer-events-none absolute inset-0 size-full object-cover transition-opacity duration-1000 ease-in-out"
-              style={{ opacity: displayId === clip.leaseId ? 1 : 0 }}
-              onLoadedData={(event) => ready(clip, event.currentTarget)}
-              onError={() => {
-                leases.current.delete(clip);
-                clip.release().catch(() => {});
-                if (display.current === clip) {
-                  display.current = undefined;
-                  setDisplayId(undefined);
-                }
-                setClips((items) => items.filter((item) => item !== clip));
-              }}
-            />
-          ))}
+        {/* Mirrored perimeter reflections: 8 directions, matching edge pixels 1:1 */}
+        <div
+          className="pointer-events-none absolute select-none z-[1]"
+          style={{ inset: centerInset }}
+        >
+          <MirroredPerimeter halo={halo} mirrorRatio={mirrorRatio} />
+        </div>
+
+        {/* Central original artwork: 100% crisp, unclipped corners, 100% opaque */}
+        <div
+          className="pointer-events-auto absolute overflow-hidden z-[2]"
+          style={{ inset: centerInset }}
+        >
+          {children}
+          {clips
+            .filter((clip) => clip.coverArtId === coverArtId)
+            .map((clip) => (
+              <video
+                key={clip.leaseId}
+                src={clip.src}
+                muted
+                playsInline
+                loop
+                preload="auto"
+                aria-hidden="true"
+                data-stage={clip.stage}
+                className="pointer-events-none absolute inset-0 size-full object-cover transition-opacity duration-1000 ease-in-out"
+                style={{ opacity: displayId === clip.leaseId ? 1 : 0 }}
+                onLoadedData={(event) => ready(clip, event.currentTarget)}
+                onError={() => {
+                  leases.current.delete(clip);
+                  clip.release().catch(() => {});
+                  if (display.current === clip) {
+                    display.current = undefined;
+                    setDisplayId(undefined);
+                  }
+                  setClips((items) => items.filter((item) => item !== clip));
+                }}
+              />
+            ))}
+        </div>
       </div>
     </div>
   );

@@ -186,6 +186,18 @@ WebGPU 能力检测需要实际申请适配器/设备并验证推理所需特性
 根据用户体验需求，移除了底层漫反射光晕的 7 秒慢呼吸缩放动效（`animate-dreamy-breathe` 与 `@keyframes dreamy-aura-breathe`），转为纯粹、稳重、优雅的静态高斯漫溢渲染（`opacity-65 scale-106`），既避免背景光芒持续起伏对歌词/封面观感的干扰，又降低了 GPU 持续合成消耗。
 
 
+### 四周镜像延伸架构与封面边角无损呈现（2026-10-16）
+
+- **背景与痛点**：此前的边缘羽化遮罩（Smootherstep Edge Mask）直接施加在 $100\% \times 100\%$ 的原始封面容器上。在双向相交羽化下，专辑封面的四角和四周边缘透明度衰减至 0，导致封面四角的人物细节、文字、排版被雾化截断遮挡。
+- **镜像延伸原理**：
+  1. **原图 100% 完整无损**：中央原始专辑封面（静态图与 DAV2 动态视频）保留在核心 $[0, 100\%]$ 区域，不叠加任何裁切或羽化遮罩，四角与四周保持 100% 原始不透明度与完整解析度。
+  2. **8 方向外延镜像**：通过 `MirroredPerimeter` 组件，将封面边缘像素在四周（上、下、左、右）和四角（左上、右上、左下、右下）8 个方向向外翻转镜像翻折（利用 `clipPath: inset(...)` 配合 `scaleX(-1)` / `scaleY(-1)` / `scale(-1, -1)`），在视觉与像素上与原封面 1:1 无缝衔接。
+  3. **羽化仅作用于镜像区**：通过外延容器（默认外展 15%，即 $1.30 \times$ 尺寸）与专用 Smootherstep 边缘遮罩，从原封面接缝处的 100% 不透明度平滑衰减至外围的 0.00% 纯透明，使雾化消融仅发生在镜像延伸出的内容上，实现真正“零吃角、零硬边、梦幻融入背景”。
+- **调节参数**：
+  - 常量 `DYNAMIC_ARTWORK_MIRROR_RATIO = 0.15`（定义于 [`src/app/components/fullscreen/immersive-artwork.tsx`](../../src/app/components/fullscreen/immersive-artwork.tsx)），可手动调节延伸幅度（如 `0.10`、`0.15`、`0.20` 等）。
+  - `ImmersiveArtwork` 组件签名同步暴露 `mirrorRatio?: number` 与 `scale?: number`（默认 `DYNAMIC_ARTWORK_SCALE = 1.0`）。
+
+
 
 
 

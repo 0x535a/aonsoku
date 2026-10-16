@@ -36,7 +36,7 @@ export const FullscreenAmbientAtmosphere = memo(
     return (
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none"
+        className="pointer-events-none absolute inset-0 z-0 isolate overflow-hidden select-none [contain:paint] transform-gpu"
       >
         <div
           className="absolute -translate-x-1/2 -translate-y-1/2 transition-[left,top] duration-500 ease-out"

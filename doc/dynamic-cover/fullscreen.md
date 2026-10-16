@@ -236,3 +236,9 @@ Resource Policy 的 restrict（低电量模式、严重发热、内存压力/余
 这不是通用 DOM 截图器；新增文字、滤镜、复杂背景等区域内容时，必须显式扩展合成器。中间区域与镜像共同使用同一帧，避免独立选择媒体导致的裁剪、暂停和淡入错位。视频帧回调驱动运动，CSS 过渡期间短暂使用 rAF；静态空闲停止绘制，隐藏或卸载取消监听/帧回调。展示画布上限 1440px，不影响原生视频生成分辨率。
 
 最小独立 macOS WKWebView 实验中，嵌套 CSS 反射的快照缺少视频镜像，未排除快照合成限制，因此采用共用 Canvas。验证范围不包含 iOS 真机或性能基准。
+
+### 控件重绘矩形色块：背景光晕隔离（2026-10-16）
+
+Mac Tauri 开发版中，hover 或点击播放等控件视觉更新会出现矩形色块。移除控件的 `backface-visibility`、`will-change-transform` 和滑块 `transform-gpu` 未消除问题，已恢复这些控件改动；单独关闭全屏背景光晕的 CSS blur 后，用户确认色块消失。
+
+最终恢复原有 blur、遮罩、透明度和缩放，仅在 `FullscreenAmbientAtmosphere` 的视口外层增加 `isolate`、`contain: paint` 与 `transform-gpu`，使光晕拥有独立绘制／合成边界。现有视口裁切保持，封面 Canvas 与控件交互不变。热更新后用户确认效果正常；定向 Biome 与 diff 检查通过，未跑完整构建或 iOS 真机验证。该组合已通过本次对照，不代表三项隔离属性各自均已独立验证。

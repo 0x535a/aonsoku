@@ -76,6 +76,10 @@ const MemoAudioPlayer = memo(AudioPlayer);
 
 export function Player() {
   const { t } = useTranslation();
+  const isMobile = usePlayerBreakpoint();
+  const fullscreenPlayerOpen = usePlayerStore(
+    (state) => state.playerState.fullscreenPlayerOpen,
+  );
   const [panelOpen, setPanelOpen] = useState(false);
   const reconnectCoordinationOnOpen = useCoordinationReconnectOnOpen();
   const deviceActions = useDevicePlaybackActions();
@@ -89,15 +93,20 @@ export function Player() {
   );
 
   useEffect(() => {
-    const handleOpen = () => handleDevicePanelOpenChange(true);
+    const handleOpen = () => {
+      if (!isMobile || !fullscreenPlayerOpen) handleDevicePanelOpenChange(true);
+    };
     window.addEventListener("open-device-panel", handleOpen);
     return () => window.removeEventListener("open-device-panel", handleOpen);
-  }, [handleDevicePanelOpenChange]);
+  }, [handleDevicePanelOpenChange, isMobile, fullscreenPlayerOpen]);
+
+  useEffect(() => {
+    if (fullscreenPlayerOpen) setPanelOpen(false);
+  }, [fullscreenPlayerOpen]);
 
   const radioLabel = t("radios.label");
   const audioRef = useRef<HTMLAudioElement>(null);
   const radioRef = useRef<HTMLAudioElement>(null);
-  const isMobile = usePlayerBreakpoint();
   const {
     setAudioPlayerRef,
     setRadioPlayerRef,
@@ -545,6 +554,14 @@ export function Player() {
           onPlaying={handleAudioPlaying}
           onCanPlay={handleAudioCanPlay}
           data-testid="player-radio-audio"
+        />
+      )}
+
+      {isMobile && !fullscreenPlayerOpen && (
+        <DevicePanel
+          open={panelOpen}
+          onOpenChange={handleDevicePanelOpenChange}
+          actions={deviceActions}
         />
       )}
 

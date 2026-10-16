@@ -6,7 +6,7 @@ import { projectPlaybackProgress } from "@/coordination/progress";
 import { useCoordinationStore } from "@/coordination/store";
 import type { PlaybackSnapshot, RemoteCommand } from "@/coordination/types";
 import { getNativeAudioPluginAvailability } from "@/native/audio/facade";
-import { isNativeCoordinationAvailable } from "@/native/coordination";
+import { isNativeCoordinationPlaybackOwned } from "@/native/coordination";
 import { seekPlaybackTarget } from "@/player/playback/backend-registry";
 import { getNativeQueueController } from "@/player/queue-controller";
 import {
@@ -327,7 +327,7 @@ async function prepareNativeHandoffPlayback(
 }
 
 export function CoordinationObserver() {
-  const nativeCoordinationAvailable = isNativeCoordinationAvailable();
+  const nativeCoordinationAvailable = isNativeCoordinationPlaybackOwned();
   const isConnected = useCoordinationStore((state) => state.isConnected);
   const loadState = useCoordinationStore((state) => state.loadState);
   const manager = useCoordinationStore((state) => state.manager);
@@ -787,13 +787,17 @@ export function CoordinationObserver() {
   // Handle handoff_committed: apply the final snapshot (with A's last-second
   // state) and resume playback (design §11.1 step 7).
   useEffect(() => {
-    if (nativeCoordinationAvailable) return;
     if (!isConnected) return;
     const original = manager.callbacks.onHandoffCommitted;
     manager.callbacks.onHandoffCommitted = (
       snapshot: PlaybackSnapshot,
-      _newGeneration: number,
+      newGeneration: number,
     ) => {
+      original(snapshot, newGeneration);
+      if (nativeCoordinationAvailable) {
+        getNativeQueueController()?.syncFromNative(true);
+        return;
+      }
       if (!snapshot.songId) return;
       const state = usePlayerStore.getState();
       const isSameSong = state.songlist.currentSong?.id === snapshot.songId;

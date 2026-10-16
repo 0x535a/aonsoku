@@ -54,6 +54,9 @@ cd coordination-server && cargo run --bin aonsoku-coordination-server
 cd android && ./gradlew :aonsoku-capacitor-native:compileDebugKotlin
 cd android && ./gradlew :aonsoku-capacitor-native:testDebugUnitTest
 
+# iOS playback contracts (macOS + Xcode, no server/device or keychain access)
+node scripts/ios/test-playback-sync.mjs # Queue reorder and source URL/cache/quality parameters
+
 # iOS navigation/player UI (macOS + Xcode, booted iOS Simulator, no server/device)
 node scripts/ios/test-native-shell-bridge.mjs # Actual Debug Capacitor app WK state/layout round trip (build Simulator App first; boot portrait iOS Simulator window)
 node scripts/ios/test-native-shell.mjs # Standalone UITabAccessory regular/inline/control fixture + PNGs in /tmp/aonsoku-native-shell-qa
@@ -148,8 +151,10 @@ empty renderer songlist, takes the cold-start branch, sets
 `src/app/components/player/audio.tsx` skips re-issuing `load()`. The Electron
 main process restores position itself in
 `electron/main/native/audio/service.ts` `#restorePlaybackState()` (persisted via
-`playback-state.json`). Desktop writes are coordinated asynchronously outside
-the playback-command FIFO: full-state changes use a 500ms debounce, progress
+`playback-state.json`). libmpv receives restored/handoff progress through the
+per-file `loadfile` start option because asynchronous loading returns before
+the new source can accept a seek. Desktop writes are coordinated asynchronously
+outside the playback-command FIFO: full-state changes use a 500ms debounce, progress
 uses a 5s/meaningful-change throttle, and the store serializes atomic temporary
 file replacements so older writes cannot overwrite newer state. Clear cancels
 pending work before removing the file, while queue-transaction rollback and
@@ -200,7 +205,9 @@ Electron follows the same renderer/native ownership boundary as Capacitor:
 - `electron/main/native/bridge/` owns credentials, login, server probing, and
   generic Subsonic requests.
 - `electron/main/native/data/` owns metadata sync, persistent library queries,
-  lyrics metadata, and cover/avatar downloads.
+  lyrics metadata, and cover/avatar downloads. `syncAll` and `syncIncremental`
+  honor `includeCoverArt`, `coverArtConcurrency`, and `useAlbumCoverForSongs`,
+  downloading required cover IDs into the main-process `CoverCache`.
 - `electron/main/native/preferences/` owns Electron desktop preference
   persistence exposed through `AonsokuNativePreferences`; renderer-side
   Zustand/UI preference stores should use `src/store/native-storage.ts` instead
@@ -231,6 +238,30 @@ Aonsoku includes a Rust coordination service in `coordination-server/` for
 device registration, presence, playback snapshots, remote control, history
 sync, and handoff. The client-side orchestration lives in `src/coordination/`
 with React state in `src/coordination/store.ts`.
+
+Player and fullscreen handoff UI subscribe through
+`CoordinationManager.subscribeHandoffEvents()` so subscriptions do not replace
+other UI handlers. Mobile handoff restores context/user queues and previous
+user songs without reshuffling the transferred order. Preparation suppresses
+snapshots and stays paused; failure or disconnect restores the preceding queue.
+Commit completion reaches the UI after native preparation, and
+`syncFromNative(true)` hydrates the renderer without reloading playback. The
+compact mobile player owns the device drawer outside fullscreen; fullscreen
+owns its own drawer while open. Existing deploy playlist replacement behavior
+is preserved: replacing playback does not introduce a confirmation dialog.
+
+Electron native playback coordination is owned by
+`electron/main/native/coordination/playback.ts` beside the audio service. It
+publishes snapshots, executes/acknowledges remote commands, prepares queues
+paused, relinquishes through the audio FIFO, and adopts the committed
+session/generation. Session state persists in the main-process coordination
+store. Shutdown tears down coordination before audio. Electron Web Audio
+fallback retains native networking and renderer playback orchestration.
+The native facade retains listeners across reconnects and retries fresh tickets
+with exponential backoff capped at 30 seconds; manual disconnect cancels retries.
+`tsconfig.node.json` includes the provider-neutral coordination types and native
+snapshot helper shared with the renderer; these modules must remain free of UI
+and browser dependencies.
 
 - Web uses the TypeScript WebSocket client (`src/coordination/wsClient.ts`).
 - Electron, iOS, and Android use `src/native/coordination/facade.ts` and their
@@ -719,7 +750,10 @@ Key files:
 
 The Electron build/release/nightly GitHub Actions workflows compile the libmpv
 Node-API addon on every target platform/arch through the reusable composite
-action `.github/actions/setup-native-audio`. It installs or fetches libmpv
+action `.github/actions/setup-native-audio`. Windows installs dependencies with
+`--ignore-scripts`, patches node-gyp for VS 2026, then runs `pnpm rebuild --pending`
+before building native audio. Network downloads and source-build commands have
+bounded timeouts; Windows downloads retry transient failures. It installs or fetches libmpv
 development files, runs `pnpm native-audio:build`, stages the runtime
 libraries into `resources/native-audio/<platform>-<arch>/`, and runs
 `pnpm native-audio:smoke:packaged` before the Electron build.
@@ -761,14 +795,17 @@ expand it to empty before the linker records it.
   paths. Build deps: `build-essential git meson ninja-build pkg-config
   patchelf libavcodec-dev libavformat-dev libavutil-dev libavfilter-dev
   libswresample-dev libswscale-dev libass-dev libpulse-dev libasound2-dev
-  libdbus-1-dev squashfs-tools`. All three Linux makers (`.deb`, `.rpm`, AppImage) bundle
+  libdbus-1-dev dbus-daemon squashfs-tools`. All three Linux makers (`.deb`, `.rpm`, AppImage) bundle
   the audio-only libmpv runtime closure and declare **no** libmpv-related
   package dependency. They do declare a **glibc baseline dependency**
   (`depends: ["libc6 (>= 2.35)"]` / `requires: ["glibc >= 2.35"]` in
   `forge.config.ts`) because CI builds on Ubuntu 22.04 (glibc 2.35). The
   resulting packages require glibc >= 2.35 at runtime.
   Linux CI uses strict `--require-runtime-libs` verification, same as macOS
-  and Windows. The `build:linux`, `make`, and `publish` npm scripts also run
+  and Windows. Packaged Linux smoke checks run inside `dbus-run-session`;
+  the addon skips optional MPRIS registration when `DBUS_SESSION_BUS_ADDRESS`
+  is absent, avoiding blocking desktop integration on headless systems.
+  The `build:linux`, `make`, and `publish` npm scripts also run
   `scripts/native-audio/run-packaged-smoke.mjs --only linux`, so Linux
   local/release paths cover `native-audio:smoke:packaged` (it is a no-op on
   macOS/Windows). On a Linux host targeting Linux,

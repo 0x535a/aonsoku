@@ -525,6 +525,51 @@ describe("cacheManager", () => {
     vi.restoreAllMocks();
   });
 
+  it("runs a higher-quality cover request after a lower-quality one", async () => {
+    const blob = new Blob(["cover"], { type: "image/jpeg" });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(blob),
+    } as Response);
+
+    const { cacheManager } = await import("./cache-manager");
+    const low = cacheManager.cacheCover("cover-upgrade", "100");
+    const high = cacheManager.cacheCover("cover-upgrade", "700");
+
+    await Promise.all([low, high]);
+
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    await vi.waitFor(async () => {
+      expect(
+        (await libraryDb.cacheMeta.get("cover:cover-upgrade"))?.coverSize,
+      ).toBe("700");
+    });
+  });
+
+  it.each([
+    ["100", "original", 2],
+    ["original", "1200", 1],
+  ] as const)(
+    "preserves original quality for concurrent %s and %s requests",
+    async (firstSize, secondSize, downloads) => {
+      const blob = new Blob(["cover"], { type: "image/jpeg" });
+      const fetchCover = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        blob: () => Promise.resolve(blob),
+      } as Response);
+      const { cacheManager } = await import("./cache-manager");
+      await Promise.all([
+        cacheManager.cacheCover("original-upgrade", firstSize),
+        cacheManager.cacheCover("original-upgrade", secondSize),
+      ]);
+      expect(fetchCover).toHaveBeenCalledTimes(downloads);
+      expect(
+        useCacheIndexStore.getState().items["cover:original-upgrade"]
+          ?.coverSize,
+      ).toBe("original");
+    },
+  );
+
   it("cacheSong sets download progress and delegates to audioCacheService", async () => {
     useCacheIndexStore.setState({
       items: {},

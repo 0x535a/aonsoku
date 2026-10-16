@@ -137,6 +137,11 @@ jobs:
             target: "win"
             arch: "arm64"
     runs-on: ${{ matrix.platform }}
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout main branch
         uses: actions/checkout@v4
@@ -156,7 +161,22 @@ jobs:
           cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            pnpm install --frozen-lockfile --ignore-scripts
+          else
+            pnpm install --frozen-lockfile
+          fi
+        env:
+          CYPRESS_INSTALL_BINARY: ${{ matrix.platform == 'windows-11-arm' && '0' || '' }}
+
+      - name: Patch node-gyp and run pending install scripts (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          node scripts/native-audio/ci/patch-node-gyp-vs2026.mjs
+          pnpm rebuild --pending
         env:
           CYPRESS_INSTALL_BINARY: ${{ matrix.platform == 'windows-11-arm' && '0' || '' }}
 
@@ -230,6 +250,8 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

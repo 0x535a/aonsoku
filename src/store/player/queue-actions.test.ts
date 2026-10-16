@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LanControlMessageType } from "@/types/lanControl";
 import { LoopState } from "@/types/playerContext";
 import { createQueueActions } from "./queue-actions";
 
@@ -135,6 +136,7 @@ describe("queue actions", () => {
 
   it("replaces a non-empty context queue immediately", () => {
     const state = makeState();
+    state.playerState.isPlaying = true;
     const actions = createQueueActions({
       set: (fn) => fn(state as never),
       get: () => state as never,
@@ -180,8 +182,34 @@ describe("queue actions", () => {
     });
   });
 
+  it.each(["next", "last"] as const)(
+    "preserves the requested remote %s insertion position",
+    (position) => {
+      const state = makeState();
+      const remoteSend = vi.fn(() => true);
+      const actions = createQueueActions({
+        set: (fn) => fn(state as never),
+        get: () => state as never,
+        isRemoteActive: () => true,
+        remoteSend,
+        clearSonglistState: vi.fn(),
+      });
+      const add =
+        position === "next" ? actions.setNextOnQueue : actions.setLastOnQueue;
+      add?.([makeSong("selected")], { albumId: "album-with-other-songs" });
+      expect(remoteSend).toHaveBeenCalledWith(
+        LanControlMessageType.ADD_TO_QUEUE,
+        {
+          songIds: ["selected"],
+          position,
+        },
+      );
+    },
+  );
+
   it("replaces the queue with one song immediately", () => {
     const state = makeState();
+    state.playerState.isPlaying = true;
     const actions = createQueueActions({
       set: (fn) => fn(state as never),
       get: () => state as never,

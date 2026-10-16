@@ -325,6 +325,7 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
     private var reconnectAttempts: Int = 0
     private var nativeSessionId: String = java.util.UUID.randomUUID().toString()
     private var nativeGeneration: Int = 1
+    @Volatile private var handoffPreparing = false
     private var nativeSnapshotRevision: Int = 0
     private val deviceGenerations = mutableMapOf<String, Int>()
     private val deviceSnapshotRevisions = mutableMapOf<String, Int>()
@@ -584,6 +585,7 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
         val request = Request.Builder().url(urlWithTicket).build()
         this.webSocket = this.client?.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
+                if (this@AonsokuNativeCoordinationPlugin.webSocket !== webSocket) return
                 isConnecting = false
                 reconnectAttempts = 0
                 sendEnvelope(
@@ -604,11 +606,19 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
+                if (this@AonsokuNativeCoordinationPlugin.webSocket !== webSocket) return
                 dispatchEnvelope(text)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                if (this@AonsokuNativeCoordinationPlugin.webSocket !== webSocket) return
+                this@AonsokuNativeCoordinationPlugin.webSocket = null
+                client = null
                 isConnecting = false
+                if (handoffPreparing) {
+                    handoffPreparing = false
+                    AudioPlugin.rollbackHandoffPlaybackFromActive()
+                }
                 stopHeartbeat()
                 stopSnapshotHeartbeat()
                 foregroundServiceConnection = null
@@ -617,8 +627,15 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                if (this@AonsokuNativeCoordinationPlugin.webSocket !== webSocket) return
                 Log.e(TAG, "WS failure", t)
+                this@AonsokuNativeCoordinationPlugin.webSocket = null
+                client = null
                 isConnecting = false
+                if (handoffPreparing) {
+                    handoffPreparing = false
+                    AudioPlugin.rollbackHandoffPlaybackFromActive()
+                }
                 stopHeartbeat()
                 stopSnapshotHeartbeat()
                 foregroundServiceConnection = null
@@ -816,6 +833,10 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
     }
 
     private fun disconnectInternal() {
+        if (handoffPreparing) {
+            handoffPreparing = false
+            AudioPlugin.rollbackHandoffPlaybackFromActive()
+        }
         stopHeartbeat()
         stopSnapshotHeartbeat()
         mainHandler?.removeCallbacks(reconnectRunnable)
@@ -941,7 +962,7 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
     }
 
     private fun publishNativePlaybackSnapshot(onlyWhenPlaying: Boolean = false): Boolean {
-        if (webSocket == null) return false
+        if (webSocket == null || handoffPreparing) return false
         val audioState = AudioPlugin.getFullStateFromActive() ?: return false
         if (onlyWhenPlaying && !audioState.optBoolean("isPlaying", false)) {
             return false
@@ -1033,6 +1054,9 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
             seqTracker.observe(extractSeq(parsed))
             // §9.1: dedup command/snapshot_projection envelopes by messageId.
             val type = extractType(parsed)
+            if (type == "prepare_relinquish" || type?.startsWith("handoff_") == true || type == "session_superseded") {
+                logDebug("coordination: received $type")
+            }
             if (type == "snapshot_projection") {
                 val snapshotDeviceId = parsed.optString("deviceId", "")
                 val generation = parsed.optInt("generation", 0)
@@ -1114,6 +1138,7 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
             if (type == "prepare_relinquish") {
                 val transactionId = parsed.optString("transactionId", "")
                 val audioState = AudioPlugin.pauseAndGetFullStateFromActive()
+                logDebug("coordination: relinquish captured=${audioState != null}")
                 val snapshot = if (audioState != null) {
                     buildPlaybackSnapshot(
                         sessionId = nativeSessionId,
@@ -1145,6 +1170,8 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
                 }
             }
             if (type == "handoff_candidate") {
+                handoffPreparing = true
+                val connection = webSocket
                 val snapshot = parsed.optJSONObject("snapshot")
                 val transactionId = parsed.optString("transactionId", "")
                 val sourceDeviceId = parsed.optString("sourceDeviceId", "")
@@ -1159,6 +1186,7 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
                         snapshot,
                         autoplay = false,
                     ) { prepared ->
+                        if (webSocket !== connection || !handoffPreparing) return@prepareHandoffPlaybackFromActive
                         if (prepared) {
                             sendEnvelope(
                                 buildTargetReadyEnvelope(
@@ -1171,6 +1199,8 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
                                 ),
                             )
                         } else {
+                            handoffPreparing = false
+                            AudioPlugin.rollbackHandoffPlaybackFromActive()
                             sendEnvelope(
                                 buildHandoffFailedEnvelope(
                                     protocolVersion,
@@ -1184,6 +1214,7 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
                     false
                 }
                 if (!accepted && transactionId.isNotEmpty()) {
+                    handoffPreparing = false
                     sendEnvelope(
                         buildHandoffFailedEnvelope(
                             protocolVersion,
@@ -1199,16 +1230,32 @@ class AonsokuNativeCoordinationPlugin : Plugin() {
                 pendingNativeHandoffRetryWaitingForSnapshot = false
                 pendingNativeHandoffRetryCount = 0
                 val snapshot = parsed.optJSONObject("snapshot")
+                if (snapshot != null) {
+                    nativeSessionId = snapshot.optString("sessionId", nativeSessionId)
+                    nativeGeneration = parsed.optInt("newGeneration", nativeGeneration)
+                    nativeSnapshotRevision = 0
+                }
                 val accepted = snapshot != null &&
                     AudioPlugin.prepareHandoffPlaybackFromActive(
                         snapshot,
                         autoplay = true,
-                    ) { }
+                    ) { prepared ->
+                        handoffPreparing = false
+                        if (prepared) {
+                            publishNativePlaybackSnapshot()
+                            notifyListeners("coordinationEvent", JSObject().put("envelopeJson", json))
+                        } else {
+                            AudioPlugin.rollbackHandoffPlaybackFromActive()
+                            notifyListeners("coordinationEvent", JSObject().put("envelopeJson", buildHandoffFailedEnvelope(protocolVersion, parsed.optString("transactionId"), "unsupported_media").toString()))
+                        }
+                    }
                 if (accepted) {
                     return
                 }
             }
             if (type == "handoff_failed") {
+                handoffPreparing = false
+                AudioPlugin.rollbackHandoffPlaybackFromActive()
                 pendingNativeHandoffSourceDeviceId = null
                 pendingNativeHandoffRetryWaitingForSnapshot = false
                 pendingNativeHandoffRetryCount = 0

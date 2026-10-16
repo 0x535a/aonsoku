@@ -1875,6 +1875,92 @@ describe("NativeAudioService", () => {
     });
   });
 
+  it("captures relinquish state after pause and before a later seek", async () => {
+    await service.setContextQueue({
+      songs: [queueSong("1")],
+      currentIndex: 0,
+      autoplay: true,
+    });
+    engine.seek.mockImplementation(async (currentTime) => {
+      engine.emit({
+        type: "progress",
+        currentTime,
+        duration: 100,
+        bufferedTime: 100,
+      });
+    });
+    await service.seek({ position: 42 });
+    const paused = deferred<void>();
+    engine.pause.mockImplementationOnce(() => paused.promise);
+    const captured = service.pauseAndGetFullState();
+    const seeking = service.seek({ position: 85 });
+    await vi.waitFor(() => expect(engine.pause).toHaveBeenCalledOnce());
+    expect(engine.seek).toHaveBeenCalledTimes(1);
+    paused.resolve();
+    await expect(captured).resolves.toMatchObject({
+      currentTime: 42,
+      isPlaying: false,
+    });
+    await seeking;
+    await expect(service.getFullState()).resolves.toMatchObject({
+      currentTime: 85,
+    });
+  });
+
+  it("restores a handoff user queue atomically and rolls back a failed load", async () => {
+    await service.setContextQueue({
+      songs: [queueSong("1"), queueSong("2")],
+      currentIndex: 1,
+    });
+    const before = await service.getFullState();
+    const prepared: NativeFullState = {
+      ...before,
+      userQueue: [queueSong("u"), queueSong("v")],
+      originalUserSongs: [queueSong("u"), queueSong("v")],
+      playedUserQueueHistory: [queueSong("p")],
+      isInUserQueue: true,
+      currentSongId: "u",
+      currentTime: 51,
+      isShuffleActive: true,
+      loopState: "all",
+    };
+    engine.load.mockRejectedValueOnce(new Error("handoff load failed"));
+    await expect(service.restoreQueueState(prepared, false)).rejects.toThrow(
+      "handoff load failed",
+    );
+    await expect(service.getFullState()).resolves.toMatchObject({
+      currentSongId: "2",
+      userQueue: [],
+      isInUserQueue: false,
+    });
+    const events: NativeAudioServiceEvent[] = [];
+    service.onEvent((event) => events.push(event));
+    await service.restoreQueueState(prepared, false);
+    expect(events).toContainEqual(
+      expect.objectContaining({ eventName: "queueContentsChanged" }),
+    );
+    expect(events).not.toContainEqual(
+      expect.objectContaining({ eventName: "queueStateChanged" }),
+    );
+    expect(engine.load).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ title: "Title u" }),
+        autoplay: false,
+        startTime: 51,
+      }),
+    );
+    await expect(service.getFullState()).resolves.toMatchObject({
+      currentSongId: "u",
+      currentTime: 51,
+      isPlaying: false,
+      userQueue: [{ id: "u" }, { id: "v" }],
+      playedUserQueueHistory: [{ id: "p" }],
+      isInUserQueue: true,
+      isShuffleActive: true,
+      loopState: "all",
+    });
+  });
+
   it("orders system media and renderer queue commands through one FIFO", async () => {
     await service.setContextQueue({
       songs: [queueSong("1"), queueSong("2"), queueSong("3")],
@@ -2274,6 +2360,30 @@ describe("NativeAudioService", () => {
         reason: "unshuffle",
       },
     });
+  });
+
+  it("does not advance the queue or fire the track-end sleep timer on source replacement stops", async () => {
+    const events: NativeAudioServiceEvent[] = [];
+    service.onEvent((event) => events.push(event));
+    await service.setContextQueue({
+      songs: [queueSong("1"), queueSong("2")],
+      currentIndex: 0,
+    });
+    const loads = engine.load.mock.calls.length;
+    engine.emit({ type: "ended", reason: "stopped" });
+    engine.emit({ type: "ended", reason: "stopped" });
+    await service.pauseAndGetFullState();
+    expect(engine.load).toHaveBeenCalledTimes(loads);
+    await expect(service.getFullState()).resolves.toMatchObject({
+      currentSongId: "1",
+      contextQueue: { currentIndex: 0 },
+    });
+    await service.setSleepTimer({ mode: "endOfTrack", seconds: 0 });
+    engine.emit({ type: "ended", reason: "stopped" });
+    await service.pauseAndGetFullState();
+    expect(events.some((event) => event.eventName === "sleepTimerFired")).toBe(
+      false,
+    );
   });
 
   it("uses the queue engine for ended, repeat all, and repeat one", async () => {

@@ -65,7 +65,6 @@ export class LibMpvAudioEngine implements DesktopAudioEngine {
   #metadata: NativeAudioMetadata = {};
   #isPaused = true;
   #hasLoadedSource = false;
-  #ignoreNextStopEnd = false;
   #destroyed = false;
   #remoteProjectionActive = false;
 
@@ -80,7 +79,6 @@ export class LibMpvAudioEngine implements DesktopAudioEngine {
       "libmpv-engine",
     );
     const player = await this.#ensureStarted();
-    this.#ignoreNextStopEnd = this.#hasLoadedSource;
     this.#hasLoadedSource = false;
     this.#currentTime = Math.max(0, options.startTime ?? 0);
     this.#duration = normalizeSeconds(options.metadata?.duration);
@@ -91,11 +89,13 @@ export class LibMpvAudioEngine implements DesktopAudioEngine {
 
     await this.#setProperty(player, "pause", this.#isPaused);
     await this.updateMetadata(options.metadata ?? {});
-    await this.#command(player, ["loadfile", options.source.target, "replace"]);
-
-    if (this.#currentTime > 0) {
-      await this.seek(this.#currentTime);
-    }
+    // loadfile returns before the new file opens. An immediate seek can fail
+    // with no loaded file or seek the old source during replacement.
+    const loadCommand = ["loadfile", options.source.target, "replace"];
+    if (this.#currentTime > 0)
+      loadCommand.push("-1", `start=${this.#currentTime}`);
+    await this.#command(player, loadCommand);
+    if (this.#currentTime > 0) this.#emitProgress();
   }
 
   async play(): Promise<void> {
@@ -117,7 +117,6 @@ export class LibMpvAudioEngine implements DesktopAudioEngine {
   async stop(): Promise<void> {
     if (!this.#player) return;
 
-    this.#ignoreNextStopEnd = true;
     await this.#command(this.#player, ["stop"]);
     await this.#player.clearSystemMediaSession();
     this.#hasLoadedSource = false;
@@ -151,7 +150,6 @@ export class LibMpvAudioEngine implements DesktopAudioEngine {
 
   async clear(): Promise<void> {
     if (this.#player) {
-      this.#ignoreNextStopEnd = true;
       await this.#command(this.#player, ["stop"]);
     }
 
@@ -344,10 +342,10 @@ export class LibMpvAudioEngine implements DesktopAudioEngine {
   }
 
   #handleEndFile(event: Extract<MpvPlayerEvent, { type: "end-file" }>): void {
-    if (event.reason === "stop" && this.#ignoreNextStopEnd) {
-      this.#ignoreNextStopEnd = false;
-      return;
-    }
+    // All our loadfile commands replace the source; libmpv may report more
+    // than one delayed stop when prepare and commit overlap file opening.
+    // Explicit stop() already publishes the stopped state itself.
+    if (event.reason === "stop") return;
 
     this.#hasLoadedSource = false;
     this.#emit({ type: "bufferingChanged", isBuffering: false });

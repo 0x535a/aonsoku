@@ -9,6 +9,7 @@ import {
   createNativeCoordinationFetch,
   getNativeCoordinationAvailability,
   isNativeCoordinationAvailable,
+  isNativeCoordinationPlaybackOwned,
   NativeCoordinationClient,
   NativeCoordinationTokenStore,
 } from "@/native/coordination";
@@ -37,6 +38,7 @@ import type {
   PlaybackSnapshot,
   RemoteCommand,
   SessionGeneration,
+  SessionId,
   SnapshotRevision,
 } from "./types";
 import { COORDINATION_PROTOCOL_VERSION, CoordinationCapability } from "./types";
@@ -107,7 +109,15 @@ export interface CoordinationManagerCallbacks {
   onError: (code: string, reason: string) => void;
 }
 
+type HandoffEventCallbacks = Partial<
+  Pick<CoordinationManagerCallbacks, "onHandoffCommitted" | "onHandoffFailed">
+> & {
+  // Return true when the subscriber has handled this error.
+  onError?: (code: string, reason: string) => boolean;
+};
+
 export class CoordinationManager {
+  private handoffListeners = new Set<HandoffEventCallbacks>();
   private httpClient: CoordinationHttpClient | null = null;
   /// Unified coordination client — either `CoordinationWsClient` (web)
   /// or `NativeCoordinationClient` (Electron/iOS/Android).
@@ -144,9 +154,16 @@ export class CoordinationManager {
   private fetchImpl: typeof fetch = fetch.bind(globalThis);
 
   constructor(
-    private readonly callbacks: CoordinationManagerCallbacks,
+    readonly callbacks: CoordinationManagerCallbacks,
     private readonly getRecoveryCredentials?: CoordinationRecoveryProvider,
   ) {}
+
+  subscribeHandoffEvents(callbacks: HandoffEventCallbacks): () => void {
+    this.handoffListeners.add(callbacks);
+    return () => {
+      this.handoffListeners.delete(callbacks);
+    };
+  }
 
   isConfigured(): boolean {
     return this.config !== null;
@@ -346,11 +363,17 @@ export class CoordinationManager {
       },
       onHandoffCommitted: (env) => {
         if (env.type === "handoff_committed") {
+          for (const listener of this.handoffListeners) {
+            listener.onHandoffCommitted?.(env.snapshot, env.newGeneration);
+          }
           this.callbacks.onHandoffCommitted(env.snapshot, env.newGeneration);
         }
       },
       onHandoffFailed: (env) => {
         if (env.type === "handoff_failed") {
+          for (const listener of this.handoffListeners) {
+            listener.onHandoffFailed?.(env.transactionId, env.code);
+          }
           this.callbacks.onHandoffFailed(env.transactionId, env.code);
         }
       },
@@ -367,7 +390,13 @@ export class CoordinationManager {
           );
         }
       },
-      onError: (code, reason) => this.callbacks.onError(code, reason),
+      onError: (code, reason) => {
+        let handled = false;
+        for (const listener of this.handoffListeners) {
+          if (listener.onError?.(code, reason)) handled = true;
+        }
+        if (!handled) this.callbacks.onError(code, reason);
+      },
     };
     const ticketFn = async (): Promise<string | null> => {
       if (!this.httpClient) return null;
@@ -388,22 +417,12 @@ export class CoordinationManager {
           this.deviceId,
           this.capabilities,
           cb,
+          isNativeCoordinationPlaybackOwned(),
         );
-        // Reconnect path: the native layer cannot self-reconnect (single-use
-        // ticket, §6.3), so it fires `coordinationReconnectNeeded` and we
-        // re-fetch a ticket via `openWebSocket()` (which re-ents connect()).
-        // We reuse the existing `reconnect()` flow — it re-fetches a ticket
-        // and calls `connect()` on the native plugin again.
+        // Keep the facade and its listeners alive while acquiring a fresh
+        // one-time ticket. It retries ticket/network failures with backoff.
         nativeClient.setReconnectHandler(async () => {
-          // Drop the stale client and open a fresh connection. The old ticket
-          // is single-use and expired, so we must build a new client.
-          try {
-            await this.coordClient?.disconnect();
-          } catch {
-            // ignore
-          }
-          this.coordClient = null;
-          await this.openWebSocket();
+          await nativeClient.connect();
         });
         this.coordClient = nativeClient;
         this.wireRefreshGeneration(nativeClient);

@@ -583,6 +583,35 @@ export class NativeAudioService implements AonsokuAudioApi {
     );
   }
 
+  pauseAndGetFullState(): Promise<NativeFullState> {
+    return this.#enqueuePlaybackCommand(async () => {
+      await this.#pause();
+      return this.#playbackStateSnapshot();
+    });
+  }
+
+  /** Restore a prepared coordination queue through the playback FIFO. */
+  restoreQueueState(state: NativeFullState, autoplay: boolean): Promise<void> {
+    return this.#enqueuePlaybackCommand(() =>
+      this.#runQueueTransaction(async () => {
+        this.#rememberQueueSongs([
+          ...state.contextQueue.songs,
+          ...state.userQueue,
+          ...state.playedUserQueueHistory,
+        ]);
+        this.#queueEngine.restoreState(state);
+        const song = this.#queueEngine.currentSong;
+        if (!song) throw new Error("handoff queue has no current song");
+        await this.#loadQueueSong(song, {
+          autoplay,
+          startTime: state.currentTime,
+        });
+        this.#persistPlaybackState();
+        this.#emitQueueContentsChanged("queue-edit");
+      }),
+    );
+  }
+
   async #restorePlaybackState(): Promise<void> {
     const state = this.#playbackStateStore.load();
     if (!state) return;
@@ -969,6 +998,9 @@ export class NativeAudioService implements AonsokuAudioApi {
         });
         break;
       case "ended":
+        // Replacing a source or explicitly stopping it is not a track finish.
+        // Rapid prepare/commit loads can deliver delayed libmpv stop events.
+        if (event.reason !== "finished") break;
         nativeLogger.info(
           `ended reason=${event.reason ?? "unknown"}`,
           "audio-service",

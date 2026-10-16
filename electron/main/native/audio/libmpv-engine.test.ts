@@ -103,8 +103,15 @@ describe("LibMpvAudioEngine", () => {
       ["force-media-title", "Track"],
     ]);
     expect(player.command.mock.calls).toEqual([
-      [["loadfile", "https://server/rest/stream?id=song-1", "replace"]],
-      [["seek", "12", "absolute", "exact"]],
+      [
+        [
+          "loadfile",
+          "https://server/rest/stream?id=song-1",
+          "replace",
+          "-1",
+          "start=12",
+        ],
+      ],
     ]);
     expect(events).toEqual([
       { type: "playbackStateChanged", state: "loading" },
@@ -115,6 +122,39 @@ describe("LibMpvAudioEngine", () => {
         duration: 123,
         bufferedTime: 12,
       },
+    ]);
+  });
+
+  it("restores paused progress before a newly opened source is seekable", async () => {
+    const { engine, player } = createHarness();
+    let loaded = false;
+    player.command.mockImplementation(async (args) => {
+      if (args[0] === "seek" && !loaded) throw new Error("no file loaded");
+    });
+    await engine.load({
+      source: {
+        kind: "stream",
+        target: "https://server/rest/stream?id=handoff",
+      },
+      autoplay: false,
+      startTime: 61.8,
+    });
+    expect(player.command).toHaveBeenCalledWith([
+      "loadfile",
+      "https://server/rest/stream?id=handoff",
+      "replace",
+      "-1",
+      "start=61.8",
+    ]);
+    expect(player.setProperty).toHaveBeenCalledWith("pause", true);
+    loaded = true;
+    player.emit({ type: "file-loaded" });
+    await engine.seek(80);
+    expect(player.command).toHaveBeenLastCalledWith([
+      "seek",
+      "80",
+      "absolute",
+      "exact",
     ]);
   });
 
@@ -325,6 +365,26 @@ describe("LibMpvAudioEngine", () => {
         (event) => event.type === "ended" && event.reason === "stopped",
       ),
     ).toHaveLength(1);
+  });
+
+  it("ignores delayed replacement stops when handoff commits before the prepared source opens", async () => {
+    const { engine, events, player } = createHarness();
+    const source = { kind: "stream" as const, target: "https://server/stream" };
+    await engine.load({ source, autoplay: true });
+    player.emit({ type: "file-loaded" });
+    await engine.load({ source, autoplay: false, startTime: 42 });
+    await engine.load({ source, autoplay: true, startTime: 43 });
+    events.length = 0;
+    player.emit({ type: "end-file", reason: "stop" });
+    player.emit({ type: "end-file", reason: "stop" });
+    player.emit({ type: "file-loaded" });
+    expect(events).not.toContainEqual(
+      expect.objectContaining({ type: "ended" }),
+    );
+    expect(events).toContainEqual({
+      type: "playbackStateChanged",
+      state: "playing",
+    });
   });
 
   it("sets player volume through the mpv volume property", async () => {

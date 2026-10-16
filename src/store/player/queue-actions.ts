@@ -464,7 +464,7 @@ export function createQueueActions(shared: SharedDeps) {
     ) => {
       if (isRemoteActive()) {
         if (list.length === 0) return;
-        sendAddToQueueRemote(remoteSend, sourceId, list);
+        sendAddToQueueRemote(remoteSend, list, "next");
         return;
       }
       if (!list || list.length === 0) return;
@@ -493,7 +493,7 @@ export function createQueueActions(shared: SharedDeps) {
     ) => {
       if (isRemoteActive()) {
         if (list.length === 0) return;
-        sendAddToQueueRemote(remoteSend, sourceId, list);
+        sendAddToQueueRemote(remoteSend, list, "last");
         return;
       }
       if (!list || list.length === 0) return;

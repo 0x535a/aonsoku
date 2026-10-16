@@ -18,7 +18,9 @@
     "electron.vite.config.*",
     "electron/env.d.ts",
     "electron/main/**/*",
-    "electron/preload/**/*"
+    "electron/preload/**/*",
+    "src/coordination/types.ts",
+    "src/coordination/native-full-state-snapshot.ts"
   ],
-  "exclude": ["src/**/*"]
+  "exclude": []
 }

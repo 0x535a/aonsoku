@@ -19,7 +19,7 @@ private struct PendingNativeCommand {
 /// `shouldUseExtendedBackgroundIdleMode = true` so iOS keeps the WebSocket
 /// eligible for execution while the app is backgrounded, as long as the audio
 /// session is active. The plugin mirrors the AVAudioSession interruption /
-/// route-change observer pattern used by `AonsokuNativeAudioPlugin`: when the
+/// route-change observer pattern used by `NativePlaybackService`: when the
 /// audio session is active the coordination session is kept eligible for
 /// background execution; when the audio session is interrupted (e.g. another
 /// app takes audio, battery saver, or background audio is disabled) the plugin
@@ -237,7 +237,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
     /// the background reconnects cleanly (design §2.1.8).
     private var backgroundCompletionHandler: (() -> Void)?
 
-    /// Audio-session observers mirroring AonsokuNativeAudioPlugin's pattern.
+    /// Audio-session observers mirroring NativePlaybackService's pattern.
     /// When the audio session is active the coordination URLSession is kept
     /// eligible for background execution; when interrupted, the plugin
     /// degrades gracefully.
@@ -546,7 +546,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
 
     @objc func sendControlSessionEnd(_ call: CAPPluginCall) {
         activeRemoteControlTargetDeviceId = nil
-        AonsokuNativeAudioPlugin.clearRemotePlaybackProjectionFromActive()
+        NativePlaybackService.clearRemotePlaybackProjectionFromActive()
         let env: [String: Any] = [
             "version": self.protocolVersion,
             "messageId": UUID().uuidString,
@@ -714,7 +714,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
 
     // MARK: - Audio Session Observers (§2.1.8)
 
-    /// Mirrors the observer pattern in AonsokuNativeAudioPlugin. When the
+    /// Mirrors the observer pattern in NativePlaybackService. When the
     /// audio session is active the coordination URLSession is kept eligible
     /// for background execution; when interrupted the plugin degrades
     /// gracefully (stops heartbeat, emits `disconnected`, resumes on the next
@@ -827,7 +827,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
     private func disconnectInternal() {
         if handoffPreparing {
             handoffPreparing = false
-            AonsokuNativeAudioPlugin.rollbackHandoffPlaybackFromActive()
+            NativePlaybackService.rollbackHandoffPlaybackFromActive()
         }
         self.heartbeatTimer?.invalidate()
         self.heartbeatTimer = nil
@@ -949,9 +949,9 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
                 }
                 if deviceId == self.activeRemoteControlTargetDeviceId {
                     if dict["isOnline"] as? Bool == false {
-                        AonsokuNativeAudioPlugin.clearRemotePlaybackProjectionFromActive()
+                        NativePlaybackService.clearRemotePlaybackProjectionFromActive()
                     } else if let snapshot = dict["snapshot"] as? [String: Any] {
-                        AonsokuNativeAudioPlugin.updateRemotePlaybackProjectionFromActive(
+                        NativePlaybackService.updateRemotePlaybackProjectionFromActive(
                             snapshot: snapshot,
                             targetDeviceId: deviceId,
                             expectedGeneration: generation
@@ -999,7 +999,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
             if let type = dict["type"] as? String,
                type == "command",
                let command = dict["command"] as? [String: Any],
-               AonsokuNativeAudioPlugin.executeRemoteControlCommandFromActive(command) {
+               NativePlaybackService.executeRemoteControlCommandFromActive(command) {
                 if let messageId = dict["messageId"] as? String {
                     self.sendEnvelope(Self.buildCommandAckEnvelope(
                         protocolVersion: self.protocolVersion,
@@ -1022,7 +1022,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
                type == "prepare_relinquish",
                let transactionId = dict["transactionId"] as? String,
                !transactionId.isEmpty {
-                if let audioState = AonsokuNativeAudioPlugin.pauseAndGetFullStateFromActive(),
+                if let audioState = NativePlaybackService.pauseAndGetFullStateFromActive(),
                    let snapshot = Self.buildPlaybackSnapshot(
                        sessionId: nativeSessionId,
                        audioState: audioState,
@@ -1054,7 +1054,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
                     !transactionId.isEmpty &&
                     !sourceDeviceId.isEmpty &&
                     !sessionId.isEmpty
-                let accepted = canPrepare && AonsokuNativeAudioPlugin.prepareHandoffPlaybackFromActive(
+                let accepted = canPrepare && NativePlaybackService.prepareHandoffPlaybackFromActive(
                     snapshot: snapshot ?? [:],
                     autoplay: false,
                     completion: { prepared in
@@ -1070,7 +1070,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
                             ))
                         } else {
                             self.handoffPreparing = false
-                            AonsokuNativeAudioPlugin.rollbackHandoffPlaybackFromActive()
+                            NativePlaybackService.rollbackHandoffPlaybackFromActive()
                             self.sendEnvelope(Self.buildHandoffFailedEnvelope(
                                 protocolVersion: self.protocolVersion,
                                 transactionId: transactionId,
@@ -1095,7 +1095,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
                 nativeSessionId = snapshot["sessionId"] as? String ?? nativeSessionId
                 nativeGeneration = dict["newGeneration"] as? Int ?? nativeGeneration
                 nativeSnapshotRevision = 0
-                let accepted = AonsokuNativeAudioPlugin.prepareHandoffPlaybackFromActive(
+                let accepted = NativePlaybackService.prepareHandoffPlaybackFromActive(
                    snapshot: snapshot,
                    autoplay: true,
                    completion: { prepared in
@@ -1106,7 +1106,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
                                self.notifyListeners("coordinationEvent", data: ["envelopeJson": json])
                            }
                        } else {
-                           AonsokuNativeAudioPlugin.rollbackHandoffPlaybackFromActive()
+                           NativePlaybackService.rollbackHandoffPlaybackFromActive()
                            let failure = Self.buildHandoffFailedEnvelope(
                                protocolVersion: self.protocolVersion,
                                transactionId: dict["transactionId"] as? String ?? "",
@@ -1130,7 +1130,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
             }
             if let type = dict["type"] as? String, type == "handoff_failed" {
                 handoffPreparing = false
-                AonsokuNativeAudioPlugin.rollbackHandoffPlaybackFromActive()
+                NativePlaybackService.rollbackHandoffPlaybackFromActive()
                 pendingNativeHandoffSourceDeviceId = nil
                 pendingNativeHandoffRetryWaitingForSnapshot = false
                 pendingNativeHandoffRetryCount = 0
@@ -1140,7 +1140,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
                 nativeSessionId = UUID().uuidString
                 nativeGeneration = 1
                 nativeSnapshotRevision = 0
-                _ = AonsokuNativeAudioPlugin.executeRemoteControlCommandFromActive(["type": "pause"])
+                _ = NativePlaybackService.executeRemoteControlCommandFromActive(["type": "pause"])
                 return
             }
         }
@@ -1158,7 +1158,7 @@ public class AonsokuNativeCoordinationPlugin: CAPPlugin, URLSessionWebSocketDele
     private func publishNativePlaybackSnapshot(onlyWhenPlaying: Bool = false) -> Bool {
         if handoffPreparing { return false }
         guard self.webSocketTask != nil,
-              let audioState = AonsokuNativeAudioPlugin.getFullStateFromActive(),
+              let audioState = NativePlaybackService.getFullStateFromActive(),
               let snapshot = Self.buildPlaybackSnapshot(
                 sessionId: nativeSessionId,
                 audioState: audioState,

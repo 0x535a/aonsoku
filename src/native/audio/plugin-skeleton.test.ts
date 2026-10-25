@@ -112,12 +112,19 @@ describe("Aonsoku native audio plugin skeleton", () => {
   });
 
   it("bridges and implements the expected native methods", () => {
-    const swift = readText(
-      path.join(
-        pluginRoot,
-        "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
-      ),
-    );
+    const swift =
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
+        ),
+      ) +
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/NativePlaybackService.swift",
+        ),
+      );
 
     expect(swift).toContain("import AVFoundation");
     expect(swift).toContain("import MediaPlayer");
@@ -145,12 +152,19 @@ describe("Aonsoku native audio plugin skeleton", () => {
   });
 
   it("emits the shared playback backend event names from native iOS", () => {
-    const swift = readText(
-      path.join(
-        pluginRoot,
-        "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
-      ),
-    );
+    const swift =
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
+        ),
+      ) +
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/NativePlaybackService.swift",
+        ),
+      );
 
     for (const eventName of nativeAudioEventNames) {
       expect(swift).toContain(`notifyListeners("${eventName}"`);
@@ -158,19 +172,26 @@ describe("Aonsoku native audio plugin skeleton", () => {
   });
 
   it("leaves the iOS volume HUD unsuppressed outside fullscreen", () => {
-    const swift = readText(
-      path.join(
-        pluginRoot,
-        "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
-      ),
-    );
+    const swift =
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
+        ),
+      ) +
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/NativePlaybackService.swift",
+        ),
+      );
     const setupVolumeControl =
       swift.match(
-        /private func setupVolumeControl\(\) \{([\s\S]*?)\n {4}@objc func setSystemVolume/,
+        /private func setupVolumeControl\(\) \{([\s\S]*?)\n {4}func setSystemVolume/,
       )?.[1] ?? "";
     const setVolumeHUDEnabled =
       swift.match(
-        /@objc func setVolumeHUDEnabled\(_ call: CAPPluginCall\) \{([\s\S]*?)\n {4}private func removeVolumeSliderView/,
+        /func setVolumeHUDEnabled\(_ call: NativePlaybackRequest\) \{([\s\S]*?)\n {4}private func removeVolumeSliderView/,
       )?.[1] ?? "";
     const hudEnabledBranch =
       setVolumeHUDEnabled.match(/if enabled \{([\s\S]*?)\} else \{/)?.[1] ?? "";
@@ -191,12 +212,19 @@ describe("Aonsoku native audio plugin skeleton", () => {
     const packageDefinitions = readText(
       path.join(pluginRoot, "src/audio/definitions.ts"),
     );
-    const swift = readText(
-      path.join(
-        pluginRoot,
-        "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
-      ),
-    );
+    const swift =
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
+        ),
+      ) +
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/NativePlaybackService.swift",
+        ),
+      );
 
     expect(appTypes).toContain('export * from "@aonsoku/audio-contract"');
     expect(appTypes).toContain("AonsokuAudioBridge as NativeAudioPlugin");
@@ -224,12 +252,19 @@ describe("Aonsoku native audio plugin skeleton", () => {
     const infoPlist = readText(
       path.join(process.cwd(), "ios/App/App/Info.plist"),
     );
-    const swift = readText(
-      path.join(
-        pluginRoot,
-        "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
-      ),
-    );
+    const swift =
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
+        ),
+      ) +
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/NativePlaybackService.swift",
+        ),
+      );
 
     expect(infoPlist).toContain("<key>UIBackgroundModes</key>");
     expect(infoPlist).toContain("<string>audio</string>");
@@ -246,12 +281,19 @@ describe("Aonsoku native audio plugin skeleton", () => {
   });
 
   it("updates iOS Now Playing metadata, artwork, and remote commands", () => {
-    const swift = readText(
-      path.join(
-        pluginRoot,
-        "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
-      ),
-    );
+    const swift =
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
+        ),
+      ) +
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/NativePlaybackService.swift",
+        ),
+      );
     const imageCacheSwift = readText(
       path.join(
         pluginRoot,
@@ -298,12 +340,19 @@ describe("Aonsoku native audio plugin skeleton", () => {
   });
 
   it("tracks radio sources and resets native state on clear", () => {
-    const swift = readText(
-      path.join(
-        pluginRoot,
-        "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
-      ),
-    );
+    const swift =
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
+        ),
+      ) +
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/NativePlaybackService.swift",
+        ),
+      );
 
     expect(swift).toContain('case "radio":');
     expect(swift).toContain('case "native-file":');
@@ -319,12 +368,19 @@ describe("Aonsoku native audio plugin skeleton", () => {
   });
 
   it("stores and resolves iOS native cached audio files", () => {
-    const swift = readText(
-      path.join(
-        pluginRoot,
-        "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
-      ),
-    );
+    const swift =
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
+        ),
+      ) +
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/NativePlaybackService.swift",
+        ),
+      );
 
     expect(swift).toContain("@objc func storeAudioFile");
     expect(swift).toContain("@objc func resolveAudioFile");
@@ -341,12 +397,19 @@ describe("Aonsoku native audio plugin skeleton", () => {
   });
 
   it("guards native lifecycle events against stale source changes", () => {
-    const swift = readText(
-      path.join(
-        pluginRoot,
-        "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
-      ),
-    );
+    const swift =
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
+        ),
+      ) +
+      readText(
+        path.join(
+          pluginRoot,
+          "ios/Sources/AonsokuNativePlugin/Audio/NativePlaybackService.swift",
+        ),
+      );
 
     expect(swift).toContain("private var currentRequestId: String?");
     expect(swift).toContain("private var playbackGeneration = 0");

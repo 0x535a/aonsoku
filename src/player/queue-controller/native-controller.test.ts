@@ -486,6 +486,81 @@ describe("NativeQueueController handoff preparation", () => {
   });
 });
 
+describe("NativeQueueController CarPlay updates", () => {
+  it("adopts a native content selection without reloading playback", async () => {
+    const previous = await mocks.plugin.getFullState();
+    const song = {
+      id: "carplay-song",
+      title: "CarPlay selection",
+      duration: 180,
+    };
+    vi.mocked(mocks.plugin.getFullState).mockResolvedValue({
+      ...previous,
+      contextQueue: {
+        songs: [song],
+        currentIndex: 0,
+        sourceId: { type: "album", id: "carplay-album" },
+        sourceName: "CarPlay album",
+      },
+      currentSongId: song.id,
+      isPlaying: true,
+      currentTime: 5,
+      duration: 180,
+    } as never);
+    vi.mocked(mocks.plugin.load).mockClear();
+    vi.mocked(mocks.plugin.setContextQueue).mockClear();
+    const controller = new NativeQueueController();
+    controller.consumeNativeDrivenTransition();
+    emit("queueContentsChanged", { reason: "queue-edit" });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mocks.storeState.songlist.currentSong).toMatchObject({
+      id: song.id,
+    });
+    expect(mocks.storeState.songlist.contextQueue.sourceName).toBe(
+      "CarPlay album",
+    );
+    expect(mocks.storeState.playerProgress.progress).toBe(5);
+    expect(controller.consumeNativeDrivenTransition()).toBe(true);
+    expect(mocks.plugin.load).not.toHaveBeenCalled();
+    expect(mocks.plugin.setContextQueue).not.toHaveBeenCalled();
+    controller.dispose();
+    vi.mocked(mocks.plugin.getFullState).mockResolvedValue(previous);
+  });
+
+  it("reflects native repeat controls without replacing the current queue", async () => {
+    const previous = await mocks.plugin.getFullState();
+    const song = {
+      id: "carplay-song",
+      title: "CarPlay selection",
+      duration: 180,
+    };
+    mocks.storeState.songlist.contextQueue.songs = [song as never];
+    mocks.storeState.songlist.currentSong = song as never;
+    vi.mocked(mocks.plugin.getFullState).mockResolvedValue({
+      ...previous,
+      contextQueue: {
+        songs: [song],
+        currentIndex: 0,
+        sourceId: null,
+        sourceName: null,
+      },
+      currentSongId: song.id,
+      loopState: "one",
+      isRestored: false,
+    } as never);
+    const controller = new NativeQueueController();
+    controller.consumeNativeDrivenTransition();
+    emit("queueContentsChanged", { reason: "playback-mode" });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mocks.storeState.playerState.loopState).toBe(LoopState.One);
+    expect(controller.consumeNativeDrivenTransition()).toBe(false);
+    controller.dispose();
+    vi.mocked(mocks.plugin.getFullState).mockResolvedValue(previous);
+  });
+});
+
 function emit<TEvent extends keyof NativeAudioEvents>(
   eventName: TEvent,
   event: NativeAudioEvents[TEvent],

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const nativeAudioPluginPath = path.join(
   process.cwd(),
-  "capacitor-plugins/capacitor-native/ios/Sources/AonsokuNativePlugin/Audio/AonsokuNativeAudioPlugin.swift",
+  "capacitor-plugins/capacitor-native/ios/Sources/AonsokuNativePlugin/Audio/NativePlaybackService.swift",
 );
 
 function readNativeAudioPlugin() {

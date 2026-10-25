@@ -50,7 +50,7 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
         guard let cover = call.getString("coverArtId"), !cover.isEmpty,
             let mode = call.getString("mode"), ["static", "dynamic"].contains(mode) else { call.reject("Invalid demand"); return }
         DispatchQueue.main.async {
-            guard AonsokuNativeAudioPlugin.dynamicCoverRegistryFromActive?.coverArtId == cover else { call.reject("Cover changed"); return }
+            guard NativePlaybackService.dynamicCoverRegistryFromActive?.coverArtId == cover else { call.reject("Cover changed"); return }
             guard let id = LockScreenArtworkDemand.shared.add(owner: self.dynamicCoverOwner, cover: cover, motion: mode == "dynamic") else { call.reject("Demand limit reached"); return }
             call.resolve(["demandId": id])
         }
@@ -80,7 +80,7 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
             guard format == "any" || self.dynamicCoverFormats().contains(format) else {
                 call.resolve(["status": "unavailable", "reason": "unsupported-format"]); return
             }
-            guard let registry = AonsokuNativeAudioPlugin.dynamicCoverRegistryFromActive else {
+            guard let registry = NativePlaybackService.dynamicCoverRegistryFromActive else {
                 call.resolve(["status": "unavailable", "reason": "no-player"]); return
             }
             if self.leasedCoverRegistry !== registry {
@@ -100,7 +100,7 @@ public class AonsokuNativePreferencesPlugin: CAPPlugin, CAPBridgedPlugin {
             asset.requestVideo { url in
                 DispatchQueue.main.async {
                     guard registry.revision == revision,
-                        AonsokuNativeAudioPlugin.dynamicCoverRegistryFromActive === registry
+                        NativePlaybackService.dynamicCoverRegistryFromActive === registry
                     else { call.resolve(["status": "mismatch"]); return }
                     guard !asset.motion || LockScreenArtworkMotionPolicy.shared.allowsPlayback
                     else { call.resolve(["status": "pending", "motionAllowed": LockScreenArtworkMotionPolicy.shared.allowsPlayback]); return }

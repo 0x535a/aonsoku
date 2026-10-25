@@ -223,7 +223,12 @@ export interface NativeAudioQueueStateChangedEvent {
 
 export interface NativeAudioQueueContentsChangedEvent {
   requestId?: string;
-  reason: "shuffle" | "unshuffle" | "user-queue-consumed" | "queue-edit";
+  reason:
+    | "shuffle"
+    | "unshuffle"
+    | "user-queue-consumed"
+    | "queue-edit"
+    | "playback-mode";
 }
 
 export interface NativeAudioScrobbleEvent {

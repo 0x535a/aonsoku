@@ -5,6 +5,7 @@ class NativeSourceResolver {
     private let fileManager: FileManager
     private let credentialsProvider: () -> ServerCredentials?
     private let now: () -> Date
+    private let credentialsLock = NSLock()
     private var cachedCredentials: ServerCredentials?
     private var credentialsCacheTime: Date?
     private let credentialsTTL: TimeInterval
@@ -49,11 +50,15 @@ class NativeSourceResolver {
     }
 
     func invalidateCredentialsCache() {
+        credentialsLock.lock()
+        defer { credentialsLock.unlock() }
         cachedCredentials = nil
         credentialsCacheTime = nil
     }
 
     private func getCredentials() -> ServerCredentials? {
+        credentialsLock.lock()
+        defer { credentialsLock.unlock() }
         if let cached = cachedCredentials,
            let cacheTime = credentialsCacheTime,
            now().timeIntervalSince(cacheTime) < credentialsTTL {

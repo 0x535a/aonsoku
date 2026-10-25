@@ -42,6 +42,9 @@ coverage/
 .swiftpm/
 
 # personal doc
-/doc
+/doc/*
+!/doc/carplay/
+/doc/carplay/*
+!/doc/carplay/*.md
 electron/main/native/audio/libmpv/build/
 resources/native-audio/*/

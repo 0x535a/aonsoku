@@ -323,7 +323,7 @@ regular-to-inline transition; `NativeBottomShellView` adapts to the accessory
 trait by hiding artist/next and shrinking cover art inline. The single existing
 `AonsokuViewController`/WKWebView is reparented between three lightweight tab
 containers, never recreated; audio services and queue remain singletons. SceneDelegate
-is the sole programmatic root entry (Main storyboard is not auto-instantiated).
+is the phone window's programmatic root entry (Main storyboard is not auto-instantiated).
 The modern UITab shouldSelectTab delegate sends user navigation intent to React,
 including reselecting the active tab. didSelectTab only hosts the bridge; it never
 sends navigation. React-driven selectedTab updates suppress user-intent dispatch
@@ -353,7 +353,65 @@ Tab/accessory occlusion in WebView coordinates feeds root CSS variables; Web pla
 only while this host layout is active. Landscape iOS windows, Web, Android and
 desktop keep their existing UI. Window changes
 never replace the WebView or audio service. Native shell state is scene-local;
-the app still advertises a single scene. See `doc/ios-native/bottom.md`.
+the phone still uses a single window; a separate CarPlay scene role is supported.
+See `doc/ios-native/bottom.md`.
+
+### iOS CarPlay
+
+CarPlay uses only Apple templates: `CarPlaySceneDelegate` in the iOS host routes
+`CPTemplateApplicationScene` to the plugin package's `CarPlayTemplateController`.
+The three `CPListTemplate` tabs browse Home, Library, and Downloaded content;
+`CPNowPlayingTemplate.shared` uses the existing system media information and
+commands. Library lists and the actual context/user queue are paginated. Queue
+selection uses an occurrence index plus revision, preserving duplicate songs
+and rejecting stale selections. Remote playback projections disable CarPlay
+playback actions; CarPlay does not create a coordination device or client.
+
+`Audio/NativePlaybackService.swift` owns the single process-wide AVPlayer,
+queue, source resolution, persistence, scrobbling, sleep timer, recovery, system
+media commands, and lock-screen artwork. `AppDelegate` starts it independently
+of the phone scene; repeated starts are idempotent. The Capacitor audio plugin
+is now an adapter for the existing JS methods/events through
+`NativePlaybackRequest`, with a weak phone view reference only for volume UI.
+Coordination and artwork preference consumers call the service directly. Native
+observers receive an initial snapshot and events on the main queue. Native
+content replacement emits the shared `queue-edit` event so the renderer hydrates
+without reloading audio; `playback-mode` refreshes loop state without replacing
+the queue. Cold restore
+retains progress even before an AVPlayer exists. Only explicit playback starts
+a restored source; attaching the bridge does not recreate it.
+
+`CarPlayLibraryProvider` uses the existing GRDB repositories, native HTTP and
+cover cache without React or WKWebView. Album/playlist selection retains full
+context; recent/favorite/downloaded selections use the visible page as context.
+Native playback records local `song.playedAt` for immediate recent-list reads;
+completed audio cache writes maintain the native cache index. Downloaded queries
+validate completion metadata, file existence and indexed size, excluding partial
+or missing files. Native data and credential notifications invalidate CarPlay
+queries; credential changes invalidate source credentials and clear playback
+when the server/account identity changes.
+
+The scene manifest supports concurrent phone and CarPlay roles. `SceneDelegate`
+keeps a single phone window/WebView if iPadOS requests an additional phone scene.
+Simulator builds use `App/CarPlay.entitlements`; device builds default to the
+empty `App/App.entitlements`. Enable an entitled device build explicitly with
+`AONSOKU_ENTITLEMENTS=App/CarPlay.entitlements` and a matching profile. Personal
+use still requires the CarPlay audio entitlement; no App Store work is included.
+See `doc/carplay/carplay.md` and `doc/carplay/implementation.md`.
+
+Command-only checks (macOS + Xcode, no physical device):
+
+```bash
+node scripts/ios/test-carplay-library.mjs # Temporary GRDB/URLProtocol fixtures, no real credentials/server
+node scripts/ios/test-carplay-simulator.mjs # Booted iPhone Simulator; isolated .carplay-qa bundle, no WebView
+```
+
+The simulator fixture validates cold restore, playback, idempotence, queue
+pagination/stale selection, and Apple template construction; it does not replace
+actual CarPlay connection/navigation or vehicle audio-route testing. Its entry
+point requires Debug, a simulator, the dedicated bundle suffix, and explicit
+`AONSOKU_CARPLAY_QA=1`; Release contains no fixture code. Results are written under
+`/tmp/aonsoku-carplay-qa`. The fixture never installs on a physical iPhone.
 
 ### Component Patterns
 
@@ -448,7 +506,8 @@ Key files:
 - `src/player/playback/tauri-backend.ts` — Tauri command/event playback bridge;
   Tauri uses the web queue controller while native Rust owns audio playback.
 - `src/native/audio/` — native audio facade and shared TS types.
-- iOS lock-screen artwork stays inside the Capacitor native audio plugin.
+- iOS lock-screen artwork stays inside the native playback service and its
+  supporting modules in the Capacitor plugin package.
   `Audio/LockScreenArtworkRenderer.swift` preserves the source aspect ratio and
   extends only the uncovered edges into source/target-sized 3:4 or 1:1 video.
   `LockScreenArtworkRequests.swift` stores preview/video requests separately,
@@ -482,7 +541,7 @@ Key files:
   speed keys; camera clips use `motion-v9`, and static clips use `edge-v2`.
   Every ID includes actual dimensions. Original-hash/parameter-validated legacy
   v1/v5/v6 files remain explicitly readable without re-encoding. On iOS 26+,
-  `AonsokuNativeAudioPlugin` adds `MPMediaItemAnimatedArtwork` alongside the
+  `NativePlaybackService` adds `MPMediaItemAnimatedArtwork` alongside the
   ordinary artwork for each key in `supportedAnimatedArtworkKeys` (3:4 and/or
   1:1), with revision checks for local and remote playback. Do not infer aspect
   ratio support from device orientation or iPhone/iPad model; the tested iPad

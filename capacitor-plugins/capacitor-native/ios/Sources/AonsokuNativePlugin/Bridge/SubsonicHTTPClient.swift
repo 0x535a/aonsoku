@@ -16,11 +16,11 @@ public struct SubsonicResponse {
 public final class SubsonicHTTPClient {
     private let session: URLSession
 
-    public init() {
+    public init(session: URLSession? = nil) {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 300
-        self.session = URLSession(configuration: config)
+        self.session = session ?? URLSession(configuration: config)
     }
 
     public func request(

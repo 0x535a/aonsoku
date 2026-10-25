@@ -1,6 +1,7 @@
 import UIKit
 import Capacitor
 import AonsokuNativePlugin
+import CarPlay
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -10,12 +11,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         application.applicationSupportsShakeToEdit = false
         SyncScheduler.register()
+        #if DEBUG
+        if CarPlayQA.enabled {
+            CarPlayQA.run()
+            return true
+        }
+        #endif
+        NativePlaybackService.shared.start()
         return true
     }
 
     func application(_ application: UIApplication,
                      configurationForConnecting connectingSceneSession: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        if connectingSceneSession.role == .carTemplateApplication {
+            let config = UISceneConfiguration(name: "CarPlay Configuration",
+                                              sessionRole: connectingSceneSession.role)
+            config.sceneClass = CPTemplateApplicationScene.self
+            config.delegateClass = CarPlaySceneDelegate.self
+            return config
+        }
         let config = UISceneConfiguration(name: "Default Configuration",
                                           sessionRole: connectingSceneSession.role)
         config.delegateClass = SceneDelegate.self

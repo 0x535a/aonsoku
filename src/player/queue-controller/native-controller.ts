@@ -1361,7 +1361,11 @@ export class NativeQueueController implements QueueController {
       logger.info(
         `[NativeQueueController] queueContentsChanged: reason=${event.reason}`,
       );
-      if (event.reason === "shuffle" || event.reason === "unshuffle") {
+      if (
+        event.reason === "shuffle" ||
+        event.reason === "unshuffle" ||
+        event.reason === "playback-mode"
+      ) {
         this.syncFromNative();
       } else if (event.reason === "queue-edit") {
         this.syncFromNative(true);

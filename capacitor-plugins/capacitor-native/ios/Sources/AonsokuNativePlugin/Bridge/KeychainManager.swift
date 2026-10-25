@@ -1,6 +1,10 @@
 import Foundation
 import Security
 
+extension Notification.Name {
+    static let aonsokuCredentialsChanged = Notification.Name("AonsokuCredentialsChanged")
+}
+
 public struct ServerCredentials: Codable {
     public let serverUrl: String
     public let username: String
@@ -95,6 +99,7 @@ public final class KeychainManager {
         } else if status != errSecSuccess {
             throw KeychainError.unableToStore(status)
         }
+        NotificationCenter.default.post(name: .aonsokuCredentialsChanged, object: nil)
     }
 
     public static func storeIfPossible(_ credentials: ServerCredentials) -> Bool {
@@ -127,6 +132,7 @@ public final class KeychainManager {
             kSecAttrAccount as String: account,
         ]
         SecItemDelete(query as CFDictionary)
+        NotificationCenter.default.post(name: .aonsokuCredentialsChanged, object: nil)
     }
 
     public static func exists() -> Bool {

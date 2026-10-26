@@ -21,6 +21,8 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
     private var queueOffset = 0
     private var queueHistory: [Int] = []
     private var pageHistory: [ObjectIdentifier: [Int]] = [:]
+    // Reuse native item identifiers while the same logical rows remain visible.
+    private var listItems: [ObjectIdentifier: [String: CPListItem]] = [:]
     private var home: CPListTemplate?
     private var downloads: CPListTemplate?
     private weak var queueTemplate: CPListTemplate?
@@ -60,6 +62,7 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
                             self.versions.removeAll()
                             self.playback.cancelCarPlayRequests()
                             self.pageHistory.removeAll()
+                            self.listItems.removeAll()
                             self.queueHistory.removeAll()
                             self.queueOffset = 0
                             self.interface?.popToRootTemplate(animated: false, completion: nil)
@@ -105,6 +108,7 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
         versions.removeAll()
         routes.removeAll()
         pageHistory.removeAll()
+        listItems.removeAll()
         queueHistory.removeAll()
         if let eventToken { playback.removeEventObserver(eventToken) }
         eventToken = nil
@@ -124,7 +128,11 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
     public func templateDidAppear(_ aTemplate: CPTemplate, animated: Bool) {
         pruneNavigation()
         if let list = aTemplate as? CPListTemplate, let route = routes[ObjectIdentifier(list)] {
-            load(list, route: route.0, title: route.1, offset: route.2)
+            // open() already starts the first load. Do not replace its rows again
+            // when the push animation completes or when returning from Now Playing.
+            if tasks[ObjectIdentifier(list)] == nil {
+                load(list, route: route.0, title: route.1, offset: route.2)
+            }
         }
         refreshPlayback()
     }
@@ -135,11 +143,42 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
         if let tabs = interface.rootTemplate as? CPTabBarTemplate {
             retained.formUnion(tabs.templates.map(ObjectIdentifier.init))
         }
+        for key in Array(listItems.keys) where !retained.contains(key) {
+            listItems.removeValue(forKey: key)
+        }
         for key in Array(tasks.keys) where !retained.contains(key) {
             tasks.removeValue(forKey: key)?.cancel()
             versions.removeValue(forKey: key)
             routes.removeValue(forKey: key)
             pageHistory.removeValue(forKey: key)
+        }
+    }
+
+    private func reusableItem(
+        _ template: CPListTemplate, key: String, text: String, detail: String? = nil
+    ) -> CPListItem {
+        let templateKey = ObjectIdentifier(template)
+        if let item = listItems[templateKey]?[key] {
+            if item.text != text { item.setText(text) }
+            if item.detailText != detail { item.setDetailText(detail) }
+            return item
+        }
+        let item = CPListItem(text: text, detailText: detail)
+        listItems[templateKey, default: [:]][key] = item
+        return item
+    }
+
+    private func publish(_ items: [CPListItem], to template: CPListTemplate) {
+        let visible = Set(items.map(ObjectIdentifier.init))
+        let key = ObjectIdentifier(template)
+        listItems[key] = listItems[key]?.filter { visible.contains(ObjectIdentifier($0.value)) }
+        let existing = template.sections.flatMap { $0.items }
+        let unchanged = existing.count == items.count && zip(existing, items).allSatisfy {
+            ($0.0 as? CPListItem) === $0.1
+        }
+        if !unchanged {
+            template.updateSections([CPListSection(items: items)])
+            NativeLogger.shared.info("Published list rows=\(items.count)", source: "CarPlay")
         }
     }
 
@@ -183,7 +222,9 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
                 try Task.checkCancellation()
                 guard self.connected, self.versions[key] == version else { return }
                 let items = page.items.map { model -> CPListItem in
-                    let item = CPListItem(text: model.title, detailText: model.detail)
+                    let item = self.reusableItem(
+                        template, key: "content:\(model.songIndex ?? -1):\(model.id)",
+                        text: model.title, detail: model.detail)
                     if model.destination != nil { item.accessoryType = .disclosureIndicator }
                     item.isEnabled = model.destination != nil || self.snapshot?.isRemote != true
                     item.handler = { [weak self] _, done in
@@ -191,6 +232,7 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
                             done()
                             return
                         }
+                        NativeLogger.shared.info("Library item handler entered", source: "CarPlay")
                         if let destination = model.destination {
                             self.open(destination, title: model.title)
                             done()
@@ -214,7 +256,7 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
                 }
                 var visible = items
                 if hasPrevious {
-                    let previous = CPListItem(text: self.text("previousPage"), detailText: nil)
+                    let previous = self.reusableItem(template, key: "previous", text: self.text("previousPage"))
                     previous.accessoryType = .disclosureIndicator
                     previous.handler = { [weak self, weak template] _, done in
                         defer { done() }
@@ -226,7 +268,7 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
                     visible.insert(previous, at: 0)
                 }
                 if let next = page.nextOffset {
-                    let more = CPListItem(text: self.text("more"), detailText: nil)
+                    let more = self.reusableItem(template, key: "next", text: self.text("more"))
                     more.accessoryType = .disclosureIndicator
                     more.handler = { [weak self, weak template] _, done in
                         defer { done() }
@@ -238,11 +280,11 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
                     visible.append(more)
                 }
                 template.emptyViewTitleVariants = [self.text("empty")]
-                template.updateSections([CPListSection(items: visible)])
+                self.publish(visible, to: template)
                 // Sequential, bounded thumbnail fetches avoid flooding the audio connection pool.
                 for (model, item) in zip(page.items, items) {
                     try Task.checkCancellation()
-                    guard let id = model.coverArtId else { continue }
+                    guard item.image == nil, let id = model.coverArtId else { continue }
                     guard let data = try? await self.library.coverData(id) else { continue }
                     try Task.checkCancellation()
                     guard self.connected, self.versions[key] == version else { return }
@@ -260,13 +302,14 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
                 }
             } catch {
                 guard !Task.isCancelled, self.connected, self.versions[key] == version else { return }
-                let retry = CPListItem(text: self.text("retry"), detailText: CarPlayText.describe(error))
+                let retry = self.reusableItem(
+                    template, key: "retry", text: self.text("retry"), detail: CarPlayText.describe(error))
                 retry.handler = { [weak self, weak template] _, done in
                     defer { done() }
                     guard let self, let template else { return }
                     self.load(template, route: route, title: title, offset: offset)
                 }
-                template.updateSections([CPListSection(items: [retry])])
+                self.publish([retry], to: template)
             }
         }
     }
@@ -308,24 +351,34 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
     }
 
     private func updateHome(_ state: CarPlayPlaybackSnapshot) {
+        guard let home else { return }
         guard KeychainManager.exists() else {
-            let login = CPListItem(text: text("login"), detailText: nil)
+            let login = reusableItem(home, key: "login", text: text("login"))
             login.isEnabled = false
-            home?.updateSections([CPListSection(items: [login])])
+            publish([login], to: home)
             return
         }
-        let resume = CPListItem(text: state.isRemote ? text("remote") : text("continue"), detailText: state.title)
+        let resume = reusableItem(
+            home, key: "resume", text: state.isRemote ? text("remote") : text("continue"), detail: state.title)
         resume.isEnabled = !state.isRemote && state.title != nil
         resume.handler = { [weak self] _, done in
             self?.command(.play)
             self?.showNowPlaying()
             done()
         }
-        home?.updateSections([
-            CPListSection(items: [
-                resume, navigation("recent", route: .recent), navigation("favorites", route: .favorites),
-            ])
-        ])
+        let recent = reusableItem(home, key: "recent", text: text("recent"))
+        let favorites = reusableItem(home, key: "favorites", text: text("favorites"))
+        for (item, route, title) in [
+            (recent, CarPlayLibraryRoute.recent, text("recent")),
+            (favorites, CarPlayLibraryRoute.favorites, text("favorites")),
+        ] {
+            item.accessoryType = .disclosureIndicator
+            item.handler = { [weak self] _, done in
+                defer { done() }
+                self?.open(route, title: title)
+            }
+        }
+        publish([resume, recent, favorites], to: home)
     }
 
     public func nowPlayingTemplateUpNextButtonTapped(_ nowPlayingTemplate: CPNowPlayingTemplate) {
@@ -346,7 +399,9 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
         let hasNext = state.queueTotal - state.queueOffset > available && capacity >= 2
         let count = max(1, available - (hasNext ? 1 : 0))
         var items = state.queue.prefix(count).map { entry -> CPListItem in
-            let item = CPListItem(text: entry.title, detailText: entry.artist)
+            let item = reusableItem(
+                template, key: "queue:\(entry.isUserQueue):\(entry.index):\(entry.id)",
+                text: entry.title, detail: entry.artist)
             item.isPlaying = entry.isCurrent
             item.isEnabled = !state.isRemote
             item.handler = { [weak self] _, done in
@@ -362,7 +417,7 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
             return item
         }
         func pageItem(_ key: String, offset: Int, previous: Bool = false) -> CPListItem {
-            let item = CPListItem(text: text(key), detailText: nil)
+            let item = reusableItem(template, key: key, text: text(key))
             item.accessoryType = .disclosureIndicator
             item.handler = { [weak self] _, done in
                 guard let self else {
@@ -386,7 +441,7 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
         if hasNext {
             items.append(pageItem("more", offset: state.queueOffset + count))
         }
-        template.updateSections([CPListSection(items: items)])
+        publish(items, to: template)
     }
 
     private func command(_ command: CarPlayPlaybackCommand) {

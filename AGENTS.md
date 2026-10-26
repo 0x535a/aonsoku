@@ -371,6 +371,12 @@ automatic loading at the bottom. Library selections have a 15-second preparation
 deadline; cancellation releases the CarPlay item completion immediately and
 stale generations cannot apply a queue or complete newer selections. Native
 CarPlay logs record preparation start/accept/failure/timeout without credentials.
+Dynamic templates reuse `CPListItem` instances for unchanged logical rows
+(including duplicate-song occurrence indices), and skip unchanged section
+publication. Do not rebuild rows on every playback event or template appearance:
+the remote CarPlay UI may still send an older item identifier, which the
+framework then rejects before invoking the handler. Debug CarPlay diagnostics
+are also printed to the process console.
 Queue
 selection uses an occurrence index plus revision, preserving duplicate songs
 and rejecting stale selections. Remote playback projections disable CarPlay

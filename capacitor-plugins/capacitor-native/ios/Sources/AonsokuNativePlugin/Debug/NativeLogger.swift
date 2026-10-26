@@ -26,7 +26,7 @@ final class NativeLogger {
 
     func log(_ level: Entry.Level, _ message: String, source: String = "") {
         #if DEBUG
-        if source == "NowPlayingArtwork" || source == "ImageCache" {
+        if source == "NowPlayingArtwork" || source == "ImageCache" || source == "CarPlay" {
             print("[\(source)][\(level.rawValue)] \(message)")
         }
         #endif

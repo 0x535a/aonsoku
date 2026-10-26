@@ -37,6 +37,12 @@
 原生 `CarPlay` 日志记录选歌准备的开始、接受、失败与超时。此超时只涵盖
 选歌准备，不表示音频已缓冲完成；音频加载仍由现有播放器处理。
 
+动态列表刷新复用同一逻辑条目的 `CPListItem`，歌曲按 occurrence index 区分重复
+条目。内容和顺序未变时不重复发布 section；页面出现也不重复启动已加载的列表。
+这是为避免车机仍持有旧 item identifier 时，系统报
+`Failed to identify a local item` 并使点击在进入应用 handler 前挂起。
+Debug 的 `CarPlay` 日志同时输出到进程控制台，便于连接设备实时采集。
+
 ## 本地检查
 
 ```bash

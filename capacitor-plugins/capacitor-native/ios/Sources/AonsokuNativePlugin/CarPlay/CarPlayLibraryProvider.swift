@@ -36,7 +36,7 @@ public final class CarPlayLibraryProvider {
         if case .playlist(let id) = route { try await ensurePlaylist(id) }
         let result = try await read {
             let offset = max(0, offset)
-            let limit = max(1, min(limit, 100))
+            let limit = max(1, min(limit, Int.max - 1))
             let items = try self.items(route, limit: limit + 1, offset: offset)
             return CarPlayLibraryPage(
                 items: Array(items.prefix(limit)),
@@ -49,8 +49,10 @@ public final class CarPlayLibraryProvider {
 
     /// Album/playlist playback retains the complete context and duplicate entries.
     /// Other collections use the displayed page as a bounded playback context.
-    func selection(_ route: CarPlayLibraryRoute, pageOffset: Int, index: Int, expectedId: String) async throws
-        -> [QueueSong]
+    func selection(
+        _ route: CarPlayLibraryRoute, pageOffset: Int, pageLimit: Int = 40,
+        index: Int, expectedId: String
+    ) async throws -> [QueueSong]
     {
         try Task.checkCancellation()
         guard let identity = credentials() else { throw CarPlayError.notLoggedIn }
@@ -60,7 +62,7 @@ public final class CarPlayLibraryProvider {
             switch route {
             case .album: songs = try self.songRecords(route, limit: Int.max, offset: 0)
             case .playlist(let id): songs = try self.playlistSongs(id)
-            default: songs = try self.songRecords(route, limit: 40, offset: pageOffset)
+            default: songs = try self.songRecords(route, limit: max(1, pageLimit), offset: pageOffset)
             }
             let localIndex: Int
             switch route {

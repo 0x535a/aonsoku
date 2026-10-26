@@ -5134,7 +5134,10 @@ extension NativePlaybackService {
         else { DispatchQueue.main.async { self.cancelCarPlayRequests() } }
     }
 
-    public func carPlaySnapshot(queueOffset: Int = 0, _ completion: @escaping (CarPlayPlaybackSnapshot) -> Void) {
+    public func carPlaySnapshot(
+        queueOffset: Int = 0, queueLimit: Int = 100,
+        _ completion: @escaping (CarPlayPlaybackSnapshot) -> Void
+    ) {
         precondition(Thread.isMainThread)
         let isPlaying = player?.timeControlStatus == .playing
         let isRemote = remotePlaybackProjection != nil
@@ -5144,19 +5147,20 @@ extension NativePlaybackService {
             let revision = self.queueRevision
             var entries: [CarPlayQueueEntry] = []
             let offset = max(0, queueOffset)
+            let limit = max(1, queueLimit)
             let currentCount = !engine.isInUserQueue && engine.currentSong != nil ? 1 : 0
             if offset == 0, !engine.isInUserQueue, let song = engine.currentSong {
                 entries.append(CarPlayQueueEntry(id: song.id, title: song.title, artist: song.artist,
                     isCurrent: true, index: engine.currentIndex, isUserQueue: false, revision: revision))
             }
             entries += engine.userQueue.enumerated().dropFirst(max(0, offset - currentCount))
-                .prefix(max(0, 100 - entries.count)).map { index, song in
+                .prefix(max(0, limit - entries.count)).map { index, song in
                 CarPlayQueueEntry(id: song.id, title: song.title, artist: song.artist,
                     isCurrent: engine.isInUserQueue && index == 0, index: index, isUserQueue: true, revision: revision)
             }
             let start = min(engine.currentIndex + 1, engine.contextSongs.count)
             let contextOffset = start + max(0, offset - currentCount - engine.userQueue.count)
-            entries += engine.contextSongs.enumerated().dropFirst(contextOffset).prefix(max(0, 100 - entries.count)).map { index, song in
+            entries += engine.contextSongs.enumerated().dropFirst(contextOffset).prefix(max(0, limit - entries.count)).map { index, song in
                 CarPlayQueueEntry(id: song.id, title: song.title, artist: song.artist,
                     isCurrent: false, index: index, isUserQueue: false, revision: revision)
             }
@@ -5207,7 +5211,7 @@ extension NativePlaybackService {
         }
     }
 
-    public func playCarPlayLibrary(_ route: CarPlayLibraryRoute, pageOffset: Int,
+    public func playCarPlayLibrary(_ route: CarPlayLibraryRoute, pageOffset: Int, pageLimit: Int = 40,
                                     index: Int, expectedId: String, sourceName: String,
                                     completion: @escaping (Result<Void, Error>) -> Void) {
         precondition(Thread.isMainThread)
@@ -5217,7 +5221,7 @@ extension NativePlaybackService {
         carPlaySelectionTask?.cancel()
         carPlaySelectionTask = Task { @MainActor in
             do {
-                let songs = try await CarPlayLibraryProvider().selection(route, pageOffset: pageOffset,
+                let songs = try await CarPlayLibraryProvider().selection(route, pageOffset: pageOffset, pageLimit: pageLimit,
                     index: index, expectedId: expectedId)
                 try Task.checkCancellation()
                 guard self.carPlaySelectionGeneration == generation, self.remotePlaybackProjection == nil else {

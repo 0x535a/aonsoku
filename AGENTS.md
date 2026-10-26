@@ -362,7 +362,12 @@ CarPlay uses only Apple templates: `CarPlaySceneDelegate` in the iOS host routes
 `CPTemplateApplicationScene` to the plugin package's `CarPlayTemplateController`.
 The three `CPListTemplate` tabs browse Home, Library, and Downloaded content;
 `CPNowPlayingTemplate.shared` uses the existing system media information and
-commands. Library lists and the actual context/user queue are paginated. Queue
+commands. Library lists and the actual context/user queue fill the runtime
+`CPListTemplate.maximumItemCount` capacity, with pagination only for overflow.
+Navigation rows count toward that capacity; page history records actual offsets.
+Recent/favorite/downloaded playback uses the displayed page's actual size, while
+albums/playlists retain full context. No public scroll callback is available for
+automatic loading at the bottom. Queue
 selection uses an occurrence index plus revision, preserving duplicate songs
 and rejecting stale selections. Remote playback projections disable CarPlay
 playback actions; CarPlay does not create a coordination device or client.
@@ -393,10 +398,12 @@ when the server/account identity changes.
 
 The scene manifest supports concurrent phone and CarPlay roles. `SceneDelegate`
 keeps a single phone window/WebView if iPadOS requests an additional phone scene.
-Simulator builds use `App/CarPlay.entitlements`; device builds default to the
-empty `App/App.entitlements`. Enable an entitled device build explicitly with
-`AONSOKU_ENTITLEMENTS=App/CarPlay.entitlements` and a matching profile. Personal
-use still requires the CarPlay audio entitlement; no App Store work is included.
+Simulator and device builds (Debug/Release, including archives) default to
+`App/CarPlay.entitlements`, which enables `com.apple.developer.carplay-audio`.
+Device signing requires the capability enabled on the App ID and a matching
+provisioning profile. For a device build without CarPlay signing, override
+`AONSOKU_ENTITLEMENTS=App/App.entitlements` (empty); the simulator retains its
+CarPlay entitlement. No App Store work is included.
 See `doc/carplay/carplay.md` and `doc/carplay/implementation.md`.
 
 Command-only checks (macOS + Xcode, no physical device):

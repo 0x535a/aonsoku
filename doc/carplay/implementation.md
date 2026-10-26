@@ -20,7 +20,11 @@
 - 远端播放投影期间禁用车载播放操作，不自动接管远端会话。
 - 根据原生语言偏好提供中文/英文文案，使用系统外观和焦点交互。
 
-浏览默认每页 40 条，待播列表每页 100 条。专辑和歌单点击播放保留完整的来源
+浏览列表和待播列表按运行时 `CPListTemplate.maximumItemCount` 尽量完整显示，
+仅超过系统上限时分页，并为上一页/下一页预留条目位置。翻页记录实际偏移，
+不再使用固定的 40/100 条步长。系统未公开触底回调，因此保留超长列表的手动翻页。
+最近播放、收藏和下载内容以实际显示页作为播放上下文。
+专辑和歌单点击播放保留完整的来源
 上下文及重复歌曲；最近播放、收藏与已下载使用所显示的一页作为播放上下文，
 避免从这些入口一次装载整个音乐库。
 
@@ -85,25 +89,26 @@ pnpm exec cap sync ios
 打开 `ios/App/App.xcodeproj`，选择自己的开发者团队和设备。首次使用先在手机
 完成服务器登录和音乐库同步，离线测试前准备至少一首完整下载。
 
-### 2. 显式启用真实设备的 CarPlay 权限
+### 2. CarPlay 权限与设备签名
 
-工程默认配置：
+CarPlay Audio 权限已获批，工程的 Debug 和 Release（含 Archive）默认使用
+`App/CarPlay.entitlements`，其中 `com.apple.developer.carplay-audio` 为 `true`。
+模拟器同样使用此文件，无需再手动传入构建参数。
 
-| 目标 | 签名 entitlement |
-| --- | --- |
-| iOS Simulator | `App/CarPlay.entitlements` |
-| 普通 iPhone 构建 | `App/App.entitlements`（空） |
-| CarPlay iPhone 构建 | 显式设置 `AONSOKU_ENTITLEMENTS=App/CarPlay.entitlements` |
+在 Apple Developer 的 Certificates, Identifiers & Profiles 中，为实际签名的
+App ID（工程默认 Bundle ID 为 `github.realtvop.aonsoku`）启用获批的 CarPlay
+Audio capability。工程保留 Automatic Signing；在 Xcode 中选择获批权限所属的
+开发者团队，使签名使用包含该权限的 provisioning profile。如果使用手动签名，
+需重新生成并下载启用了该 capability 的 development/distribution profile。
 
-在 App target 的 Build Settings 中将用户自定义设置 `AONSOKU_ENTITLEMENTS`
-改为 `App/CarPlay.entitlements`，并使用包含
-`com.apple.developer.carplay-audio` 的 App ID 和 provisioning profile。
-也可以在自行执行 `xcodebuild` 时传入同名设置。
+需要不带 CarPlay 签名的普通手机包时，可在 App target 的 Build Settings 中将
+`AONSOKU_ENTITLEMENTS` 改为 `App/App.entitlements`，或在 `xcodebuild` 中传入
+`AONSOKU_ENTITLEMENTS=App/App.entitlements`。此覆盖不影响模拟器的 CarPlay 权限。
 
-普通手机构建仍可保留空 entitlement，不会因为尚未获得 CarPlay 权限而无法签名。
-个人使用和侧载不会自动授予 CarPlay 权限。项目现有 CI 生成的 unsigned IPA
-也不等于已启用 CarPlay；重新签名时必须由签名工具正确加入该 entitlement，
-且 profile 必须允许它。仅修改 Info.plist 或安装 unsigned IPA 不足以启用。
+项目现有 CI 生成的 unsigned IPA 不等于已启用 CarPlay；重新签名时必须保留该
+entitlement，且 profile 必须允许它。仅修改 Info.plist 或安装 unsigned IPA
+不足以启用。Apple 配置说明：
+[Requesting CarPlay Entitlements](https://developer.apple.com/documentation/carplay/requesting-carplay-entitlements)。
 
 可在 Mac 对最终签名后的 `.app` 检查实际权限：
 

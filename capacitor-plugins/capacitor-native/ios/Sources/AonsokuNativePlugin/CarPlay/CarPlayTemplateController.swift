@@ -19,6 +19,8 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
     private var snapshot: CarPlayPlaybackSnapshot?
     private var connected = false
     private var queueOffset = 0
+    private var queueHistory: [Int] = []
+    private var pageHistory: [ObjectIdentifier: [Int]] = [:]
     private var home: CPListTemplate?
     private var downloads: CPListTemplate?
     private weak var queueTemplate: CPListTemplate?
@@ -57,6 +59,9 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
                             self.tasks.values.forEach { $0.cancel() }
                             self.versions.removeAll()
                             self.playback.cancelCarPlayRequests()
+                            self.pageHistory.removeAll()
+                            self.queueHistory.removeAll()
+                            self.queueOffset = 0
                             self.interface?.popToRootTemplate(animated: false, completion: nil)
                             self.home?.updateSections([])
                             self.downloads?.updateSections([])
@@ -99,6 +104,8 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
         tasks.removeAll()
         versions.removeAll()
         routes.removeAll()
+        pageHistory.removeAll()
+        queueHistory.removeAll()
         if let eventToken { playback.removeEventObserver(eventToken) }
         eventToken = nil
         notifications.forEach(NotificationCenter.default.removeObserver)
@@ -132,6 +139,7 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
             tasks.removeValue(forKey: key)?.cancel()
             versions.removeValue(forKey: key)
             routes.removeValue(forKey: key)
+            pageHistory.removeValue(forKey: key)
         }
     }
 
@@ -162,7 +170,16 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
         tasks[key] = Task { [weak self, weak template] in
             guard let self, let template else { return }
             do {
-                let page = try await self.library.page(route, offset: offset)
+                // Reserve navigation rows before publishing; CarPlay discards overflow.
+                let capacity = max(1, CPListTemplate.maximumItemCount)
+                let hasPrevious = offset > 0 && capacity >= 3
+                let limit = max(1, capacity - (hasPrevious ? 1 : 0))
+                let fetched = try await self.library.page(route, offset: offset, limit: limit)
+                let hasNext = fetched.nextOffset != nil && capacity >= 2
+                let count = max(1, limit - (hasNext ? 1 : 0))
+                let page = CarPlayLibraryPage(
+                    items: Array(fetched.items.prefix(count)),
+                    nextOffset: hasNext ? offset + count : nil)
                 try Task.checkCancellation()
                 guard self.connected, self.versions[key] == version else { return }
                 let items = page.items.map { model -> CPListItem in
@@ -179,7 +196,7 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
                             done()
                         } else if let index = model.songIndex {
                             self.playback.playCarPlayLibrary(
-                                route, pageOffset: offset, index: index,
+                                route, pageOffset: offset, pageLimit: page.items.count, index: index,
                                 expectedId: model.id, sourceName: title
                             ) { [weak self] result in
                                 done()
@@ -196,13 +213,13 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
                     return item
                 }
                 var visible = items
-                if offset > 0 {
+                if hasPrevious {
                     let previous = CPListItem(text: self.text("previousPage"), detailText: nil)
                     previous.accessoryType = .disclosureIndicator
                     previous.handler = { [weak self, weak template] _, done in
                         defer { done() }
                         guard let self, let template else { return }
-                        let prior = max(0, offset - 40)
+                        let prior = self.pageHistory[key]?.popLast() ?? 0
                         self.routes[key] = (route, title, prior)
                         self.load(template, route: route, title: title, offset: prior)
                     }
@@ -214,13 +231,14 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
                     more.handler = { [weak self, weak template] _, done in
                         defer { done() }
                         guard let self, let template else { return }
+                        self.pageHistory[key, default: []].append(offset)
                         self.routes[key] = (route, title, next)
                         self.load(template, route: route, title: title, offset: next)
                     }
                     visible.append(more)
                 }
                 template.emptyViewTitleVariants = [self.text("empty")]
-                template.updateSections([CPListSection(items: Array(visible.prefix(CPListTemplate.maximumItemCount)))])
+                template.updateSections([CPListSection(items: visible)])
                 // Sequential, bounded thumbnail fetches avoid flooding the audio connection pool.
                 for (model, item) in zip(page.items, items) {
                     try Task.checkCancellation()
@@ -254,10 +272,13 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
     }
 
     private func refreshPlayback() {
-        playback.carPlaySnapshot(queueOffset: queueOffset) { [weak self] snapshot in
+        playback.carPlaySnapshot(
+            queueOffset: queueOffset, queueLimit: max(1, CPListTemplate.maximumItemCount)
+        ) { [weak self] snapshot in
             guard let self, self.connected else { return }
             if snapshot.queueOffset > 0 && snapshot.queueOffset >= snapshot.queueTotal {
                 self.queueOffset = 0
+                self.queueHistory.removeAll()
                 self.refreshPlayback()
                 return
             }
@@ -309,6 +330,7 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
 
     public func nowPlayingTemplateUpNextButtonTapped(_ nowPlayingTemplate: CPNowPlayingTemplate) {
         queueOffset = 0
+        queueHistory.removeAll()
         let template = CPListTemplate(title: text("queue"), sections: [])
         queueTemplate = template
         if let snapshot, snapshot.queueOffset == 0 { updateQueue(snapshot) }
@@ -318,7 +340,12 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
 
     private func updateQueue(_ state: CarPlayPlaybackSnapshot) {
         guard let template = queueTemplate else { return }
-        var items = state.queue.prefix(CPListTemplate.maximumItemCount).map { entry -> CPListItem in
+        let capacity = max(1, CPListTemplate.maximumItemCount)
+        let hasPrevious = state.queueOffset > 0 && capacity >= 3
+        let available = capacity - (hasPrevious ? 1 : 0)
+        let hasNext = state.queueTotal - state.queueOffset > available && capacity >= 2
+        let count = max(1, available - (hasNext ? 1 : 0))
+        var items = state.queue.prefix(count).map { entry -> CPListItem in
             let item = CPListItem(text: entry.title, detailText: entry.artist)
             item.isPlaying = entry.isCurrent
             item.isEnabled = !state.isRemote
@@ -334,21 +361,30 @@ public final class CarPlayTemplateController: NSObject, @preconcurrency CPNowPla
             }
             return item
         }
-        func pageItem(_ key: String, offset: Int) -> CPListItem {
+        func pageItem(_ key: String, offset: Int, previous: Bool = false) -> CPListItem {
             let item = CPListItem(text: text(key), detailText: nil)
             item.accessoryType = .disclosureIndicator
             item.handler = { [weak self] _, done in
-                self?.queueOffset = offset
-                self?.refreshPlayback()
+                guard let self else {
+                    done()
+                    return
+                }
+                if previous {
+                    self.queueOffset = self.queueHistory.popLast() ?? 0
+                } else {
+                    self.queueHistory.append(state.queueOffset)
+                    self.queueOffset = offset
+                }
+                self.refreshPlayback()
                 done()
             }
             return item
         }
-        if state.queueOffset > 0 {
-            items.insert(pageItem("previousPage", offset: max(0, state.queueOffset - 100)), at: 0)
+        if hasPrevious {
+            items.insert(pageItem("previousPage", offset: 0, previous: true), at: 0)
         }
-        if state.queueOffset + 100 < state.queueTotal {
-            items.append(pageItem("more", offset: state.queueOffset + 100))
+        if hasNext {
+            items.append(pageItem("more", offset: state.queueOffset + count))
         }
         template.updateSections([CPListSection(items: items)])
     }

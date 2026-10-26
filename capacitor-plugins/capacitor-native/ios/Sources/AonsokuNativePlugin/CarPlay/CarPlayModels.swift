@@ -51,7 +51,7 @@ public enum CarPlayPlaybackCommand: Sendable {
 }
 
 public enum CarPlayError: LocalizedError {
-    case notLoggedIn, empty, unavailable, staleSelection, remotePlayback
+    case notLoggedIn, empty, unavailable, staleSelection, remotePlayback, selectionTimedOut
 
     public var errorDescription: String? {
         switch self {
@@ -60,6 +60,7 @@ public enum CarPlayError: LocalizedError {
         case .unavailable: return CarPlayText.text("unavailable")
         case .staleSelection: return CarPlayText.text("changed")
         case .remotePlayback: return CarPlayText.text("remote")
+        case .selectionTimedOut: return CarPlayText.text("selectionTimedOut")
         }
     }
 }
@@ -99,6 +100,9 @@ public enum CarPlayText {
             "empty": ("暂无内容，请在 iPhone 上同步音乐库或下载歌曲。", "No content. Sync your library or download songs on iPhone."),
             "unavailable": (
                 "内容不可用，请检查网络或在 iPhone 上重新下载。", "Content unavailable. Check your connection or download again on iPhone."
+            ),
+            "selectionTimedOut": (
+                "选歌超时，请重试。", "Song selection timed out. Please try again."
             ),
             "changed": ("列表已更新，请重新选择。", "The list has changed. Please select again."),
             "remote": ("正在控制其他设备，请在 iPhone 上切回本机播放。", "Controlling another device. Switch to this iPhone in the app."),

@@ -8,6 +8,8 @@ public final class NativePlaybackService: NSObject {
     private var queueRevision = 0
     private var carPlaySelectionGeneration = 0
     private var carPlaySelectionTask: Task<Void, Never>?
+    private var carPlaySelectionTimeout: DispatchWorkItem?
+    private var carPlaySelectionCompletion: ((Result<Void, Error>) -> Void)?
     private var lastRecordedGeneration: Int?
     private var accountIdentity: String?
     private var credentialsObserver: NSObjectProtocol?
@@ -5216,9 +5218,21 @@ extension NativePlaybackService {
                                     completion: @escaping (Result<Void, Error>) -> Void) {
         precondition(Thread.isMainThread)
         guard remotePlaybackProjection == nil else { completion(.failure(CarPlayError.remotePlayback)); return }
-        carPlaySelectionGeneration += 1
+        cancelCarPlayRequests()
         let generation = carPlaySelectionGeneration
-        carPlaySelectionTask?.cancel()
+        carPlaySelectionCompletion = completion
+        let startedAt = Date()
+        NativeLogger.shared.info("CarPlay selection started generation=\(generation)", source: "CarPlay")
+        let timeout = DispatchWorkItem { [weak self] in
+            guard let self, self.carPlaySelectionGeneration == generation,
+                self.carPlaySelectionCompletion != nil else { return }
+            self.carPlaySelectionTask?.cancel()
+            self.carPlaySelectionGeneration += 1
+            self.finishCarPlaySelection(.failure(CarPlayError.selectionTimedOut))
+            NativeLogger.shared.warn("CarPlay selection timed out generation=\(generation)", source: "CarPlay")
+        }
+        carPlaySelectionTimeout = timeout
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15, execute: timeout)
         carPlaySelectionTask = Task { @MainActor in
             do {
                 let songs = try await CarPlayLibraryProvider().selection(route, pageOffset: pageOffset, pageLimit: pageLimit,
@@ -5236,15 +5250,36 @@ extension NativePlaybackService {
                 }
                 self.playQueueSongsAtIndex(songs: songs, index: queueIndex, shuffle: false,
                                            sourceId: sourceId, sourceName: sourceName)
-                completion(.success(()))
-            } catch { completion(.failure(error)) }
+                self.finishCarPlaySelection(.success(()))
+                NativeLogger.shared.info(
+                    "CarPlay selection accepted generation=\(generation) elapsed=\(Date().timeIntervalSince(startedAt))",
+                    source: "CarPlay")
+            } catch {
+                // A superseded task must never complete a newer selection.
+                guard self.carPlaySelectionGeneration == generation else { return }
+                self.finishCarPlaySelection(.failure(error))
+                NativeLogger.shared.warn(
+                    "CarPlay selection failed generation=\(generation) elapsed=\(Date().timeIntervalSince(startedAt))",
+                    source: "CarPlay")
+            }
         }
+    }
+
+    private func finishCarPlaySelection(_ result: Result<Void, Error>) {
+        precondition(Thread.isMainThread)
+        carPlaySelectionTimeout?.cancel()
+        carPlaySelectionTimeout = nil
+        carPlaySelectionTask = nil
+        let completion = carPlaySelectionCompletion
+        carPlaySelectionCompletion = nil
+        completion?(result)
     }
 
     public func cancelCarPlayRequests() {
         precondition(Thread.isMainThread)
         carPlaySelectionGeneration += 1
         carPlaySelectionTask?.cancel()
-        carPlaySelectionTask = nil
+        // Release the CarPlay row immediately, even if a DB read has not returned.
+        finishCarPlaySelection(.failure(CancellationError()))
     }
 }

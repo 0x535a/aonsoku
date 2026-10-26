@@ -367,7 +367,11 @@ commands. Library lists and the actual context/user queue fill the runtime
 Navigation rows count toward that capacity; page history records actual offsets.
 Recent/favorite/downloaded playback uses the displayed page's actual size, while
 albums/playlists retain full context. No public scroll callback is available for
-automatic loading at the bottom. Queue
+automatic loading at the bottom. Library selections have a 15-second preparation
+deadline; cancellation releases the CarPlay item completion immediately and
+stale generations cannot apply a queue or complete newer selections. Native
+CarPlay logs record preparation start/accept/failure/timeout without credentials.
+Queue
 selection uses an occurrence index plus revision, preserving duplicate songs
 and rejecting stale selections. Remote playback projections disable CarPlay
 playback actions; CarPlay does not create a coordination device or client.

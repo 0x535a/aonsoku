@@ -685,17 +685,17 @@ Key files:
   fallback backgrounds, the default SVG and nested opacity transitions; new
   artwork layer types must explicitly join this composition (it does not capture
   arbitrary DOM). Only the central source subtree is sampled, never the halo.
-  Both static fullscreen glows (ambient background and the artwork cushion)
-  use the shared `artwork-halo.tsx` / `artwork-halo-renderer.ts` on every runtime.
-  They reuse the CachedImage composition at a bounded 256px display resolution,
-  bake separable Gaussian blur, feather masks and alpha into Canvas using only
-  image draws, and keep CSS filters/masks off the glow layers. No pixel reads,
-  Canvas filter support, extra network paths or native artwork generation are
-  required. Cover/loading/theme/resize changes repaint; idle playback progress
-  and coordination updates do not. The central video/mirror pipeline retains
-  its existing resolution and feathering. This avoids the live blur/mask
-  combination implicated in intermittent macOS WebKit control-repaint blocks;
-  it does not guarantee that all compositor defects are resolved.
+  Static fullscreen ambient/cushion glows retain their original CSS filters,
+  masks, alpha and scale, with 300px cover requests. The ambient viewport layer
+  retains isolate/contain:paint/translateZ(0). The Canvas glow replacement was
+  withdrawn because full-profile and enlarged-image comparisons showed a
+  quality regression. Intermittent macOS WebKit rectangles around updating
+  controls remain unresolved: disabling blur implicates that rendering path,
+  but does not establish excessive computation or a specific compositor cause.
+  Snapshot comparisons can miss the visibly observed rectangles; a passing
+  snapshot alone is not proof that an isolation/Drawer-transform change fixes
+  them. Preserve original CSS appearance as the quality reference for future
+  controlled experiments before changing production rendering.
   Video frame callbacks and short-lived transition animation frames drive redraws;
   static idle regions stop drawing, and hidden/unmounted regions cancel callbacks.
   Display buffers are bounded to 1440px without changing native asset resolution.

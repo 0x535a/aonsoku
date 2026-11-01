@@ -72,10 +72,6 @@ export function renderArtworkRegion(
   source: HTMLDivElement,
   mirrorRatio: number,
   onReady?: () => void,
-  options: {
-    maxSize?: number;
-    onFrame?: (canvas: HTMLCanvasElement) => void;
-  } = {},
 ) {
   const region = document.createElement("canvas");
   const context = region.getContext("2d");
@@ -171,7 +167,7 @@ export function renderArtworkRegion(
     if (!bounds.width || !bounds.height) return;
     // This bounds only the display buffer, never the native video's resolution.
     const size = Math.min(
-      options.maxSize ?? 1440,
+      1440,
       Math.max(
         1,
         Math.round(canvas.getBoundingClientRect().width * devicePixelRatio),
@@ -258,7 +254,6 @@ export function renderArtworkRegion(
     }
     context.globalAlpha = 1;
     drawRegionMirrors(canvas, region, inset);
-    options.onFrame?.(canvas);
     if (!ready) {
       ready = true;
       onReady?.();
@@ -281,8 +276,6 @@ export function renderArtworkRegion(
   });
   const resize = new ResizeObserver(schedule);
   resize.observe(source);
-  // Also covers DPR and breakpoint changes when max(vw, vh) stays unchanged.
-  window.addEventListener("resize", schedule);
   for (const event of events) source.addEventListener(event, invalidate, true);
   // Theme changes can alter the placeholder and SVG colors without DOM changes.
   const theme = new MutationObserver(() => {
@@ -303,7 +296,6 @@ export function renderArtworkRegion(
     for (const image of images.values()) image.onload = null;
     mutations.disconnect();
     resize.disconnect();
-    window.removeEventListener("resize", schedule);
     theme.disconnect();
     for (const event of events)
       source.removeEventListener(event, invalidate, true);

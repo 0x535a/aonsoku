@@ -1,6 +1,5 @@
 import { memo } from "react";
 import { CachedImage } from "@/app/components/cover-image/cached-image";
-import { ArtworkHalo } from "./artwork-halo";
 
 interface FullscreenAmbientAtmosphereProps {
   coverArtId?: string;
@@ -45,21 +44,27 @@ export const FullscreenAmbientAtmosphere = memo(
             ...centerStyle,
             width: "max(120vw, 120vh)",
             height: "max(120vw, 120vh)",
+            maskImage:
+              "radial-gradient(circle closest-side at center, black 18%, rgba(0,0,0,0.85) 38%, rgba(0,0,0,0.5) 62%, rgba(0,0,0,0.15) 84%, transparent 98%)",
+            WebkitMaskImage:
+              "radial-gradient(circle closest-side at center, black 18%, rgba(0,0,0,0.85) 38%, rgba(0,0,0,0.5) 62%, rgba(0,0,0,0.15) 84%, transparent 98%)",
           }}
         >
-          <ArtworkHalo variant="ambient">
-            <CachedImage
-              coverArtId={coverArtId}
-              coverArtType="song"
-              albumId={albumId}
-              coverArtSize="300"
-              alt=""
-              className="size-full object-cover"
-              wrapperClassName="size-full block"
-              width="100%"
-              height="100%"
-            />
-          </ArtworkHalo>
+          <div className="size-full blur-[72px] sm:blur-[96px] opacity-65 scale-106 transition-opacity duration-1000">
+            <div className="size-full scale-110">
+              <CachedImage
+                coverArtId={coverArtId}
+                coverArtType="song"
+                albumId={albumId}
+                coverArtSize="300"
+                alt=""
+                className="size-full object-cover"
+                wrapperClassName="size-full block"
+                width="100%"
+                height="100%"
+              />
+            </div>
+          </div>
         </div>
       </div>
     );

@@ -12,6 +12,21 @@ import {
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { ConfirmationDialog } from "@/app/components/ui/confirmation-dialog";
+import { Input } from "@/app/components/ui/input";
+import { SimpleTooltip } from "@/app/components/ui/simple-tooltip";
+import { useCoordinationStore } from "@/coordination/store";
+import type { DeviceDto, DeviceId } from "@/coordination/types";
+import type { ConnectionState } from "@/coordination/wsClient";
+import { cn } from "@/lib/utils";
+import { useAppData } from "@/store/app.store";
+import { usePlayerStore } from "@/store/player.store";
+import { detectRuntime } from "@/utils/capabilities";
+import dateTime from "@/utils/dateTime";
+import { isLinux, isMacOS, isWindows } from "@/utils/desktop";
 import {
   Content,
   ContentItem,
@@ -23,20 +38,6 @@ import {
   HeaderTitle,
   Root,
 } from "../../section";
-import { Badge } from "@/app/components/ui/badge";
-import { Button } from "@/app/components/ui/button";
-import { Card, CardContent } from "@/app/components/ui/card";
-import { ConfirmationDialog } from "@/app/components/ui/confirmation-dialog";
-import { Input } from "@/app/components/ui/input";
-import { SimpleTooltip } from "@/app/components/ui/simple-tooltip";
-import { useCoordinationStore } from "@/coordination/store";
-import type { ConnectionState } from "@/coordination/wsClient";
-import type { DeviceDto, DeviceId } from "@/coordination/types";
-import { cn } from "@/lib/utils";
-import { useAppData } from "@/store/app.store";
-import { usePlayerStore } from "@/store/player.store";
-import { detectRuntime } from "@/utils/capabilities";
-import dateTime from "@/utils/dateTime";
 
 const DEFAULT_CLIENT_VERSION = "0.30.0";
 
@@ -46,6 +47,8 @@ function getPlatformLabel(runtime: Runtime) {
   switch (runtime) {
     case "electron":
       return "Desktop";
+    case "tauri":
+      return "Tauri";
     case "capacitor-ios":
       return "iOS";
     case "capacitor-android":
@@ -59,6 +62,11 @@ function getPlatformId(runtime: Runtime) {
   switch (runtime) {
     case "electron":
       return "electron";
+    case "tauri":
+      if (isMacOS) return "tauri-macos";
+      if (isWindows) return "tauri-windows";
+      if (isLinux) return "tauri-linux";
+      return "tauri";
     case "capacitor-ios":
       return "capacitor-ios";
     case "capacitor-android":

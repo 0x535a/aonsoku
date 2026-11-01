@@ -242,3 +242,13 @@ Resource Policy 的 restrict（低电量模式、严重发热、内存压力/余
 Mac Tauri 开发版中，hover 或点击播放等控件视觉更新会出现矩形色块。移除控件的 `backface-visibility`、`will-change-transform` 和滑块 `transform-gpu` 未消除问题，已恢复这些控件改动；单独关闭全屏背景光晕的 CSS blur 后，用户确认色块消失。
 
 最终恢复原有 blur、遮罩、透明度和缩放，仅在 `FullscreenAmbientAtmosphere` 的视口外层增加 `isolate`、`contain: paint` 与 `transform-gpu`，使光晕拥有独立绘制／合成边界。现有视口裁切保持，封面 Canvas 与控件交互不变。热更新后用户确认效果正常；定向 Biome 与 diff 检查通过，未跑完整构建或 iOS 真机验证。该组合已通过本次对照，不代表三项隔离属性各自均已独立验证。
+
+### 光晕统一栅格化（2026-11-01）
+
+后续反馈表明隔离并未完全解决：macOS Tauri 在鼠标悬停、coordination 远程操作及控件自行刷新时仍偶发矩形底色，部分曲目更明显，尚无稳定复现序列。鼠标不是必要条件；现阶段证据指向前景重绘与背景光晕合成的交互，不能据此判定某张封面损坏，也不能声称已确认 WebKit 内部缺陷。
+
+所有平台统一使用 `ArtworkHalo`，同时替换全屏环境光晕与封面背后的静态 cushion。复用 `CachedImage`、原有图片来源/缓存和 `renderArtworkRegion` 的加载、占位、SVG、透明度及主题处理。两次有界图像采样完成可分离 Gaussian 模糊，再将原有径向/双轴羽化、0.65/0.95 透明度与缩放烘焙到展示 Canvas。光晕图上不再叠加实时 CSS blur 或 mask；不依赖 `CanvasRenderingContext2D.filter`、像素读取或图片导出，跨域图片即使污染 Canvas 仍可绘制。没有新增网络、原生或平台分支。
+
+输入和中间显示缓冲上限均为 256px，只影响本来就模糊的光晕，不影响原图、中央 Canvas、镜像或 native video 的尺寸与生命周期。封面加载/切换、短暂透明度过渡、主题和窗口尺寸变化触发绘制；静态空闲后停止，播放进度/远程操作不驱动绘制。卸载取消观察/帧回调并释放中间缓冲。高斯采样和低分辨率带来近似，需以新旧截图确认观感；由于故障偶发，测试通过也不等于已证明真实 Tauri 场景彻底根除。
+
+验证：`pnpm exec cypress run --component --browser electron --spec src/app/components/fullscreen/artwork-halo.cy.tsx` 的 4 项测试通过，覆盖切图、尺寸/DPR、播放状态更新时空闲、模糊边界、羽化、跨域污染 Canvas 和新旧截图对照。本机独立 WKWebView 临时 fixture 验证模糊/alpha、来源替换、空闲停止与清理通过；该环境的 Canvas `filter` 不可用。新旧截图确认观感接近，未要求像素一致。全量 Biome lint、新模块及组件测试的独立严格 TypeScript 检查、Web/mobile 两种 Vite 打包通过；`tsc -b` 仍被 Electron、coordination、store 等既有类型错误阻塞，不能将 Vite 成功表述为完整 `pnpm run build` 通过。未安装/替换用户 App，未跑 iOS 真机或真实 coordination 会话。

@@ -3,6 +3,7 @@ import { Capacitor } from "@capacitor/core";
 import { useReducedMotion } from "framer-motion";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { type DynamicCoverHandle, dynamicCover } from "@/native/artwork";
+import { ArtworkHalo } from "./artwork-halo";
 import { renderArtworkRegion } from "./artwork-region-renderer";
 
 const rank = { static: 0, camera: 1, depth: 2 };
@@ -13,11 +14,6 @@ const rank = { static: 0, camera: 1, depth: 2 };
 const edgeFade =
   "transparent 0%, rgba(0,0,0,0.01) 2%, rgba(0,0,0,0.06) 4%, rgba(0,0,0,0.2) 7%, rgba(0,0,0,0.5) 10%, rgba(0,0,0,0.8) 13%, rgba(0,0,0,0.94) 16%, rgba(0,0,0,0.99) 18%, black 20%, black 80%, rgba(0,0,0,0.99) 82%, rgba(0,0,0,0.94) 84%, rgba(0,0,0,0.8) 87%, rgba(0,0,0,0.5) 90%, rgba(0,0,0,0.2) 93%, rgba(0,0,0,0.06) 96%, rgba(0,0,0,0.01) 98%, transparent 100%";
 const edgeMask = `linear-gradient(to right, ${edgeFade}), linear-gradient(to bottom, ${edgeFade})`;
-
-// Defocus cushion mask directly behind the foreground feather zone (-inset-[12%])
-const cushionFade =
-  "transparent 0%, rgba(0,0,0,0.12) 4%, rgba(0,0,0,0.45) 10%, rgba(0,0,0,0.85) 18%, black 26%, black 74%, rgba(0,0,0,0.85) 82%, rgba(0,0,0,0.45) 90%, rgba(0,0,0,0.12) 96%, transparent 100%";
-const cushionMask = `linear-gradient(to right, ${cushionFade}), linear-gradient(to bottom, ${cushionFade})`;
 
 /**
  * Mirror perimeter size ratio relative to the outer container.
@@ -313,14 +309,8 @@ export function ImmersiveArtwork({
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -inset-[12%] z-[1] select-none"
-        style={{
-          maskImage: cushionMask,
-          maskComposite: "intersect",
-          WebkitMaskImage: cushionMask,
-          WebkitMaskComposite: "source-in",
-        }}
       >
-        <div className="size-full blur-2xl opacity-95 scale-106">{halo}</div>
+        <ArtworkHalo variant="cushion">{halo}</ArtworkHalo>
       </div>
 
       {/* Layer 2: Foreground artwork with wide, dreamy transition into the blur */}

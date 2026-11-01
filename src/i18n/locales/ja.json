@@ -41,7 +41,8 @@
         "poster": "ポスター"
       }
     },
-    "beta": "ベータ"
+    "beta": "ベータ",
+    "cancel": "キャンセル"
   },
   "theme": {
     "label": "テーマ",
@@ -312,7 +313,9 @@
     "lyrics": "歌詞",
     "selectLyrics": "歌詞の設定",
     "switchButton": "ビッグプレーヤーに切り替える",
-    "emptyQueue": "キューに曲がありません"
+    "emptyQueue": "キューに曲がありません",
+    "dynamicArtwork": "動くアルバムアートワーク",
+    "dynamicArtworkInfo": "全画面プレーヤーでイマーシブカバー動画を使用します。ロック画面のアートワークとは個別に設定できます。"
   },
   "lyrics": {
     "customSelect": {
@@ -331,7 +334,11 @@
       "lyricsId": "ID: {{id}}",
       "noPreview": "プレビューは利用できません。",
       "disableLyrics": "歌詞をオフにする",
-      "lyricsDisabled": "歌詞オフ"
+      "lyricsDisabled": "歌詞オフ",
+      "offsetReset": "リセット",
+      "offsetLabel": "歌詞のタイミングオフセット",
+      "offsetHint": "正の値で歌詞の表示を遅らせます",
+      "hasRomaji": "ローマ字"
     }
   },
   "logout": {
@@ -418,7 +425,9 @@
       "endOfTrack": "現在の曲の終わり",
       "minutes": "{{count}} 分",
       "remaining": "残り {{time}}",
-      "cancel": "タイマーをキャンセル"
+      "cancel": "タイマーをキャンセル",
+      "minutes_one": "{{count}} 分",
+      "minutes_other": "{{count}} 分"
     }
   },
   "error": {
@@ -599,6 +608,138 @@
     "access_recommendation": "パソコンまたはタブレットからアクセスしてください。"
   },
   "settings": {
+    "crossDevice": {
+      "playback": {
+        "otherDevices": "ほかのデバイスで再生中",
+        "showDevices": "デバイスを表示",
+        "fetchingSong": "曲を読み込み中...",
+        "unknownTrack": "不明な曲",
+        "online": "オンライン",
+        "offline": "オフライン",
+        "continue": "続行",
+        "exitControl": "リモート操作を終了",
+        "remoteControl": "リモート操作",
+        "relay": "ここで再生を続ける",
+        "peerDevice": "リモートデバイス",
+        "controllingDevice": "{{name}} を操作中",
+        "continueConfirmTitle": "ここで再生を続けますか?",
+        "continueConfirmDesc": "このデバイスで現在再生している内容が置き換わります。",
+        "currentLocal": "このデバイスで再生中",
+        "thisDevice": "このデバイス",
+        "liveDevices": "オンラインのデバイス",
+        "offlineSnapshots": "オフラインデバイスから再生を再開する",
+        "willContinue": "{{name}} から再生を引き継ぐ"
+      },
+      "connect": "接続",
+      "never": "なし",
+      "device": {
+        "save": "保存",
+        "cancel": "キャンセル",
+        "current": "現在のデバイス",
+        "lastOnline": "最終オンライン: {{time}}",
+        "rename": "名前の変更",
+        "revoke": "アクセスを取り消す",
+        "renamed": "デバイスの名前が変更されました",
+        "revoked": "デバイスのアクセスを取り消しました"
+      },
+      "delete": "削除",
+      "deleteConfirm": {
+        "description": "この操作は元に戻せません。",
+        "title": "連携データをすべて削除しますか？"
+      },
+      "title": "デバイス間連携",
+      "description": "履歴を同期し、別のデバイスで再生を続けられます。",
+      "setup": {
+        "title": "このデバイスを接続",
+        "description": "同期するすべてのデバイスで同じ連携サーバーを使用してください。",
+        "requirement": "現在の音楽サーバーの認証情報は、このデバイスの利用を認証するためにのみ使用します。"
+      },
+      "serverUrl": {
+        "label": "連携サーバーの URL",
+        "info": "連携サーバーの URL です。"
+      },
+      "identityUrl": {
+        "label": "識別用 URL",
+        "info": "Navidrome/Subsonic サーバーの URL。"
+      },
+      "deviceName": {
+        "label": "デバイス名",
+        "info": "このデバイスを識別しやすい名前です。",
+        "placeholder": "自分のデバイス"
+      },
+      "retry": "再試行",
+      "status": "接続状態",
+      "statusInfo": "接続中は、ほかのデバイスから再生を引き継げます。",
+      "currentDevice": "現在のデバイス",
+      "disconnectShort": "切断",
+      "connectionState": {
+        "label": "状態",
+        "disconnected": "未接続",
+        "connecting": "接続中",
+        "authenticating": "認証中",
+        "connected": "接続済み",
+        "error": "エラー"
+      },
+      "lastSync": {
+        "label": "最終同期"
+      },
+      "error": {
+        "label": "エラー",
+        "missingFields": "すべての項目を入力してください",
+        "connectFailed": "接続に失敗しました",
+        "disconnectedDescription": "連携サーバーに再接続するまで、リモートデバイスは利用できません。",
+        "unconfiguredTitle": "デバイス間再生",
+        "unconfiguredDescription": "連携サーバーに接続してください"
+      },
+      "disconnect": "このデバイスを切断",
+      "connected": "接続済み",
+      "disconnected": "未接続",
+      "devices": "登録済みのデバイス",
+      "deviceCount": "{{count}} 台のデバイス",
+      "devicesDescription": "認識しやすいようにデバイスの名前を変更するか、古いセッションを取り消します。",
+      "deleteData": {
+        "label": "連携データをすべて削除",
+        "info": "連携サーバーからアカウントと同期済みデータをすべて削除します。"
+      },
+      "disconnectConfirm": {
+        "title": "このデバイスを切断しますか?",
+        "description": "これにより、このデバイスでのクロスデバイス同期が停止します。"
+      },
+      "revokeConfirm": {
+        "title": "デバイスのアクセスを取り消しますか？",
+        "description": "{{name}} のアクセスを取り消してもよろしいですか?"
+      },
+      "deleted": "連携データを削除しました",
+      "toast": {
+        "relaySuccess": "再生を引き継ぎました！",
+        "relayFailed": "再生の引き継ぎに失敗しました: {{code}}",
+        "exitRemoteControl": "リモート操作を終了しました",
+        "remoteControlSuccess": "{{name}} をリモート操作中",
+        "preparingRelay": "再生の引き継ぎを準備中...",
+        "sessionSuperseded": "このセッションは {{deviceName}} によって引き継がれ、再生が一時停止されました。"
+      },
+      "handoffError": {
+        "targetOffline": "デバイスがオフラインになりました。",
+        "snapshotExpired": "その再生スナップショットは古すぎて続行できません。",
+        "handoffConflict": "別の引き継ぎ操作により、このセッションはすでに引き継がれています。",
+        "sourceChanged": "転送が完了する前に再生元が変更されました。",
+        "sourcePauseTimeout": "再生元のデバイスから、期限内に一時停止の確認が届きませんでした。",
+        "unsupportedMedia": "このメディア タイプを別のデバイスで継続することはできません。",
+        "deviceRevoked": "このデバイスではデバイス間同期の使用が許可されなくなりました。",
+        "protocolIncompatible": "1 つ以上のデバイスで Aonsoku を更新します。",
+        "forbidden": "現在、このデバイスの操作や再生の引き継ぎはできません。",
+        "fallback": "再生の引き継ぎに失敗しました: {{reason}}"
+      },
+      "handoff": {
+        "prepare": "曲を準備中...",
+        "relinquish": "再生元のデバイスを一時停止中...",
+        "commit": "このデバイスで再生を再開中...",
+        "committed": "再生を引き継ぎました！",
+        "processing": "再生を同期中..."
+      },
+      "deviceCount_one": "{{count}} 台のデバイス",
+      "deviceCount_other": "{{count}} 台のデバイス"
+    },
     "label": "設定",
     "options": {
       "appearance": "外観",
@@ -609,7 +750,8 @@
       "desktop": "デスクトップアプリケーション",
       "server": "サーバー",
       "privacy": "プライバシーとセキュリティ",
-      "storage": "オフライン体験"
+      "storage": "オフライン体験",
+      "cross-device": "デバイス間連携"
     },
     "server": {
       "group": "サーバー",
@@ -659,12 +801,17 @@
         "albumCoverForSongs": {
           "label": "常にアルバムカバーを使用する",
           "info": "有効にすると、すべての曲のアートワーク取得にアルバムカバーを使用し、読み込み時間を短縮します。"
+        },
+        "usePointerCursors": {
+          "label": "ポインタカーソルを使用する",
+          "info": "有効にすると、インタラクティブ要素のポインター カーソルが表示されます。無効にすると、ネイティブ アプリのエクスペリエンスに合わせてポインター カーソルが減少します。"
         }
       },
       "queue": {
         "colors": {
           "info": "有効にすると、現在のアルバムカバーの主要な色を背景色として使用します。",
-          "label": "ダイナミック背景色を有効にする"
+          "label": "ダイナミック背景色を有効にする",
+          "intensity": "背景色の強度"
         },
         "description": "再生キューと歌詞ページをカスタマイズします。",
         "group": "キューと歌詞"
@@ -758,12 +905,12 @@
       "lockScreenArtwork": {
         "group": "ロック画面のアートワーク",
         "description": "iOS 26以降が必要です。レイアウトはシステムが制御し、動きはデバイス上で生成します。",
-        "loading": "Loading artwork settings…",
-        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
-        "retry": "Retry",
-        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "loading": "アートワーク設定を読み込んでいます…",
+        "unavailable": "アートワーク設定は使用できません。ネイティブ アプリを更新するか、再試行してください。",
+        "retry": "リトライ",
+        "unsupported": "このデバイスまたは iOS バージョンはイマーシブ アートワークをサポートしていません。通常のアートワークは引き続き利用可能です。",
         "immersive": "イマーシブアートワーク",
-        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "immersiveInfo": "カバーの端を自然に拡張し、システムが対応するレイアウト全体に表示します。",
         "dynamic": "アニメーション",
         "dynamicInfo": "奥行きの動きはローカルで生成します。モデルは必要時に取得し、準備中は静止画を使用します。",
         "quality": "モデル品質",
@@ -771,8 +918,8 @@
         "automatic": "自動（{{tier}}）",
         "effectiveTier": "リソース上限：{{tier}}",
         "wifiOnly": "Wi-Fiのみでモデルをダウンロード",
-        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
-        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "wifiInfo": "モバイル データ経由でのモデルのダウンロードも許可するには、このオプションをオフにします。モデル推論は常にこのデバイス上で実行されます。",
+        "modelsInfo": "必要な品質のモデルのみを自動ダウンロードします。生成済みの動画は再利用し、推論後はモデルをメモリから解放します。モデルを削除しても生成済みの動画は残ります。",
         "download": "ダウンロード",
         "remove": "削除",
         "cancel": "キャンセル",
@@ -785,7 +932,8 @@
           "thermal": "高温のため一時停止",
           "lowPower": "低電力モードで一時停止",
           "reduceMotion": "視差効果を減らす設定で一時停止",
-          "waitingForModel": "モデル準備中。静止画を使用"
+          "waitingForModel": "モデル準備中。静止画を使用",
+          "waitingForConsumer": "プレーヤーの表示を待機中"
         },
         "model": {
           "notDownloaded": "未ダウンロード",
@@ -801,7 +949,16 @@
         "motionAmplitudeInfo": "軌道を変えずに視差とカメラ移動を0.5×〜2×で調整します。",
         "motionSpeed": "動きの速度",
         "motionSpeedInfo": "24 FPSのループ：0.5× / 0.75× / 1× / 1.5× / 2×は12 / 8 / 6 / 4 / 3秒です。",
-        "motionDefault": "標準"
+        "motionDefault": "標準",
+        "macGroup": "イマーシブアートワーク",
+        "disableProtection": "リソース保護を無効にする",
+        "disableProtectionInfo": "モデルの自動ダウングレードを行わずに、熱、低電力モード、メモリ負荷にもかかわらず生成と再生が可能です。これにより、発熱とバッテリーの使用量が増加し、iOS がアプリを終了する可能性があります。システム制限、バックグラウンド ライフサイクル、モーションの削減は引き続き適用されます。",
+        "macImmersiveInfo": "カバーの端を自然に拡張した動画を生成し、プレーヤーで再利用します。",
+        "macWifiOnly": "従量制課金ではないネットワークでのみモデルをダウンロード",
+        "macWifiInfo": "従量制課金や通信制限のない Wi-Fi と Ethernet を使用します。オフにすると従量制課金のネットワークも許可します。",
+        "macDescription": "没入型のカバービデオを macOS 上でローカルに生成します。モデルはオンデマンドでダウンロードされます。準備されたビデオはプレーヤーで再利用できます。",
+        "depthPreview": "正規化された深度マップ",
+        "diagnostics": "macOS アートワークの診断"
       }
     },
     "privacy": {
@@ -948,7 +1105,9 @@
           "playlist": "プレイリスト",
           "explicit": "明示的",
           "smart": "スマート",
-          "lru": "LRU"
+          "lru": "LRU",
+          "immersive-static": "イマーシブ静止画",
+          "immersive-dynamic": "イマーシブ動画"
         },
         "list": {
           "name": "名前",
@@ -964,12 +1123,20 @@
           "type_cover": "カバー",
           "type_album": "アルバム",
           "type_playlist": "プレイリスト",
-          "removedFromServer": "サーバーから削除済み"
+          "removedFromServer": "サーバーから削除済み",
+          "type_immersive-static": "イマーシブ静止画",
+          "type_immersive-dynamic": "イマーシブ動画"
         },
         "confirmDelete": {
           "title": "キャッシュ項目を削除しますか？",
           "description": "'{{name}}' をキャッシュから削除します。後で再ダウンロードできます。"
-        }
+        },
+        "videoInfo": "イマーシブ ビデオはモデル ファイルとは別のものです。使用中のビデオは保護されています。生成されたビデオは再構築できます。",
+        "refresh": "更新",
+        "clearVideos": "イマーシブカバー動画を削除",
+        "videoCleared": "{{deleted}} 本の動画を削除しました。 {{retained}} 個の使用中のファイルが保持されました。",
+        "inUse": "使用中",
+        "motionParameters": "振幅{{amplitude}}× · 速度{{speed}}×"
       },
       "smart": {
         "group": "スマートダウンロード",
@@ -1174,5 +1341,8 @@
       "cloud": "ネットワークが必要",
       "orphan": "サーバーから削除済み（オフラインでは再生可能）"
     }
+  },
+  "navigation": {
+    "back": "戻る"
   }
 }

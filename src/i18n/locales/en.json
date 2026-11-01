@@ -425,7 +425,9 @@
       "endOfTrack": "End of current track",
       "minutes": "{{count}} min",
       "remaining": "{{time}} remaining",
-      "cancel": "Cancel timer"
+      "cancel": "Cancel timer",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min"
     }
   },
   "error": {
@@ -721,14 +723,35 @@
         "fallback": "Handoff failed: {{reason}}"
       },
       "playback": {
+        "otherDevices": "Other devices playing",
+        "showDevices": "Show Devices",
+        "online": "Online",
+        "offline": "Offline",
         "fetchingSong": "Fetching song...",
         "unknownTrack": "Unknown track",
         "exitControl": "Exit control",
         "remoteControl": "Remote control",
         "relay": "Handoff",
         "peerDevice": "remote device",
-        "controllingDevice": "Controlling {{name}}"
-      }
+        "controllingDevice": "Controlling {{name}}",
+        "continue": "Continue",
+        "continueConfirmTitle": "Continue playback here?",
+        "continueConfirmDesc": "This will replace the active local playback on this device.",
+        "currentLocal": "Current on this device",
+        "thisDevice": "This Device",
+        "liveDevices": "Live peer devices",
+        "offlineSnapshots": "Continue from offline playback",
+        "willContinue": "Continue from {{name}}"
+      },
+      "handoff": {
+        "prepare": "Preparing track...",
+        "relinquish": "Pausing source device...",
+        "commit": "Continuing playback here...",
+        "committed": "Handoff successful!",
+        "processing": "Syncing playback..."
+      },
+      "deviceCount_one": "{{count}} device",
+      "deviceCount_other": "{{count}} devices"
     },
     "server": {
       "group": "Server",
@@ -787,7 +810,8 @@
       "queue": {
         "colors": {
           "info": "When enabled, the app will use the dominant color of the current album cover as the background color.",
-          "label": "Enable dynamic background color"
+          "label": "Enable dynamic background color",
+          "intensity": "Background color intensity"
         },
         "description": "Customize the queue and lyrics page.",
         "group": "Queue and lyrics"
@@ -1219,5 +1243,8 @@
       "cloud": "Needs network",
       "orphan": "Removed from server (still playable offline)"
     }
+  },
+  "navigation": {
+    "back": "Back"
   }
 }

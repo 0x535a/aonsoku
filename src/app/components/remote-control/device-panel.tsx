@@ -315,7 +315,7 @@ function DevicePanelContent({
                 size="icon"
                 onClick={handleGoToSettings}
                 className="h-8 w-8 rounded-lg hover:bg-accent/50"
-                title={t("sidebar.settings", { defaultValue: "Settings" })}
+                title={t("settings.label", { defaultValue: "Settings" })}
               >
                 <Settings className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors" />
               </Button>
@@ -342,7 +342,7 @@ function DevicePanelContent({
               size="icon"
               onClick={handleGoToSettings}
               className="h-8 w-8 rounded-lg hover:bg-accent/50"
-              title={t("sidebar.settings", { defaultValue: "Settings" })}
+              title={t("settings.label", { defaultValue: "Settings" })}
             >
               <Settings className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors" />
             </Button>

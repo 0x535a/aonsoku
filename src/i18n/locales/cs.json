@@ -42,7 +42,12 @@
         "recentlyAdded": "Nedávno přidané",
         "recentlyPlayed": "Nedávno přehrané",
         "releaseYear": "Rok vydání",
-        "search": "Hledat"
+        "search": "Hledat",
+        "label": "Filtr",
+        "year": {
+          "oldest": "Nejdříve nejstarší",
+          "newest": "Nejdříve nejnovější"
+        }
       },
       "genre": {
         "label": "Vyber žánr…",
@@ -74,7 +79,7 @@
     },
     "headline": "Umělec",
     "info": {
-      "albumsCount_one": "{{count}} album",
+      "albumsCount_one": "Album {{count}}",
       "albumsCount_other": "{{count}} alb",
       "albumsCount_few": "{{count}} albumy",
       "albumsCount_many": "{{count}} albumów"
@@ -122,7 +127,9 @@
     "headline": "Oblíbené",
     "noSongs": "Zatím žádné oblíbené skladby!",
     "songCount_one": "{{count}} skladba",
-    "songCount_other": "{{count}} skladeb"
+    "songCount_other": "{{count}} skladeb",
+    "songCount_few": "{{count}} skladby",
+    "songCount_many": "{{count}} skladby"
   },
   "fullscreen": {
     "emptyQueue": "Žádné skladby ve frontě",
@@ -136,7 +143,10 @@
     "queueHistory": "Historie",
     "queueRepeating": "Opakování",
     "switchButton": "Přepnout na velký přehrávač",
-    "selectLyrics": "Nastavení textu"
+    "selectLyrics": "Nastavení textu",
+    "dynamicArtwork": "Dynamická grafika alba",
+    "dynamicArtworkInfo": "V přehrávači na celou obrazovku používejte poutavá videa s přebaly. Nezávislé na kresbě uzamčené obrazovky.",
+    "queueShuffling": "Náhodné přehrávání"
   },
   "generic": {
     "beta": "Beta",
@@ -152,13 +162,15 @@
         "list": "Seznam",
         "poster": "Plakát"
       }
-    }
+    },
+    "cancel": "Zrušit"
   },
   "home": {
     "explore": "Objevujte",
     "mostPlayed": "Nejčastěji přehrávané",
     "recentlyAdded": "Nedávno přidané",
-    "recentlyPlayed": "Nedávno přehrané"
+    "recentlyPlayed": "Nedávno přehrané",
+    "pinned": "Připnuto"
   },
   "lanControl": {
     "remote": {
@@ -308,7 +320,9 @@
     },
     "removeDownload": "Odebrat stažení",
     "removeFromQueue": "Odebrat z fronty",
-    "unlike": "Odebrat z oblíbených"
+    "unlike": "Odebrat z oblíbených",
+    "pin": "Připnout na domovskou stránku",
+    "unpin": "Odepnout z domova"
   },
   "player": {
     "noRadioPlaying": "Nepřehrává se žádné rádio",
@@ -342,6 +356,18 @@
         "mute": "Ztlumit",
         "unmute": "Odztlumit"
       }
+    },
+    "sleepTimer": {
+      "tooltip": "Časovač spánku",
+      "title": "Časovač spánku",
+      "endOfTrack": "Konec aktuální stopy",
+      "minutes": "{{count}} min",
+      "remaining": "Zbývá {{time}}",
+      "cancel": "Zrušit časovač",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "minutes_few": "{{count}} min",
+      "minutes_many": "{{count}} min"
     }
   },
   "playlist": {
@@ -404,7 +430,7 @@
         "nameLength": "Playlist musí obsahovat alespoň 2 znaky."
       }
     },
-    "headline": "Playlist",
+    "headline": "Seznam skladeb",
     "noSongList": "Tento playlist neobsahuje žádné písně!",
     "refresh": "Obnovit playlisty",
     "songCount_few": "{{count}} skladby",
@@ -493,13 +519,147 @@
     "songCount_many": "{{count}} piosenek"
   },
   "settings": {
+    "crossDevice": {
+      "playback": {
+        "otherDevices": "Přehrávání na jiných zařízeních",
+        "showDevices": "Zobrazit zařízení",
+        "fetchingSong": "Načítání skladby...",
+        "unknownTrack": "Neznámá skladba",
+        "online": "Online",
+        "offline": "Offline",
+        "continue": "Pokračovat",
+        "exitControl": "Ukončit ovládání",
+        "remoteControl": "Dálkové ovládání",
+        "relay": "Přenést přehrávání",
+        "peerDevice": "vzdálené zařízení",
+        "controllingDevice": "Ovládání {{name}}",
+        "continueConfirmTitle": "Pokračovat v přehrávání zde?",
+        "continueConfirmDesc": "To nahradí aktivní místní přehrávání na tomto zařízení.",
+        "currentLocal": "Právě hraje na tomto zařízení",
+        "thisDevice": "Toto zařízení",
+        "liveDevices": "Online zařízení",
+        "offlineSnapshots": "Obnovte přehrávání z offline zařízení",
+        "willContinue": "Pokračovat z {{name}}"
+      },
+      "connect": "Připojit",
+      "never": "Nikdy",
+      "device": {
+        "save": "Uložit",
+        "cancel": "Zrušit",
+        "current": "Aktuální zařízení",
+        "lastOnline": "Naposledy online {{time}}",
+        "rename": "Přejmenovat",
+        "revoke": "Zrušit",
+        "renamed": "Zařízení přejmenováno",
+        "revoked": "Zařízení odvoláno"
+      },
+      "delete": "Smazat",
+      "deleteConfirm": {
+        "description": "Tuto akci nelze vrátit zpět.",
+        "title": "Smazat všechna koordinační data?"
+      },
+      "title": "Mezi zařízeními",
+      "description": "Synchronizujte historii a pokračujte v přehrávání na svých zařízeních.",
+      "setup": {
+        "title": "Připojte toto zařízení k serveru",
+        "description": "Použijte stejný koordinační server na každém zařízení, které chcete synchronizovat.",
+        "requirement": "Vaše aktuální přihlašovací údaje hudebního serveru se používají pouze k autorizaci tohoto zařízení."
+      },
+      "serverUrl": {
+        "label": "Adresa URL koordinačního serveru",
+        "info": "URL vašeho koordinačního serveru."
+      },
+      "identityUrl": {
+        "label": "Adresa URL identity",
+        "info": "Adresa URL vašeho serveru Navidrome/Subson."
+      },
+      "deviceName": {
+        "label": "Název zařízení",
+        "info": "Rozpoznatelné jméno pro toto zařízení.",
+        "placeholder": "Moje zařízení"
+      },
+      "retry": "Zkuste to znovu",
+      "status": "Stav připojení",
+      "statusInfo": "Toto zařízení zůstane dostupné pro předávání přehrávání, když je připojeno.",
+      "currentDevice": "Aktuální zařízení",
+      "disconnectShort": "Odpojit",
+      "connectionState": {
+        "label": "Stav připojení",
+        "disconnected": "Odpojeno",
+        "connecting": "Spojovací",
+        "authenticating": "Ověřování",
+        "connected": "Připojeno",
+        "error": "Chyba"
+      },
+      "lastSync": {
+        "label": "Poslední synchronizace"
+      },
+      "error": {
+        "label": "Chyba",
+        "missingFields": "Vyplňte všechna pole",
+        "connectFailed": "Připojení se nezdařilo",
+        "disconnectedDescription": "Vzdálená zařízení jsou nedostupná, dokud se koordinační server znovu nepřipojí.",
+        "unconfiguredTitle": "Přehrávání mezi zařízeními",
+        "unconfiguredDescription": "Připojte se ke koordinačnímu serveru"
+      },
+      "disconnect": "Odpojte toto zařízení",
+      "connected": "Připojeno",
+      "disconnected": "Odpojeno",
+      "devices": "Registrovaná zařízení",
+      "deviceCount": "{{count}} zařízení",
+      "devicesDescription": "Přejmenujte zařízení, aby je bylo možné snadno rozpoznat, nebo zrušte staré relace.",
+      "deleteData": {
+        "label": "Vymažte všechna koordinační data",
+        "info": "Odeberte svůj účet a všechna synchronizovaná data z koordinačního serveru."
+      },
+      "disconnectConfirm": {
+        "title": "Odpojit toto zařízení?",
+        "description": "Tím zastavíte synchronizaci mezi zařízeními na tomto zařízení."
+      },
+      "revokeConfirm": {
+        "title": "Zrušit zařízení?",
+        "description": "Opravdu chcete uživateli {{name}} zrušit přístup?"
+      },
+      "deleted": "Údaje o koordinaci byly smazány",
+      "toast": {
+        "relaySuccess": "Předání úspěšné!",
+        "relayFailed": "Předání se nezdařilo: {{code}}",
+        "exitRemoteControl": "Zastaveno dálkové ovládání přehrávání",
+        "remoteControlSuccess": "Dálkové ovládání: {{name}}",
+        "preparingRelay": "Příprava předání...",
+        "sessionSuperseded": "Tuto relaci převzal {{deviceName}}, přehrávání bylo pozastaveno."
+      },
+      "handoffError": {
+        "targetOffline": "Zařízení přešlo do režimu offline.",
+        "snapshotExpired": "Tento snímek přehrávání je příliš starý na to, aby mohl pokračovat.",
+        "handoffConflict": "Další předání již tuto relaci zabralo.",
+        "sourceChanged": "Zdroj se změnil, než mohl být přenesen.",
+        "sourcePauseTimeout": "Zdrojové zařízení nepotvrdilo, že přehrávání bylo pozastaveno před uzávěrkou.",
+        "unsupportedMedia": "Tento typ média nemůže pokračovat na jiném zařízení.",
+        "deviceRevoked": "Toto zařízení již nemá povoleno používat synchronizaci mezi zařízeními.",
+        "protocolIncompatible": "Aktualizujte Aonsoku na jednom nebo více zařízeních.",
+        "forbidden": "Toto zařízení nyní nelze ovládat ani přenášet.",
+        "fallback": "Předání se nezdařilo: {{reason}}"
+      },
+      "handoff": {
+        "prepare": "Příprava zvukové stopy...",
+        "relinquish": "Pozastavení zdrojového zařízení...",
+        "commit": "Pokračování přehrávání zde...",
+        "committed": "Předání úspěšné!",
+        "processing": "Synchronizace přehrávání..."
+      },
+      "deviceCount_one": "{{count}} zařízení",
+      "deviceCount_other": "{{count}} zařízení",
+      "deviceCount_few": "{{count}} zařízení",
+      "deviceCount_many": "{{count}} zařízení"
+    },
     "accounts": {
       "discord": {
         "description": "Sdílejte právě přehrávanou skladbu s přáteli na Discordu.",
         "enabled": {
           "label": "Povolit integraci"
         },
-        "group": "Discord Rich Presence"
+        "group": "Neshoda bohatá přítomnost"
       }
     },
     "appearance": {
@@ -513,15 +673,20 @@
           "info": "Pokud je povoleno, při přístupu k velkému přehrávači aplikace automaticky přejde do režimu celé obrazovky.",
           "label": "Povolit automatickou celou obrazovku"
         },
-        "group": "Obecné"
+        "group": "Obecné",
+        "usePointerCursors": {
+          "label": "Použijte kurzorové kurzory",
+          "info": "Je-li povoleno, zobrazuje kurzory ukazatele pro interaktivní prvky; je-li zakázáno, omezuje kurzory ukazatelů, aby odpovídaly nativním aplikacím."
+        }
       },
       "queue": {
         "colors": {
-          "info": "Si activé, l'application utilisera la couleur dominante de la pochette de l'album actuel comme couleur de fond.",
-          "label": "Activer la couleur de fond dynamique"
+          "info": "Je-li zapnuto, použije se jako pozadí dominantní barva aktuálního obalu alba.",
+          "label": "Povolit dynamickou barvu pozadí",
+          "intensity": "Intenzita barvy pozadí"
         },
-        "description": "Personnaliser la page de la file d'attente et des paroles.",
-        "group": "File d'attente et paroles"
+        "description": "Přizpůsobte stránku fronty a textů.",
+        "group": "Fronta a texty"
       }
     },
     "audio": {
@@ -594,30 +759,30 @@
         "preAmp": "Předzesílení (dB)"
       },
       "hapticFeedback": {
-        "description": "Control vibration feedback when interacting with the app.",
+        "description": "Ovládejte vibrační odezvu při interakci s aplikací.",
         "enabled": {
-          "info": "When enabled, the device will vibrate when dragging queue items on mobile.",
-          "label": "Enable haptic feedback"
+          "info": "Je-li povoleno, zařízení bude při přetahování položek fronty na mobilu vibrovat.",
+          "label": "Povolit hmatovou zpětnou vazbu"
         },
-        "group": "Haptic Feedback"
+        "group": "Haptická zpětná vazba"
       },
       "pip": {
-        "group": "Picture-in-Picture",
-        "description": "Control how the app responds to picture-in-picture requests from the browser.",
+        "group": "Obraz v obraze",
+        "description": "Ovládejte, jak aplikace reaguje na požadavky na obraz v obraze z prohlížeče.",
         "acceptBrowserRequest": {
-          "label": "Accept browser PiP requests",
-          "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
+          "label": "Přijměte požadavky prohlížeče PiP",
+          "info": "Když je tato možnost povolena, bude aplikace reagovat na požadavky prohlížeče z obrazu v obraze. Když je deaktivován, lze minipřehrávač otevřít pouze ručně pomocí tlačítka PiP."
         }
       },
       "lockScreenArtwork": {
         "group": "Obal na zamčené obrazovce",
         "description": "iOS 26+. Rozvržení ovládá systém; pohyb se vytváří v zařízení.",
-        "loading": "Loading artwork settings…",
-        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
-        "retry": "Retry",
-        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "loading": "Načítání nastavení kresby…",
+        "unavailable": "Nastavení uměleckého díla nejsou k dispozici. Aktualizujte nativní aplikaci nebo to zkuste znovu.",
+        "retry": "Zkuste to znovu",
+        "unsupported": "Toto zařízení nebo verze pro iOS nepodporuje pohlcující kresby. Běžná umělecká díla zůstávají k dispozici.",
         "immersive": "Pohlcující obal",
-        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "immersiveInfo": "Roztáhněte přebal za jeho okraje tak, aby vyplnil rozvržení podporované systémem.",
         "dynamic": "Pohyblivý obal",
         "dynamicInfo": "Jemná hloubková animace se vytváří lokálně. Model se stáhne podle potřeby; do té doby se používá statický obal.",
         "quality": "Kvalita modelu",
@@ -625,8 +790,8 @@
         "automatic": "Automaticky ({{tier}})",
         "effectiveTier": "Limit prostředků: {{tier}}",
         "wifiOnly": "Stahovat pouze přes Wi-Fi",
-        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
-        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "wifiInfo": "Vypněte tuto možnost, chcete-li také umožnit stahování modelů přes mobilní data. Odvozování modelu vždy běží na tomto zařízení.",
+        "modelsInfo": "Automaticky se stáhne pouze požadovaná úroveň modelu. Připravená videa se znovu použijí. Modely jsou po odvození uvolněny z paměti. Smazáním modelu zůstanou vygenerovaná videa zachována.",
         "download": "Stáhnout",
         "remove": "Smazat",
         "cancel": "Zrušit",
@@ -639,7 +804,8 @@
           "thermal": "Zařízení je horké; pozastaveno",
           "lowPower": "Úsporný režim; pozastaveno",
           "reduceMotion": "Omezení pohybu; pozastaveno",
-          "waitingForModel": "Připravuje se model; statický obal"
+          "waitingForModel": "Připravuje se model; statický obal",
+          "waitingForConsumer": "Čekání na zobrazení rozhraní přehrávání"
         },
         "model": {
           "notDownloaded": "Není staženo",
@@ -655,7 +821,16 @@
         "motionAmplitudeInfo": "Mění paralaxu a pohyb kamery od 0,5× do 2× při zachování trajektorie.",
         "motionSpeed": "Rychlost pohybu",
         "motionSpeedInfo": "Smyčka 24 FPS: 0,5× / 0,75× / 1× / 1,5× / 2× odpovídá 12 / 8 / 6 / 4 / 3 sekundám.",
-        "motionDefault": "výchozí"
+        "motionDefault": "výchozí",
+        "macGroup": "Pohlcující obal",
+        "disableProtection": "Zakázat ochranu zdrojů",
+        "disableProtectionInfo": "Umožněte generování a přehrávání navzdory horku, režimu nízké spotřeby nebo tlaku paměti, bez automatického downgradu modelu. To může zvýšit spotřebu tepla a baterie a může způsobit ukončení aplikace iOS. Stále platí systémové limity, životní cyklus na pozadí a omezení pohybu.",
+        "macImmersiveInfo": "Připravte si obalová videa s plynule rozšířenými okraji pro opětovné použití hudebním přehrávačem.",
+        "macWifiOnly": "Stahovat modely pouze v sítích bez datových limitů",
+        "macWifiInfo": "Používat Wi-Fi a Ethernet pouze bez účtování podle přenesených dat a bez omezení připojení. Vypnutím povolíte i sítě s účtováním podle objemu dat.",
+        "macDescription": "Vytvářejte pohlcující videa s obálkami lokálně v systému macOS. Stahování modelů na vyžádání; připravená videa může přehrávač znovu použít.",
+        "depthPreview": "Normalizovaná hloubková mapa",
+        "diagnostics": "diagnostika kresby macOS"
       }
     },
     "content": {
@@ -751,7 +926,8 @@
       "language": "Jazyk a oblast",
       "privacy": "Soukromí a zabezpečení",
       "server": "Server",
-      "storage": "Offline prostředí"
+      "storage": "Offline prostředí",
+      "cross-device": "Mezi zařízeními"
     },
     "privacy": {
       "services": {
@@ -823,8 +999,10 @@
           "cover": "Obal",
           "explicit": "Explicitní",
           "lru": "LRU",
-          "playlist": "Playlist",
-          "smart": "Chytré"
+          "playlist": "Seznam skladeb",
+          "smart": "Chytré",
+          "immersive-static": "Pohlcující statický obal",
+          "immersive-dynamic": "Pohlcující animovaný obal"
         },
         "group": "Správce mezipaměti",
         "list": {
@@ -841,8 +1019,16 @@
           "type_album": "Album",
           "type_audio": "Zvuk",
           "type_cover": "Obal",
-          "type_playlist": "Playlist"
-        }
+          "type_playlist": "Seznam skladeb",
+          "type_immersive-static": "Pohlcující statický obal",
+          "type_immersive-dynamic": "Pohlcující animovaný obal"
+        },
+        "videoInfo": "Pohlcující videa jsou oddělena od souborů modelu. Používaná videa jsou chráněna; vygenerovaná videa lze znovu vytvořit.",
+        "refresh": "Obnovit",
+        "clearVideos": "Smazat pohlcující videa obalů",
+        "videoCleared": "Smazaná videa ({{deleted}}); uchovaných {{retained}} používaných souborů.",
+        "inUse": "Používá se",
+        "motionParameters": "Amplituda {{amplitude}}× · Rychlost {{speed}}×"
       },
       "coverArt": {
         "clear": "Vymazat mezipaměť obalů",
@@ -963,7 +1149,10 @@
             "description": "Obrázky alb · interpretů · playlistů"
           }
         },
-        "downloading": "Stahování {{count}} skladeb"
+        "downloading": "Stahování {{count}} skladeb",
+        "libraryCachingInfoIos": "Ukládání do mezipaměti knihovny je vyžadováno a vždy povoleno v systému iOS, aby podporovalo přehrávání offline.",
+        "downloading_few": "Stahování {{count}} skladeb",
+        "downloading_many": "Stahování {{count}} skladeb"
       }
     }
   },
@@ -1038,7 +1227,7 @@
       "albumPeak": "Špička alba",
       "artist": "Umělec",
       "bitDepth": "Bitová hloubka",
-      "bitrate": "Bitrate",
+      "bitrate": "Bitová rychlost",
       "bpm": "BPM",
       "channelCount": "Počet kanálů",
       "codec": "Kodek",
@@ -1115,7 +1304,9 @@
     "vim-dark-soft": "Vim Dark Soft",
     "vue-dark": "Vue Dark",
     "cool": "Cool",
-    "huacat-pink": "Huacat Pink"
+    "huacat-pink": "Huacat Pink",
+    "materialYou": "Barva motivu Material You",
+    "materialYouInfo": "Používat dynamické barvy podle tapety systému (Android 12+)."
   },
   "time": {
     "days_few": "{{days}} dny",
@@ -1167,7 +1358,17 @@
       "selected": "Vybráno",
       "currentSelection": "Aktuální výběr: {{title}} od {{artist}}",
       "lyricsId": "ID: {{id}}",
-      "noPreview": "Náhled není k dispozici."
+      "noPreview": "Náhled není k dispozici.",
+      "offsetReset": "Resetovat",
+      "saveError": "Vybrané texty se nepodařilo uložit.",
+      "disableLyrics": "Vypněte texty",
+      "lyricsDisabled": "Texty vypnuty",
+      "offsetLabel": "Časový posun textů",
+      "offsetHint": "Kladné hodnoty offsetu zpožďují texty.",
+      "hasRomaji": "Romaji"
     }
+  },
+  "navigation": {
+    "back": "Zadní"
   }
 }

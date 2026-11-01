@@ -65,7 +65,7 @@ export function PlayerControls({ song, radio }: PlayerControlsProps) {
   const isLoading = isBuffering || isTransitioning;
 
   const playTooltip = isLoading
-    ? t("player.tooltips.loading")
+    ? t("generic.loading")
     : isPlaying
       ? t("player.tooltips.pause")
       : t("player.tooltips.play");

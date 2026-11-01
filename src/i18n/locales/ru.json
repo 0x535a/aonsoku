@@ -42,7 +42,12 @@
         "recentlyAdded": "Недавно добавленные",
         "recentlyPlayed": "Недавно прослушанные",
         "releaseYear": "Год выпуска",
-        "search": "Поиск"
+        "search": "Поиск",
+        "label": "Фильтр",
+        "year": {
+          "oldest": "Сначала самый старый",
+          "newest": "Сначала самые новые"
+        }
       },
       "genre": {
         "label": "Выберите жанр…",
@@ -122,7 +127,9 @@
     "headline": "Избранное",
     "noSongs": "Пока нет избранных песен!",
     "songCount_one": "{{count}} песня",
-    "songCount_other": "{{count}} песен"
+    "songCount_other": "{{count}} песен",
+    "songCount_few": "{{count}} песни",
+    "songCount_many": "{{count}} песен"
   },
   "fullscreen": {
     "emptyQueue": "Нет песен в очереди",
@@ -136,7 +143,10 @@
     "queueHistory": "История",
     "queueRepeating": "Повтор",
     "switchButton": "Перейти в полноэкранный режим",
-    "selectLyrics": "Настройки текста"
+    "selectLyrics": "Настройки текста",
+    "dynamicArtwork": "Динамичная обложка альбома",
+    "dynamicArtworkInfo": "Используйте захватывающие кавер-видео в полноэкранном проигрывателе. Независимость от изображений на экране блокировки.",
+    "queueShuffling": "Воспроизведение в случайном порядке"
   },
   "generic": {
     "beta": "Бета",
@@ -152,13 +162,15 @@
         "list": "Список",
         "poster": "Постер"
       }
-    }
+    },
+    "cancel": "Отмена"
   },
   "home": {
     "explore": "Обзор",
     "mostPlayed": "Наиболее прослушиваемые",
     "recentlyAdded": "Недавно добавлено",
-    "recentlyPlayed": "Недавно прослушанные"
+    "recentlyPlayed": "Недавно прослушанные",
+    "pinned": "Закреплено"
   },
   "lanControl": {
     "remote": {
@@ -308,7 +320,9 @@
     },
     "removeDownload": "Удалить загрузку",
     "removeFromQueue": "Убрать из очереди",
-    "unlike": "Убрать лайк"
+    "unlike": "Убрать лайк",
+    "pin": "Закрепить на главной странице",
+    "unpin": "Открепить от дома"
   },
   "player": {
     "noRadioPlaying": "Сейчас радио не играет",
@@ -342,6 +356,18 @@
         "mute": "Заглушить",
         "unmute": "Разглушить"
       }
+    },
+    "sleepTimer": {
+      "tooltip": "Таймер сна",
+      "title": "Таймер сна",
+      "endOfTrack": "Конец текущего трека",
+      "minutes": "{{count}} мин.",
+      "remaining": "осталось {{time}}",
+      "cancel": "Отменить таймер",
+      "minutes_one": "{{count}} мин.",
+      "minutes_other": "{{count}} мин.",
+      "minutes_few": "{{count}} мин.",
+      "minutes_many": "{{count}} мин."
     }
   },
   "playlist": {
@@ -493,13 +519,147 @@
     "status": "Статус"
   },
   "settings": {
+    "crossDevice": {
+      "playback": {
+        "otherDevices": "Воспроизведение на других устройствах",
+        "showDevices": "Показать устройства",
+        "fetchingSong": "Загрузка композиции...",
+        "unknownTrack": "Неизвестная композиция",
+        "online": "В сети",
+        "offline": "Не в сети",
+        "continue": "Продолжить",
+        "exitControl": "Выйти из управления",
+        "remoteControl": "Удалённое управление",
+        "relay": "Передать воспроизведение",
+        "peerDevice": "удаленное устройство",
+        "controllingDevice": "Управление {{name}}",
+        "continueConfirmTitle": "Продолжить воспроизведение здесь?",
+        "continueConfirmDesc": "Это заменит активное локальное воспроизведение на этом устройстве.",
+        "currentLocal": "Сейчас воспроизводится на этом устройстве",
+        "thisDevice": "Это устройство",
+        "liveDevices": "Устройства в сети",
+        "offlineSnapshots": "Возобновить воспроизведение с автономного устройства",
+        "willContinue": "Продолжить с {{name}}"
+      },
+      "connect": "Подключиться",
+      "never": "Никогда",
+      "device": {
+        "save": "Сохранить",
+        "cancel": "Отмена",
+        "current": "Текущее устройство",
+        "lastOnline": "Последний раз был в сети {{time}}",
+        "rename": "Переименовать",
+        "revoke": "Отозвать",
+        "renamed": "Устройство переименовано",
+        "revoked": "Устройство отозвано"
+      },
+      "delete": "Удалить",
+      "deleteConfirm": {
+        "description": "Это действие не может быть отменено.",
+        "title": "Удалить все данные координации?"
+      },
+      "title": "Кросс-девайс",
+      "description": "Синхронизируйте историю и продолжайте воспроизведение на своих устройствах.",
+      "setup": {
+        "title": "Подключите это устройство к серверу",
+        "description": "Используйте один и тот же сервер координации на каждом устройстве, которое хотите синхронизировать.",
+        "requirement": "Ваши текущие учетные данные музыкального сервера используются только для авторизации этого устройства."
+      },
+      "serverUrl": {
+        "label": "URL координационного сервера",
+        "info": "URL-адрес вашего координационного сервера."
+      },
+      "identityUrl": {
+        "label": "URL-адрес удостоверения",
+        "info": "URL-адрес вашего сервера Navidrome/Subsonic."
+      },
+      "deviceName": {
+        "label": "Имя устройства",
+        "info": "Узнаваемое название для этого устройства.",
+        "placeholder": "Мое устройство"
+      },
+      "retry": "Повторить попытку",
+      "status": "Статус подключения",
+      "statusInfo": "Это устройство остается доступным для передачи управления воспроизведением, пока оно подключено.",
+      "currentDevice": "Текущее устройство",
+      "disconnectShort": "Отключить",
+      "connectionState": {
+        "label": "Статус подключения",
+        "disconnected": "Отключено",
+        "connecting": "Подключение",
+        "authenticating": "Аутентификация",
+        "connected": "Подключено",
+        "error": "Ошибка"
+      },
+      "lastSync": {
+        "label": "Последняя синхронизация"
+      },
+      "error": {
+        "label": "Ошибка",
+        "missingFields": "Заполните все поля",
+        "connectFailed": "Соединение не удалось",
+        "disconnectedDescription": "Удаленные устройства недоступны до тех пор, пока координационный сервер не подключится повторно.",
+        "unconfiguredTitle": "Воспроизведение на разных устройствах",
+        "unconfiguredDescription": "Подключиться к координационному серверу"
+      },
+      "disconnect": "Отключить это устройство",
+      "connected": "Подключено",
+      "disconnected": "Отключено",
+      "devices": "Зарегистрированные устройства",
+      "deviceCount": "{{count}} устройств",
+      "devicesDescription": "Переименуйте устройства, чтобы их можно было легко распознать, или отмените старые сеансы.",
+      "deleteData": {
+        "label": "Удалить все данные координации",
+        "info": "Удалите свою учетную запись и все синхронизированные данные с сервера координации."
+      },
+      "disconnectConfirm": {
+        "title": "Отключить это устройство?",
+        "description": "Синхронизация между устройствами на этом устройстве будет остановлена."
+      },
+      "revokeConfirm": {
+        "title": "Отозвать устройство?",
+        "description": "Вы уверены, что хотите отозвать доступ для {{name}}?"
+      },
+      "deleted": "Данные координации удалены.",
+      "toast": {
+        "relaySuccess": "Передача прошла успешно!",
+        "relayFailed": "Передача обслуживания не удалась: {{code}}",
+        "exitRemoteControl": "Остановлено дистанционное управление воспроизведением",
+        "remoteControlSuccess": "Дистанционное управление: {{name}}",
+        "preparingRelay": "Подготовка передачи...",
+        "sessionSuperseded": "Этот сеанс захвачен {{deviceName}}, воспроизведение приостановлено."
+      },
+      "handoffError": {
+        "targetOffline": "Устройство вышло из сети.",
+        "snapshotExpired": "Этот снимок воспроизведения слишком стар, чтобы его можно было продолжать.",
+        "handoffConflict": "На этом сеансе уже произошла очередная передача.",
+        "sourceChanged": "Источник изменился до того, как его удалось перенести.",
+        "sourcePauseTimeout": "Исходное устройство не подтвердило, что воспроизведение было приостановлено до истечения крайнего срока.",
+        "unsupportedMedia": "Этот тип носителя нельзя продолжить на другом устройстве.",
+        "deviceRevoked": "Этому устройству больше не разрешено использовать синхронизацию между устройствами.",
+        "protocolIncompatible": "Обновите Aonsoku на одном или нескольких устройствах.",
+        "forbidden": "В данный момент этим устройством невозможно управлять или передавать его.",
+        "fallback": "Передача обслуживания не удалась: {{reason}}"
+      },
+      "handoff": {
+        "prepare": "Подготовка звуковой дорожки...",
+        "relinquish": "Приостановка исходного устройства...",
+        "commit": "Продолжение воспроизведения здесь...",
+        "committed": "Передача прошла успешно!",
+        "processing": "Синхронизация воспроизведения..."
+      },
+      "deviceCount_one": "{{count}} устройство",
+      "deviceCount_other": "{{count}} устройств",
+      "deviceCount_few": "{{count}} устройства",
+      "deviceCount_many": "{{count}} устройств"
+    },
     "accounts": {
       "discord": {
         "description": "Делитесь текущим треком с друзьями в Discord.",
         "enabled": {
           "label": "Включить интеграцию"
         },
-        "group": "Discord Rich Presence"
+        "group": "Богатое присутствие Discord"
       }
     },
     "appearance": {
@@ -513,15 +673,20 @@
           "info": "Если включено, при запуске большого проигрывателя приложение автоматически перейдет в полноэкранный режим.",
           "label": "Включить автоматический полный экран"
         },
-        "group": "Общее"
+        "group": "Общее",
+        "usePointerCursors": {
+          "label": "Используйте курсоры-указатели",
+          "info": "Если этот параметр включен, отображаются курсоры-указатели для интерактивных элементов; если отключено, курсоры указателя уменьшаются в соответствии с возможностями встроенного приложения."
+        }
       },
       "queue": {
         "colors": {
-          "info": "Si activé, l'application utilisera la couleur dominante de la pochette de l'album actuel comme couleur de fond.",
-          "label": "Activer la couleur de fond dynamique"
+          "info": "Если включено, приложение использует основной цвет обложки текущего альбома в качестве цвета фона.",
+          "label": "Включить динамический цвет фона",
+          "intensity": "Интенсивность цвета фона"
         },
-        "description": "Personnaliser la page de la file d'attente et des paroles.",
-        "group": "File d'attente et paroles"
+        "description": "Настройте очередь и страницу текстов песен.",
+        "group": "Очередь и тексты"
       }
     },
     "audio": {
@@ -594,30 +759,30 @@
         "preAmp": "Предусиление (дБ)"
       },
       "hapticFeedback": {
-        "description": "Control vibration feedback when interacting with the app.",
+        "description": "Управляйте вибрацией при взаимодействии с приложением.",
         "enabled": {
-          "info": "When enabled, the device will vibrate when dragging queue items on mobile.",
-          "label": "Enable haptic feedback"
+          "info": "Если эта функция включена, устройство будет вибрировать при перетаскивании элементов очереди на мобильном телефоне.",
+          "label": "Включить тактильную обратную связь"
         },
-        "group": "Haptic Feedback"
+        "group": "Тактильная обратная связь"
       },
       "pip": {
-        "group": "Picture-in-Picture",
-        "description": "Control how the app responds to picture-in-picture requests from the browser.",
+        "group": "Картинка в картинке",
+        "description": "Управляйте тем, как приложение отвечает на запросы «картинка в картинке» из браузера.",
         "acceptBrowserRequest": {
-          "label": "Accept browser PiP requests",
-          "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
+          "label": "Принимать запросы PiP браузера",
+          "info": "Если эта функция включена, приложение будет отвечать на запросы «картинка в картинке» из браузера. Если этот параметр отключен, мини-плеер можно открыть только вручную с помощью кнопки PiP."
         }
       },
       "lockScreenArtwork": {
         "group": "Обложка экрана блокировки",
         "description": "Требуется iOS 26+. Макетом управляет система; движение создаётся на устройстве.",
-        "loading": "Loading artwork settings…",
-        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
-        "retry": "Retry",
-        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "loading": "Загрузка настроек изображения…",
+        "unavailable": "Настройки изображения недоступны. Обновите собственное приложение или повторите попытку.",
+        "retry": "Повторить попытку",
+        "unsupported": "Это устройство или версия iOS не поддерживают иммерсивные изображения. Обычные произведения искусства остаются доступными.",
         "immersive": "Иммерсивная обложка",
-        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "immersiveInfo": "Расширьте обложку за ее края, чтобы заполнить макет, поддерживаемый системой.",
         "dynamic": "Анимированная обложка",
         "dynamicInfo": "Движение глубины создаётся локально. Модель загружается по необходимости; пока используется статичная обложка.",
         "quality": "Качество модели",
@@ -625,8 +790,8 @@
         "automatic": "Автоматически ({{tier}})",
         "effectiveTier": "Лимит ресурсов: {{tier}}",
         "wifiOnly": "Загружать только по Wi-Fi",
-        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
-        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "wifiInfo": "Отключите эту опцию, чтобы разрешить загрузку моделей через мобильные данные. Вывод модели всегда выполняется на этом устройстве.",
+        "modelsInfo": "Автоматически загружается только необходимый уровень модели. Подготовленные видеоролики используются повторно. Модели выгружаются из памяти после вывода. При удалении модели сгенерированные видео сохраняются.",
         "download": "Загрузить",
         "remove": "Удалить",
         "cancel": "Отмена",
@@ -639,7 +804,8 @@
           "thermal": "Устройство горячее; приостановлено",
           "lowPower": "Энергосбережение; приостановлено",
           "reduceMotion": "Уменьшение движения; приостановлено",
-          "waitingForModel": "Подготовка модели; статичная обложка"
+          "waitingForModel": "Подготовка модели; статичная обложка",
+          "waitingForConsumer": "Ожидание, пока интерфейс воспроизведения станет видимым"
         },
         "model": {
           "notDownloaded": "Не загружена",
@@ -655,7 +821,16 @@
         "motionAmplitudeInfo": "Масштабирует параллакс и камеру от 0,5× до 2× без изменения траектории.",
         "motionSpeed": "Скорость движения",
         "motionSpeedInfo": "Цикл 24 кадр/с: 0,5× / 0,75× / 1× / 1,5× / 2× соответствует 12 / 8 / 6 / 4 / 3 секундам.",
-        "motionDefault": "по умолчанию"
+        "motionDefault": "по умолчанию",
+        "macGroup": "Иммерсивная обложка",
+        "disableProtection": "Отключить защиту ресурса",
+        "disableProtectionInfo": "Разрешить генерацию и воспроизведение, несмотря на нагрев, режим низкого энергопотребления или нехватку памяти, без автоматического понижения версии модели. Это может привести к увеличению нагрева и расходу заряда батареи, а также может привести к тому, что iOS закроет приложение. Системные ограничения, фоновый жизненный цикл и функция уменьшения движения по-прежнему применяются.",
+        "macImmersiveInfo": "Подготовьте видеоролики с обложками с плавно расширенными краями для повторного использования музыкальным проигрывателем.",
+        "macWifiOnly": "Загружать модели только через сети без тарификации трафика",
+        "macWifiInfo": "Использовать Wi-Fi и Ethernet только без тарификации трафика и ограничений соединения. Отключите, чтобы разрешить сети с тарификацией трафика.",
+        "macDescription": "Создавайте захватывающие кавер-видео локально на macOS. Модели скачиваются по запросу; подготовленные видеоролики могут быть повторно использованы плеером.",
+        "depthPreview": "Нормализованная карта глубины",
+        "diagnostics": "Диагностика графических изображений macOS"
       }
     },
     "content": {
@@ -751,7 +926,8 @@
       "language": "Язык и Регион",
       "privacy": "Безопасность и Приватность",
       "server": "Сервер",
-      "storage": "Автономная работа"
+      "storage": "Автономная работа",
+      "cross-device": "Кросс-девайс"
     },
     "privacy": {
       "services": {
@@ -824,7 +1000,9 @@
           "explicit": "Явные",
           "lru": "LRU",
           "playlist": "Плейлист",
-          "smart": "Умные"
+          "smart": "Умные",
+          "immersive-static": "Статичная обложка с эффектом погружения",
+          "immersive-dynamic": "Анимированная обложка с эффектом погружения"
         },
         "group": "Менеджер кэша",
         "list": {
@@ -841,8 +1019,16 @@
           "type_album": "Альбом",
           "type_audio": "Аудио",
           "type_cover": "Обложка",
-          "type_playlist": "Плейлист"
-        }
+          "type_playlist": "Плейлист",
+          "type_immersive-static": "Статичная обложка с эффектом погружения",
+          "type_immersive-dynamic": "Анимированная обложка с эффектом погружения"
+        },
+        "videoInfo": "Иммерсивные видеоролики отделены от файлов моделей. Используемые видео защищены; сгенерированные видео можно восстановить.",
+        "refresh": "Обновить",
+        "clearVideos": "Удалить видеообложки с эффектом погружения",
+        "videoCleared": "Удалены {{deleted}} видео; сохранено {{retained}} используемых файлов.",
+        "inUse": "В использовании",
+        "motionParameters": "Амплитуда {{amplitude}}× · Скорость {{speed}}×"
       },
       "coverArt": {
         "clear": "Очистить кэш обложек",
@@ -963,7 +1149,10 @@
             "description": "Изображения альбомов · исполнителей · плейлистов"
           }
         },
-        "downloading": "Загрузка {{count}} песен"
+        "downloading": "Загрузка {{count}} песен",
+        "libraryCachingInfoIos": "Кэширование библиотеки требуется и всегда включено в iOS для поддержки автономного воспроизведения.",
+        "downloading_few": "Загрузка {{count}} песен",
+        "downloading_many": "Загрузка {{count}} песен"
       }
     }
   },
@@ -1100,10 +1289,10 @@
     "light": "Светлая",
     "marmalade-beaver": "Marmalade Beaver",
     "material-theme": "Material Theme",
-    "modeDark": "Dark",
-    "modeLabel": "Mode",
-    "modeLight": "Light",
-    "modeSystem": "System",
+    "modeDark": "Темная",
+    "modeLabel": "Режим",
+    "modeLight": "Светлая",
+    "modeSystem": "Как в системе",
     "monokai-pro": "Monokai Pro",
     "night-owl-light": "Night Owl Light",
     "noctis-lilac": "Noctis Lilac",
@@ -1115,7 +1304,9 @@
     "vim-dark-soft": "Vim Dark Soft",
     "vue-dark": "Vue Dark",
     "cool": "Cool",
-    "huacat-pink": "Huacat Pink"
+    "huacat-pink": "Huacat Pink",
+    "materialYou": "Цвет темы Material You",
+    "materialYouInfo": "Использовать динамические цвета на основе системных обоев (Android 12+)."
   },
   "time": {
     "days_few": "{{days}} дня",
@@ -1167,7 +1358,17 @@
       "selected": "Выбрано",
       "currentSelection": "Текущий выбор: {{title}} — {{artist}}",
       "lyricsId": "ID: {{id}}",
-      "noPreview": "Предпросмотр недоступен."
+      "noPreview": "Предпросмотр недоступен.",
+      "offsetReset": "Сбросить",
+      "saveError": "Не удалось сохранить выбранные тексты песен.",
+      "disableLyrics": "Выключить тексты песен",
+      "lyricsDisabled": "Тексты отключены",
+      "offsetLabel": "Смещение времени текста",
+      "offsetHint": "Положительные значения смещения задерживают текст песни.",
+      "hasRomaji": "Ромаджи"
     }
+  },
+  "navigation": {
+    "back": "Назад"
   }
 }

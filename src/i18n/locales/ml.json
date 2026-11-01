@@ -42,7 +42,12 @@
         "recentlyAdded": "അടുത്തിടെ ചേർത്തത്",
         "recentlyPlayed": "അടുത്തിടെ പ്ലേ ചെയ്തവ",
         "releaseYear": "റിലീസ് വർഷം",
-        "search": "തിരയുക"
+        "search": "തിരയുക",
+        "label": "ഫിൽട്ടർ ചെയ്യുക",
+        "year": {
+          "oldest": "ഏറ്റവും പഴയത് ആദ്യം",
+          "newest": "ഏറ്റവും പുതിയത് ആദ്യം"
+        }
       },
       "genre": {
         "label": "ഒരു വിഭാഗം തിരഞ്ഞെടുക്കുക…",
@@ -134,7 +139,10 @@
     "queueHistory": "ചരിത്രം",
     "queueRepeating": "ആവർത്തിക്കുന്നു",
     "switchButton": "ബിഗ് പ്ലെയറിലേക്ക് മാറുക",
-    "selectLyrics": "വരികളുടെ ക്രമീകരണങ്ങൾ"
+    "selectLyrics": "വരികളുടെ ക്രമീകരണങ്ങൾ",
+    "dynamicArtwork": "ഡൈനാമിക് ആൽബം കലാസൃഷ്ടി",
+    "dynamicArtworkInfo": "ഫുൾസ്‌ക്രീൻ പ്ലെയറിൽ ഇമ്മേഴ്‌സീവ് കവർ വീഡിയോകൾ ഉപയോഗിക്കുക. ലോക്ക്-സ്ക്രീൻ ആർട്ട് വർക്കിൽ നിന്ന് സ്വതന്ത്രമാണ്.",
+    "queueShuffling": "ഷഫിൾ പ്ലേബാക്ക്"
   },
   "generic": {
     "beta": "ബീറ്റ",
@@ -150,13 +158,15 @@
         "list": "ലിസ്റ്റ്",
         "poster": "പോസ്റ്റർ"
       }
-    }
+    },
+    "cancel": "റദ്ദാക്കുക"
   },
   "home": {
     "explore": "പര്യവേക്ഷണം ചെയ്യുക",
     "mostPlayed": "കൂടുതൽ തവണ പ്ലേ ചെയ്തവ",
     "recentlyAdded": "അടുത്തിടെ ചേർത്തത്",
-    "recentlyPlayed": "അടുത്തിടെ പ്ലേ ചെയ്തവ"
+    "recentlyPlayed": "അടുത്തിടെ പ്ലേ ചെയ്തവ",
+    "pinned": "പിൻ ചെയ്തു"
   },
   "lanControl": {
     "remote": {
@@ -306,7 +316,9 @@
     },
     "removeDownload": "ഡൗൺലോഡ് നീക്കം ചെയ്യുക",
     "removeFromQueue": "ക്യൂവിൽ നിന്ന് നീക്കം ചെയ്യുക",
-    "unlike": "ഇഷ്ടപ്പെടൽ നീക്കം ചെയ്യുക"
+    "unlike": "ഇഷ്ടപ്പെടൽ നീക്കം ചെയ്യുക",
+    "pin": "വീട്ടിലേക്ക് പിൻ ചെയ്യുക",
+    "unpin": "വീട്ടിൽ നിന്ന് അൺപിൻ ചെയ്യുക"
   },
   "player": {
     "noRadioPlaying": "റേഡിയോ ഒന്നും പ്ലേ ചെയ്യുന്നില്ല",
@@ -340,6 +352,16 @@
         "mute": "നിശബ്ദമാക്കുക",
         "unmute": "നിശബ്ദത നീക്കുക"
       }
+    },
+    "sleepTimer": {
+      "tooltip": "സ്ലീപ്പ് ടൈമർ",
+      "title": "സ്ലീപ്പ് ടൈമർ",
+      "endOfTrack": "നിലവിലെ ട്രാക്കിൻ്റെ അവസാനം",
+      "minutes": "{{count}} മിനിറ്റ്",
+      "remaining": "{{time}} ശേഷിക്കുന്നു",
+      "cancel": "ടൈമർ റദ്ദാക്കുക",
+      "minutes_one": "{{count}} മിനിറ്റ്",
+      "minutes_other": "{{count}} മിനിറ്റ്"
     }
   },
   "playlist": {
@@ -479,6 +501,138 @@
     "status": "നില"
   },
   "settings": {
+    "crossDevice": {
+      "playback": {
+        "otherDevices": "മറ്റ് ഉപകരണങ്ങളിൽ പ്ലേ ചെയ്യുന്നു",
+        "showDevices": "ഉപകരണങ്ങൾ കാണിക്കുക",
+        "fetchingSong": "ഗാനം ലോഡ് ചെയ്യുന്നു...",
+        "unknownTrack": "അജ്ഞാത ഗാനം",
+        "online": "ഓൺലൈൻ",
+        "offline": "ഓഫ്‌ലൈൻ",
+        "continue": "തുടരുക",
+        "exitControl": "റിമോട്ട് നിയന്ത്രണം അവസാനിപ്പിക്കുക",
+        "remoteControl": "റിമോട്ട് നിയന്ത്രണം",
+        "relay": "പ്ലേബാക്ക് കൈമാറുക",
+        "peerDevice": "വിദൂര ഉപകരണം",
+        "controllingDevice": "{{name}} നിയന്ത്രിക്കുന്നു",
+        "continueConfirmTitle": "ഇവിടെ പ്ലേബാക്ക് തുടരണോ?",
+        "continueConfirmDesc": "ഇത് ഈ ഉപകരണത്തിലെ സജീവ ലോക്കൽ പ്ലേബാക്ക് മാറ്റിസ്ഥാപിക്കും.",
+        "currentLocal": "ഈ ഉപകരണത്തിൽ ഇപ്പോൾ പ്ലേ ചെയ്യുന്നത്",
+        "thisDevice": "ഈ ഉപകരണം",
+        "liveDevices": "ഓൺലൈൻ ഉപകരണങ്ങൾ",
+        "offlineSnapshots": "ഒരു ഓഫ്‌ലൈൻ ഉപകരണത്തിൽ നിന്ന് പ്ലേബാക്ക് പുനരാരംഭിക്കുക",
+        "willContinue": "{{name}} മുതൽ തുടരുക"
+      },
+      "connect": "ബന്ധിപ്പിക്കുക",
+      "never": "ഒരിക്കലും",
+      "device": {
+        "save": "സംരക്ഷിക്കുക",
+        "cancel": "റദ്ദാക്കുക",
+        "current": "നിലവിലെ ഉപകരണം",
+        "lastOnline": "അവസാനം ഓൺലൈനിൽ {{time}}",
+        "rename": "പേരുമാറ്റുക",
+        "revoke": "അസാധുവാക്കുക",
+        "renamed": "ഉപകരണത്തിൻ്റെ പേര് മാറ്റി",
+        "revoked": "ഉപകരണം അസാധുവാക്കി"
+      },
+      "delete": "ഇല്ലാതാക്കുക",
+      "deleteConfirm": {
+        "description": "ഈ പ്രവർത്തനം പഴയപടിയാക്കാൻ കഴിയില്ല.",
+        "title": "എല്ലാ കോർഡിനേഷൻ ഡാറ്റയും ഇല്ലാതാക്കണോ?"
+      },
+      "title": "ക്രോസ്-ഉപകരണം",
+      "description": "ചരിത്രം സമന്വയിപ്പിച്ച് നിങ്ങളുടെ ഉപകരണങ്ങളിലുടനീളം പ്ലേബാക്ക് തുടരുക.",
+      "setup": {
+        "title": "ഈ ഉപകരണം സെർവറുമായി ബന്ധിപ്പിക്കുക",
+        "description": "നിങ്ങൾ സമന്വയിപ്പിക്കാൻ ആഗ്രഹിക്കുന്ന എല്ലാ ഉപകരണങ്ങളിലും ഒരേ ഏകോപന സെർവർ ഉപയോഗിക്കുക.",
+        "requirement": "നിങ്ങളുടെ നിലവിലെ മ്യൂസിക് സെർവർ ക്രെഡൻഷ്യലുകൾ ഈ ഉപകരണം അംഗീകരിക്കാൻ മാത്രമാണ് ഉപയോഗിക്കുന്നത്."
+      },
+      "serverUrl": {
+        "label": "കോർഡിനേഷൻ സെർവർ URL",
+        "info": "നിങ്ങളുടെ കോർഡിനേഷൻ സെർവറിൻ്റെ URL."
+      },
+      "identityUrl": {
+        "label": "ഐഡൻ്റിറ്റി URL",
+        "info": "നിങ്ങളുടെ Navidrome/Subsonic സെർവർ URL."
+      },
+      "deviceName": {
+        "label": "ഉപകരണത്തിൻ്റെ പേര്",
+        "info": "ഈ ഉപകരണത്തിന് തിരിച്ചറിയാവുന്ന ഒരു പേര്.",
+        "placeholder": "എൻ്റെ ഉപകരണം"
+      },
+      "retry": "വീണ്ടും ശ്രമിക്കുക",
+      "status": "കണക്ഷൻ നില",
+      "statusInfo": "കണക്‌റ്റ് ചെയ്‌തിരിക്കുമ്പോൾ പ്ലേബാക്ക് ഹാൻഡ്ഓഫിനായി ഈ ഉപകരണം ലഭ്യമായിരിക്കും.",
+      "currentDevice": "നിലവിലെ ഉപകരണം",
+      "disconnectShort": "വിച്ഛേദിക്കുക",
+      "connectionState": {
+        "label": "കണക്ഷൻ നില",
+        "disconnected": "വിച്ഛേദിച്ചു",
+        "connecting": "ബന്ധിപ്പിക്കുന്നു",
+        "authenticating": "പ്രാമാണീകരിക്കുന്നു",
+        "connected": "ബന്ധിപ്പിച്ചു",
+        "error": "പിശക്"
+      },
+      "lastSync": {
+        "label": "അവസാന സമന്വയം"
+      },
+      "error": {
+        "label": "പിശക്",
+        "missingFields": "എല്ലാ ഫീൽഡുകളും പൂരിപ്പിക്കുക",
+        "connectFailed": "കണക്ഷൻ പരാജയപ്പെട്ടു",
+        "disconnectedDescription": "കോർഡിനേഷൻ സെർവർ വീണ്ടും കണക്‌റ്റ് ചെയ്യുന്നതുവരെ വിദൂര ഉപകരണങ്ങൾ ലഭ്യമല്ല.",
+        "unconfiguredTitle": "ക്രോസ് ഡിവൈസ് പ്ലേബാക്ക്",
+        "unconfiguredDescription": "കോർഡിനേഷൻ സെർവറിലേക്ക് കണക്റ്റുചെയ്യുക"
+      },
+      "disconnect": "ഈ ഉപകരണം വിച്ഛേദിക്കുക",
+      "connected": "ബന്ധിപ്പിച്ചു",
+      "disconnected": "വിച്ഛേദിച്ചു",
+      "devices": "രജിസ്റ്റർ ചെയ്ത ഉപകരണങ്ങൾ",
+      "deviceCount": "{{count}} ഉപകരണങ്ങൾ",
+      "devicesDescription": "ഉപകരണങ്ങളുടെ പേരുമാറ്റുക, അതുവഴി അവ തിരിച്ചറിയാൻ എളുപ്പമാണ്, അല്ലെങ്കിൽ പഴയ സെഷനുകൾ അസാധുവാക്കുക.",
+      "deleteData": {
+        "label": "എല്ലാ കോർഡിനേഷൻ ഡാറ്റയും ഇല്ലാതാക്കുക",
+        "info": "കോർഡിനേഷൻ സെർവറിൽ നിന്ന് നിങ്ങളുടെ അക്കൗണ്ടും സമന്വയിപ്പിച്ച എല്ലാ ഡാറ്റയും നീക്കം ചെയ്യുക."
+      },
+      "disconnectConfirm": {
+        "title": "ഈ ഉപകരണം വിച്ഛേദിക്കണോ?",
+        "description": "ഇത് ഈ ഉപകരണത്തിലെ ക്രോസ്-ഡിവൈസ് സമന്വയം നിർത്തും."
+      },
+      "revokeConfirm": {
+        "title": "ഉപകരണം പിൻവലിക്കണോ?",
+        "description": "{{name}} എന്നതിനുള്ള ആക്‌സസ് അസാധുവാക്കണമെന്ന് തീർച്ചയാണോ?"
+      },
+      "deleted": "ഏകോപന ഡാറ്റ ഇല്ലാതാക്കി",
+      "toast": {
+        "relaySuccess": "ഹാൻഡ്ഓഫ് വിജയിച്ചു!",
+        "relayFailed": "ഹാൻഡ്ഓഫ് പരാജയപ്പെട്ടു: {{code}}",
+        "exitRemoteControl": "വിദൂര പ്ലേബാക്ക് നിയന്ത്രണം നിർത്തി",
+        "remoteControlSuccess": "റിമോട്ട് കൺട്രോളിംഗ്: {{name}}",
+        "preparingRelay": "കൈമാറ്റം തയ്യാറാക്കുന്നു...",
+        "sessionSuperseded": "ഈ സെഷൻ {{deviceName}} ഏറ്റെടുത്തു, പ്ലേബാക്ക് താൽക്കാലികമായി നിർത്തി."
+      },
+      "handoffError": {
+        "targetOffline": "ഉപകരണം ഓഫ്‌ലൈനായി.",
+        "snapshotExpired": "ആ പ്ലേബാക്ക് സ്നാപ്പ്ഷോട്ട് തുടരാൻ വളരെ പഴയതാണ്.",
+        "handoffConflict": "മറ്റൊരു കൈമാറ്റം ഇതിനകം ഈ സെഷനിൽ എടുത്തു.",
+        "sourceChanged": "കൈമാറ്റം ചെയ്യുന്നതിന് മുമ്പ് ഉറവിടം മാറി.",
+        "sourcePauseTimeout": "സമയപരിധിക്ക് മുമ്പ് പ്ലേബാക്ക് താൽക്കാലികമായി നിർത്തിയതായി ഉറവിട ഉപകരണം സ്ഥിരീകരിച്ചിട്ടില്ല.",
+        "unsupportedMedia": "മറ്റൊരു ഉപകരണത്തിൽ ഈ മീഡിയ തരം തുടരാനാകില്ല.",
+        "deviceRevoked": "ക്രോസ്-ഡിവൈസ് സമന്വയം ഉപയോഗിക്കാൻ ഈ ഉപകരണത്തിന് ഇനി അനുവാദമില്ല.",
+        "protocolIncompatible": "ഒന്നോ അതിലധികമോ ഉപകരണങ്ങളിൽ Aonsoku അപ്ഡേറ്റ് ചെയ്യുക.",
+        "forbidden": "ഈ ഉപകരണം ഇപ്പോൾ നിയന്ത്രിക്കാനോ കൈമാറാനോ കഴിയില്ല.",
+        "fallback": "ഹാൻഡ്ഓഫ് പരാജയപ്പെട്ടു: {{reason}}"
+      },
+      "handoff": {
+        "prepare": "ഓഡിയോ ട്രാക്ക് തയ്യാറാക്കുന്നു...",
+        "relinquish": "ഉറവിട ഉപകരണം താൽക്കാലികമായി നിർത്തുന്നു...",
+        "commit": "ഇവിടെ പ്ലേബാക്ക് തുടരുന്നു...",
+        "committed": "ഹാൻഡ്ഓഫ് വിജയിച്ചു!",
+        "processing": "പ്ലേബാക്ക് സമന്വയിപ്പിക്കുന്നു..."
+      },
+      "deviceCount_one": "{{count}} ഉപകരണം",
+      "deviceCount_other": "{{count}} ഉപകരണങ്ങൾ"
+    },
     "accounts": {
       "discord": {
         "description": "നിങ്ങൾ നിലവിൽ പ്ലേ ചെയ്യുന്ന ഗാനം Discord-ലെ സുഹൃത്തുക്കളുമായി പങ്കിടുക.",
@@ -499,15 +653,20 @@
           "info": "പ്രവർത്തനക്ഷമമാക്കിയാൽ, ബിഗ് പ്ലെയർ ആക്സസ് ചെയ്യുമ്പോൾ ആപ്പ് യാന്ത്രികമായി ഫുൾസ്ക്രീൻ മോഡിൽ പ്രവേശിക്കും.",
           "label": "ഓട്ടോമാറ്റിക് ഫുൾസ്ക്രീൻ പ്രവർത്തനക്ഷമമാക്കുക"
         },
-        "group": "പൊതുവായത്"
+        "group": "പൊതുവായത്",
+        "usePointerCursors": {
+          "label": "പോയിൻ്റർ കഴ്‌സറുകൾ ഉപയോഗിക്കുക",
+          "info": "പ്രവർത്തനക്ഷമമാക്കുമ്പോൾ, സംവേദനാത്മക ഘടകങ്ങൾക്കായി പോയിൻ്റർ കഴ്‌സറുകൾ കാണിക്കുന്നു; പ്രവർത്തനരഹിതമാക്കുമ്പോൾ, നേറ്റീവ് ആപ്പ് അനുഭവങ്ങളുമായി പൊരുത്തപ്പെടുന്നതിന് പോയിൻ്റർ കഴ്‌സറുകൾ കുറയ്ക്കുന്നു."
+        }
       },
       "queue": {
         "colors": {
-          "info": "Si activé, l'application utilisera la couleur dominante de la pochette de l'album actuel comme couleur de fond.",
-          "label": "Activer la couleur de fond dynamique"
+          "info": "പ്രവർത്തനക്ഷമമാക്കിയാൽ, നിലവിലെ ആൽബം കവറിലെ പ്രധാന നിറം പശ്ചാത്തല നിറമായി ഉപയോഗിക്കും.",
+          "label": "ഡൈനാമിക് പശ്ചാത്തല നിറം പ്രവർത്തനക്ഷമമാക്കുക",
+          "intensity": "പശ്ചാത്തല വർണ്ണ തീവ്രത"
         },
-        "description": "Personnaliser la page de la file d'attente et des paroles.",
-        "group": "File d'attente et paroles"
+        "description": "ക്യൂവും വരികളുടെ പേജും ഇഷ്ടാനുസൃതമാക്കുക.",
+        "group": "ക്യൂവും വരികളും"
       }
     },
     "audio": {
@@ -577,33 +736,33 @@
           "label": "മോഡ്",
           "track": "ട്രാക്ക് ഗെയ്ൻ"
         },
-        "preAmp": "PreAmp (dB)"
+        "preAmp": "പ്രീആംപ് (dB)"
       },
       "hapticFeedback": {
-        "description": "Control vibration feedback when interacting with the app.",
+        "description": "ആപ്പുമായി സംവദിക്കുമ്പോൾ വൈബ്രേഷൻ ഫീഡ്‌ബാക്ക് നിയന്ത്രിക്കുക.",
         "enabled": {
-          "info": "When enabled, the device will vibrate when dragging queue items on mobile.",
-          "label": "Enable haptic feedback"
+          "info": "പ്രവർത്തനക്ഷമമാക്കുമ്പോൾ, മൊബൈലിൽ ക്യൂ ഇനങ്ങൾ വലിച്ചിടുമ്പോൾ ഉപകരണം വൈബ്രേറ്റ് ചെയ്യും.",
+          "label": "ഹാപ്‌റ്റിക് ഫീഡ്‌ബാക്ക് പ്രവർത്തനക്ഷമമാക്കുക"
         },
-        "group": "Haptic Feedback"
+        "group": "ഹാപ്റ്റിക് ഫീഡ്ബാക്ക്"
       },
       "pip": {
-        "group": "Picture-in-Picture",
-        "description": "Control how the app responds to picture-in-picture requests from the browser.",
+        "group": "ചിത്രം-ഇൻ-പിക്ചർ",
+        "description": "ബ്രൗസറിൽ നിന്നുള്ള ചിത്രം-ഇൻ-പിക്ചർ അഭ്യർത്ഥനകളോട് ആപ്പ് എങ്ങനെ പ്രതികരിക്കുന്നുവെന്ന് നിയന്ത്രിക്കുക.",
         "acceptBrowserRequest": {
-          "label": "Accept browser PiP requests",
-          "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
+          "label": "ബ്രൗസർ PiP അഭ്യർത്ഥനകൾ സ്വീകരിക്കുക",
+          "info": "പ്രവർത്തനക്ഷമമാക്കുമ്പോൾ, ബ്രൗസറിൽ നിന്നുള്ള ചിത്രം-ഇൻ-പിക്ചർ അഭ്യർത്ഥനകളോട് ആപ്പ് പ്രതികരിക്കും. പ്രവർത്തനരഹിതമാക്കുമ്പോൾ, മിനി-പ്ലെയർ PiP ബട്ടൺ വഴി മാത്രമേ സ്വമേധയാ തുറക്കാൻ കഴിയൂ."
         }
       },
       "lockScreenArtwork": {
         "group": "ലോക്ക് സ്‌ക്രീൻ ആർട്ട്‌വർക്ക്",
         "description": "iOS 26+ ആവശ്യമാണ്. ലേഔട്ട് സിസ്റ്റം നിയന്ത്രിക്കുന്നു; ചലനം ഉപകരണത്തിൽ സൃഷ്ടിക്കുന്നു.",
-        "loading": "Loading artwork settings…",
-        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
-        "retry": "Retry",
-        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "loading": "കലാസൃഷ്‌ടി ക്രമീകരണങ്ങൾ ലോഡുചെയ്യുന്നു...",
+        "unavailable": "കലാസൃഷ്‌ടി ക്രമീകരണങ്ങൾ ലഭ്യമല്ല. നേറ്റീവ് ആപ്പ് അപ്ഡേറ്റ് ചെയ്യുക അല്ലെങ്കിൽ വീണ്ടും ശ്രമിക്കുക.",
+        "retry": "വീണ്ടും ശ്രമിക്കുക",
+        "unsupported": "ഈ ഉപകരണമോ iOS പതിപ്പോ ഇമ്മേഴ്‌സീവ് ആർട്ട്‌വർക്കിനെ പിന്തുണയ്‌ക്കുന്നില്ല. സാധാരണ കലാസൃഷ്ടികൾ ലഭ്യമാണ്.",
         "immersive": "ഇമ്മേഴ്‌സീവ് ആർട്ട്‌വർക്ക്",
-        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "immersiveInfo": "സിസ്റ്റം പിന്തുണയ്ക്കുന്ന ലേഔട്ട് പൂരിപ്പിക്കുന്നതിന് കവർ ആർട്ട് അതിൻ്റെ അരികുകൾക്കപ്പുറത്തേക്ക് നീട്ടുക.",
         "dynamic": "ചലന ആർട്ട്‌വർക്ക്",
         "dynamicInfo": "ആഴചലനം ഉപകരണത്തിൽ സൃഷ്ടിക്കുന്നു. മോഡൽ ആവശ്യാനുസരണം ഡൗൺലോഡ് ചെയ്യും; അതുവരെ സ്റ്റാറ്റിക് കവർ ഉപയോഗിക്കും.",
         "quality": "മോഡൽ ഗുണനിലവാരം",
@@ -611,8 +770,8 @@
         "automatic": "ഓട്ടോ ({{tier}})",
         "effectiveTier": "വിഭവ പരിധി: {{tier}}",
         "wifiOnly": "Wi-Fi വഴി മാത്രം ഡൗൺലോഡ് ചെയ്യുക",
-        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
-        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "wifiInfo": "മൊബൈൽ ഡാറ്റ വഴി മോഡൽ ഡൗൺലോഡുകൾ അനുവദിക്കുന്നതിന് ഈ ഓപ്‌ഷൻ ഓഫാക്കുക. മോഡൽ അനുമാനം എപ്പോഴും ഈ ഉപകരണത്തിൽ പ്രവർത്തിക്കുന്നു.",
+        "modelsInfo": "ആവശ്യമായ മോഡൽ ടയർ മാത്രം സ്വയമേവ ഡൗൺലോഡ് ചെയ്യപ്പെടും. തയ്യാറാക്കിയ വീഡിയോകൾ വീണ്ടും ഉപയോഗിക്കുന്നു. അനുമാനത്തിന് ശേഷം മോഡലുകൾ മെമ്മറിയിൽ നിന്ന് അൺലോഡ് ചെയ്യുന്നു. ഒരു മോഡൽ ഇല്ലാതാക്കുന്നത് സൃഷ്ടിച്ച വീഡിയോകൾ നിലനിർത്തുന്നു.",
         "download": "ഡൗൺലോഡ്",
         "remove": "നീക്കം ചെയ്യുക",
         "cancel": "റദ്ദാക്കുക",
@@ -625,7 +784,8 @@
           "thermal": "ഉപകരണം ചൂട്; നിർത്തി",
           "lowPower": "കുറഞ്ഞ പവർ മോഡ്; നിർത്തി",
           "reduceMotion": "ചലനം കുറയ്ക്കൽ; നിർത്തി",
-          "waitingForModel": "മോഡൽ തയ്യാറാക്കുന്നു; സ്റ്റാറ്റിക് കവർ"
+          "waitingForModel": "മോഡൽ തയ്യാറാക്കുന്നു; സ്റ്റാറ്റിക് കവർ",
+          "waitingForConsumer": "പ്ലേബാക്ക് ഇൻ്റർഫേസ് ദൃശ്യമാകുന്നതിനായി കാത്തിരിക്കുന്നു"
         },
         "model": {
           "notDownloaded": "ഡൗൺലോഡ് ചെയ്തിട്ടില്ല",
@@ -641,7 +801,16 @@
         "motionAmplitudeInfo": "പാത മാറ്റാതെ പാരലാക്സും ക്യാമറ ചലനവും 0.5×–2× ക്രമീകരിക്കുന്നു.",
         "motionSpeed": "ചലന വേഗം",
         "motionSpeedInfo": "24 FPS ലൂപ്പ്: 0.5× / 0.75× / 1× / 1.5× / 2× യഥാക്രമം 12 / 8 / 6 / 4 / 3 സെക്കൻഡ്.",
-        "motionDefault": "സ്ഥിരസ്ഥിതി"
+        "motionDefault": "സ്ഥിരസ്ഥിതി",
+        "macGroup": "ഇമ്മേഴ്‌സീവ് ആർട്ട്‌വർക്ക്",
+        "disableProtection": "വിഭവ സംരക്ഷണം പ്രവർത്തനരഹിതമാക്കുക",
+        "disableProtectionInfo": "ചൂട്, കുറഞ്ഞ പവർ മോഡ് അല്ലെങ്കിൽ മെമ്മറി മർദ്ദം എന്നിവയ്ക്കിടയിലും, ഓട്ടോമാറ്റിക് മോഡൽ ഡൗൺഗ്രേഡുകൾ ഇല്ലാതെ ജനറേഷനും പ്ലേബാക്കും അനുവദിക്കുക. ഇത് ചൂടും ബാറ്ററി ഉപയോഗവും വർദ്ധിപ്പിക്കുകയും iOS ആപ്പ് അവസാനിപ്പിക്കാൻ കാരണമാവുകയും ചെയ്യും. സിസ്റ്റം പരിധികൾ, പശ്ചാത്തല ജീവിതചക്രം, ചലനം കുറയ്ക്കൽ എന്നിവ ഇപ്പോഴും ബാധകമാണ്.",
+        "macImmersiveInfo": "മ്യൂസിക് പ്ലെയർ പുനരുപയോഗിക്കുന്നതിനായി പരിധികളില്ലാതെ വിപുലീകരിച്ച അരികുകളുള്ള കവർ ആർട്ട് വീഡിയോകൾ തയ്യാറാക്കുക.",
+        "macWifiOnly": "ഡാറ്റാ ഉപയോഗത്തിന് അനുസരിച്ച് നിരക്ക് ഈടാക്കാത്ത നെറ്റ്‌വർക്കുകളിൽ മാത്രം മോഡലുകൾ ഡൗൺലോഡ് ചെയ്യുക",
+        "macWifiInfo": "ഡാറ്റാ ഉപയോഗത്തിന് അനുസരിച്ച് നിരക്ക് ഈടാക്കാത്തതും നിയന്ത്രണങ്ങളില്ലാത്തതുമായ Wi-Fi, Ethernet കണക്ഷനുകൾ ഉപയോഗിക്കുക. ഉപയോഗത്തിന് അനുസരിച്ച് നിരക്ക് ഈടാക്കുന്ന നെറ്റ്‌വർക്കുകളും അനുവദിക്കാൻ ഈ ഓപ്ഷൻ ഓഫാക്കുക.",
+        "macDescription": "MacOS-ൽ പ്രാദേശികമായി ഇമ്മേഴ്‌സീവ് കവർ വീഡിയോകൾ സൃഷ്‌ടിക്കുക. ആവശ്യാനുസരണം മോഡലുകൾ ഡൗൺലോഡ് ചെയ്യുക; തയ്യാറാക്കിയ വീഡിയോകൾ പ്ലെയറിന് വീണ്ടും ഉപയോഗിക്കാൻ കഴിയും.",
+        "depthPreview": "സാധാരണമാക്കിയ ഡെപ്ത് മാപ്പ്",
+        "diagnostics": "macOS ആർട്ട് വർക്ക് ഡയഗ്നോസ്റ്റിക്സ്"
       }
     },
     "content": {
@@ -737,7 +906,8 @@
       "language": "ഭാഷയും പ്രദേശവും",
       "privacy": "സ്വകാര്യതയും സുരക്ഷയും",
       "server": "സെർവർ",
-      "storage": "ഓഫ്‌ലൈൻ അനുഭവം"
+      "storage": "ഓഫ്‌ലൈൻ അനുഭവം",
+      "cross-device": "ക്രോസ്-ഉപകരണം"
     },
     "privacy": {
       "services": {
@@ -810,7 +980,9 @@
           "explicit": "എക്സ്പ്ലിസിറ്റ്",
           "lru": "LRU",
           "playlist": "പ്ലേലിസ്റ്റ്",
-          "smart": "സ്മാർട്ട്"
+          "smart": "സ്മാർട്ട്",
+          "immersive-static": "ഇമ്മേഴ്‌സീവ് നിശ്ചല കവർ",
+          "immersive-dynamic": "ഇമ്മേഴ്‌സീവ് ആനിമേറ്റഡ് കവർ"
         },
         "group": "കാഷ് മാനേജർ",
         "list": {
@@ -827,8 +999,16 @@
           "type_album": "ആൽബം",
           "type_audio": "ഓഡിയോ",
           "type_cover": "കവർ",
-          "type_playlist": "പ്ലേലിസ്റ്റ്"
-        }
+          "type_playlist": "പ്ലേലിസ്റ്റ്",
+          "type_immersive-static": "ഇമ്മേഴ്‌സീവ് നിശ്ചല കവർ",
+          "type_immersive-dynamic": "ഇമ്മേഴ്‌സീവ് ആനിമേറ്റഡ് കവർ"
+        },
+        "videoInfo": "ഇമ്മേഴ്‌സീവ് വീഡിയോകൾ മോഡൽ ഫയലുകളിൽ നിന്ന് വ്യത്യസ്തമാണ്. ഉപയോഗത്തിലുള്ള വീഡിയോകൾ പരിരക്ഷിച്ചിരിക്കുന്നു; സൃഷ്ടിച്ച വീഡിയോകൾ പുനർനിർമ്മിക്കാൻ കഴിയും.",
+        "refresh": "പുതുക്കുക",
+        "clearVideos": "ഇമ്മേഴ്‌സീവ് കവർ വീഡിയോകൾ ഇല്ലാതാക്കുക",
+        "videoCleared": "ഇല്ലാതാക്കിയ {{deleted}} വീഡിയോകൾ; ഉപയോഗത്തിലുള്ള {{retained}} ഫയലുകൾ നിലനിർത്തി.",
+        "inUse": "ഉപയോഗത്തിലുണ്ട്",
+        "motionParameters": "ആംപ്ലിറ്റ്യൂഡ് {{amplitude}}× · വേഗത {{speed}}×"
       },
       "coverArt": {
         "clear": "കവർ ആർട്ട് കാഷ് മായ്ക്കുക",
@@ -945,11 +1125,12 @@
             "label": "പൂർണ്ണ ഗാനങ്ങൾ"
           },
           "coverArt": {
-            "label": "Cover Art",
+            "label": "കവർ ആർട്ട്",
             "description": "ആൽബം · കലാകാരൻ · പ്ലേലിസ്റ്റ് ചിത്രങ്ങൾ"
           }
         },
-        "downloading": "{{count}} ഗാനങ്ങൾ ഡൗൺലോഡ് ചെയ്യുന്നു"
+        "downloading": "{{count}} ഗാനങ്ങൾ ഡൗൺലോഡ് ചെയ്യുന്നു",
+        "libraryCachingInfoIos": "ഓഫ്‌ലൈൻ പ്ലേബാക്ക് പിന്തുണയ്‌ക്കുന്നതിന് ലൈബ്രറി കാഷിംഗ് ആവശ്യമാണ് കൂടാതെ iOS-ൽ എപ്പോഴും പ്രവർത്തനക്ഷമമാക്കിയിരിക്കുന്നു."
       }
     }
   },
@@ -1074,14 +1255,14 @@
   "theme": {
     "achiever": "Achiever",
     "bearded-solarized": "Bearded Solarized",
-    "black": "Black and White",
+    "black": "കറുപ്പും വെളുപ്പും",
     "catppuccin-mocha": "Catppuccin Mocha",
-    "dark": "Dark",
+    "dark": "ഡാർക്ക്",
     "discord": "Discord",
     "dracula": "Dracula",
     "github-dark": "Github Dark",
     "label": "തീം",
-    "light": "Light",
+    "light": "ലൈറ്റ്",
     "marmalade-beaver": "Marmalade Beaver",
     "material-theme": "Material Theme",
     "modeDark": "ഇരുണ്ടത്",
@@ -1099,7 +1280,9 @@
     "vim-dark-soft": "Vim Dark Soft",
     "vue-dark": "Vue Dark",
     "cool": "Cool",
-    "huacat-pink": "Huacat Pink"
+    "huacat-pink": "Huacat Pink",
+    "materialYou": "Material You തീം നിറം",
+    "materialYouInfo": "സിസ്റ്റം വാൾപേപ്പറിനെ അടിസ്ഥാനമാക്കിയുള്ള ഡൈനാമിക് നിറങ്ങൾ ഉപയോഗിക്കുക (Android 12+)."
   },
   "time": {
     "days_one": "{{days}} ദിവസം",
@@ -1149,7 +1332,17 @@
       "selected": "തിരഞ്ഞെടുത്തു",
       "currentSelection": "നിലവിലെ തിരഞ്ഞെടുപ്പ്: {{artist}} - {{title}}",
       "lyricsId": "ID: {{id}}",
-      "noPreview": "പ്രിവ്യൂ ലഭ്യമല്ല."
+      "noPreview": "പ്രിവ്യൂ ലഭ്യമല്ല.",
+      "offsetReset": "പുനഃസജ്ജമാക്കുക",
+      "saveError": "തിരഞ്ഞെടുത്ത വരികൾ സംരക്ഷിക്കുന്നതിൽ പരാജയപ്പെട്ടു.",
+      "disableLyrics": "വരികൾ ഓഫാക്കുക",
+      "lyricsDisabled": "വരികൾ ഓഫ്",
+      "offsetLabel": "വരികളുടെ ടൈമിംഗ് ഓഫ്‌സെറ്റ്",
+      "offsetHint": "പോസിറ്റീവ് ഓഫ്‌സെറ്റ് മൂല്യങ്ങൾ വരികൾ വൈകിപ്പിക്കുന്നു.",
+      "hasRomaji": "റോമാജി"
     }
+  },
+  "navigation": {
+    "back": "തിരികെ"
   }
 }

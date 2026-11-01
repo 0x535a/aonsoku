@@ -17,6 +17,7 @@
     "build:mobile": "tsc && vite build --mode mobile",
     "preview": "vite preview",
     "lint": "biome lint",
+    "i18n:check": "node scripts/i18n/check.mjs",
     "lint:fix": "biome lint --write",
     "lint:check": "biome check --write",
     "lint:format": "biome format --write",

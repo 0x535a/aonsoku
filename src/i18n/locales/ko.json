@@ -42,7 +42,12 @@
         "recentlyAdded": "최근 추가됨",
         "recentlyPlayed": "최근 재생됨",
         "releaseYear": "발매 연도",
-        "search": "검색"
+        "search": "검색",
+        "label": "필터",
+        "year": {
+          "oldest": "오래된 것부터",
+          "newest": "최신순"
+        }
       },
       "genre": {
         "label": "장르 선택…",
@@ -134,7 +139,10 @@
     "queueHistory": "재생 기록",
     "queueRepeating": "반복 재생 중",
     "switchButton": "큰 플레이어로 전환",
-    "selectLyrics": "가사 설정"
+    "selectLyrics": "가사 설정",
+    "dynamicArtwork": "다이나믹한 앨범 아트워크",
+    "dynamicArtworkInfo": "전체 화면 플레이어에서 몰입형 커버 동영상을 사용하세요. 잠금 화면 아트웍과 독립적입니다.",
+    "queueShuffling": "셔플 재생"
   },
   "generic": {
     "beta": "베타",
@@ -150,13 +158,15 @@
         "list": "목록",
         "poster": "포스터"
       }
-    }
+    },
+    "cancel": "취소"
   },
   "home": {
     "explore": "탐색",
     "mostPlayed": "자주 재생됨",
     "recentlyAdded": "최근 추가됨",
-    "recentlyPlayed": "최근 재생됨"
+    "recentlyPlayed": "최근 재생됨",
+    "pinned": "고정됨"
   },
   "lanControl": {
     "remote": {
@@ -306,7 +316,9 @@
     },
     "removeDownload": "다운로드 제거",
     "removeFromQueue": "대기열에서 제거",
-    "unlike": "좋아요 취소"
+    "unlike": "좋아요 취소",
+    "pin": "홈에 고정",
+    "unpin": "집에서 고정 해제"
   },
   "player": {
     "noRadioPlaying": "재생 중인 라디오 없음",
@@ -340,6 +352,16 @@
         "mute": "음소거",
         "unmute": "음소거 해제"
       }
+    },
+    "sleepTimer": {
+      "tooltip": "취침 타이머",
+      "title": "취침 타이머",
+      "endOfTrack": "현재 트랙의 끝",
+      "minutes": "{{count}}분",
+      "remaining": "{{time}} 남음",
+      "cancel": "타이머 취소",
+      "minutes_one": "{{count}}분",
+      "minutes_other": "{{count}}분"
     }
   },
   "playlist": {
@@ -479,13 +501,145 @@
     "status": "상태"
   },
   "settings": {
+    "crossDevice": {
+      "playback": {
+        "otherDevices": "다른 기기에서 재생 중",
+        "showDevices": "기기 보기",
+        "fetchingSong": "곡을 불러오는 중...",
+        "unknownTrack": "알 수 없는 곡",
+        "online": "온라인",
+        "offline": "오프라인",
+        "continue": "계속",
+        "exitControl": "원격 제어 종료",
+        "remoteControl": "원격 제어",
+        "relay": "재생 이어받기",
+        "peerDevice": "원격 장치",
+        "controllingDevice": "{{name}} 제어 중",
+        "continueConfirmTitle": "여기서 재생을 계속하시겠습니까?",
+        "continueConfirmDesc": "이 기기의 활성 로컬 재생이 대체됩니다.",
+        "currentLocal": "이 기기에서 재생 중",
+        "thisDevice": "이 장치",
+        "liveDevices": "온라인 기기",
+        "offlineSnapshots": "오프라인 장치에서 재생 재개",
+        "willContinue": "{{name}}에서 계속"
+      },
+      "connect": "연결",
+      "never": "안 함",
+      "device": {
+        "save": "저장",
+        "cancel": "취소",
+        "current": "현재 장치",
+        "lastOnline": "마지막 온라인 {{time}}",
+        "rename": "이름 바꾸기",
+        "revoke": "취소",
+        "renamed": "장치 이름이 변경됨",
+        "revoked": "기기가 취소되었습니다."
+      },
+      "delete": "삭제",
+      "deleteConfirm": {
+        "description": "이 작업은 되돌릴 수 없습니다.",
+        "title": "모든 조정 데이터를 삭제하시겠습니까?"
+      },
+      "title": "교차 장치",
+      "description": "기록을 동기화하고 여러 기기에서 계속 재생하세요.",
+      "setup": {
+        "title": "이 장치를 서버에 연결하세요",
+        "description": "동기화를 유지하려는 모든 장치에서 동일한 조정 서버를 사용하세요.",
+        "requirement": "현재 음악 서버 자격 증명은 이 장치를 인증하는 데에만 사용됩니다."
+      },
+      "serverUrl": {
+        "label": "조정 서버 URL",
+        "info": "조정 서버의 URL입니다."
+      },
+      "identityUrl": {
+        "label": "신원 URL",
+        "info": "귀하의 Navidrome/Subsonic 서버 URL입니다."
+      },
+      "deviceName": {
+        "label": "장치 이름",
+        "info": "이 장치의 인식 가능한 이름입니다.",
+        "placeholder": "내 장치"
+      },
+      "retry": "다시 해 보다",
+      "status": "연결 상태",
+      "statusInfo": "이 장치는 연결되어 있는 동안 재생 핸드오프를 계속 사용할 수 있습니다.",
+      "currentDevice": "현재 장치",
+      "disconnectShort": "연결 끊기",
+      "connectionState": {
+        "label": "연결 상태",
+        "disconnected": "연결이 끊김",
+        "connecting": "연결 중",
+        "authenticating": "인증 중",
+        "connected": "연결됨",
+        "error": "오류"
+      },
+      "lastSync": {
+        "label": "마지막 동기화"
+      },
+      "error": {
+        "label": "오류",
+        "missingFields": "모든 필드를 작성하세요.",
+        "connectFailed": "연결 실패",
+        "disconnectedDescription": "조정 서버가 다시 연결될 때까지 원격 장치를 사용할 수 없습니다.",
+        "unconfiguredTitle": "교차 장치 재생",
+        "unconfiguredDescription": "조정 서버에 연결"
+      },
+      "disconnect": "이 장치를 연결 해제하세요",
+      "connected": "연결됨",
+      "disconnected": "연결이 끊김",
+      "devices": "등록된 기기",
+      "deviceCount": "{{count}} 기기",
+      "devicesDescription": "쉽게 인식할 수 있도록 장치 이름을 바꾸거나 이전 세션을 취소하세요.",
+      "deleteData": {
+        "label": "모든 조정 데이터 삭제",
+        "info": "조정 서버에서 계정과 모든 동기화된 데이터를 제거하세요."
+      },
+      "disconnectConfirm": {
+        "title": "이 기기를 연결 해제하시겠습니까?",
+        "description": "이 기기에서 기기 간 동기화가 중지됩니다."
+      },
+      "revokeConfirm": {
+        "title": "기기를 취소하시겠습니까?",
+        "description": "{{name}}에 대한 액세스 권한을 취소하시겠습니까?"
+      },
+      "deleted": "조정 데이터가 삭제되었습니다.",
+      "toast": {
+        "relaySuccess": "핸드오프 성공!",
+        "relayFailed": "전달 실패: {{code}}",
+        "exitRemoteControl": "원격 재생 제어가 중지되었습니다.",
+        "remoteControlSuccess": "원격 제어: {{name}}",
+        "preparingRelay": "핸드오프 준비 중...",
+        "sessionSuperseded": "이 세션은 {{deviceName}}에 의해 인계되었으며 재생이 일시 중지되었습니다."
+      },
+      "handoffError": {
+        "targetOffline": "기기가 오프라인 상태가 되었습니다.",
+        "snapshotExpired": "재생 스냅샷이 너무 오래되어 계속할 수 없습니다.",
+        "handoffConflict": "다른 핸드오프가 이미 이 세션을 진행했습니다.",
+        "sourceChanged": "전송되기 전에 소스가 변경되었습니다.",
+        "sourcePauseTimeout": "소스 장치에서 마감일 이전에 재생이 일시 중지되었는지 확인하지 않았습니다.",
+        "unsupportedMedia": "이 미디어 유형은 다른 장치에서 계속 사용할 수 없습니다.",
+        "deviceRevoked": "이 장치는 더 이상 장치 간 동기화를 사용할 수 없습니다.",
+        "protocolIncompatible": "하나 이상의 장치에서 Aonsoku를 업데이트하세요.",
+        "forbidden": "지금은 이 장치를 제어하거나 전송할 수 없습니다.",
+        "fallback": "전달 실패: {{reason}}"
+      },
+      "handoff": {
+        "prepare": "오디오 트랙 준비 중...",
+        "relinquish": "소스 기기를 일시중지하는 중...",
+        "commit": "여기서 계속 재생 중입니다...",
+        "committed": "핸드오프 성공!",
+        "processing": "재생 동기화 중..."
+      },
+      "deviceCount_one": "{{count}} 기기",
+      "deviceCount_other": "{{count}} 기기"
+    },
     "accounts": {
       "discord": {
         "description": "Discord에서 친구들과 현재 재생 중인 곡을 공유합니다.",
         "enabled": {
           "label": "통합 활성화"
         },
-        "group": "Discord Rich Presence"
+        "group": "불일치의 풍부한 존재"
       }
     },
     "appearance": {
@@ -499,15 +653,20 @@
           "info": "큰 플레이어를 실행하면 자동으로 전체 화면 모드에 진입합니다.",
           "label": "자동 전체 화면 활성화"
         },
-        "group": "일반"
+        "group": "일반",
+        "usePointerCursors": {
+          "label": "포인터 커서 사용",
+          "info": "활성화되면 대화형 요소에 대한 포인터 커서가 표시됩니다. 비활성화되면 기본 앱 환경과 일치하도록 포인터 커서가 줄어듭니다."
+        }
       },
       "queue": {
         "colors": {
-          "info": "Si activé, l'application utilisera la couleur dominante de la pochette de l'album actuel comme couleur de fond.",
-          "label": "Activer la couleur de fond dynamique"
+          "info": "활성화하면 현재 앨범 커버의 주요 색상을 배경색으로 사용합니다.",
+          "label": "동적 배경색 사용",
+          "intensity": "배경색 강도"
         },
-        "description": "Personnaliser la page de la file d'attente et des paroles.",
-        "group": "File d'attente et paroles"
+        "description": "대기열과 가사 페이지를 설정합니다.",
+        "group": "대기열 및 가사"
       }
     },
     "audio": {
@@ -588,22 +747,22 @@
         "group": "震动反馈"
       },
       "pip": {
-        "group": "Picture-in-Picture",
-        "description": "Control how the app responds to picture-in-picture requests from the browser.",
+        "group": "PIP(Picture-in-Picture)",
+        "description": "앱이 브라우저의 PIP(Picture-in-Picture) 요청에 응답하는 방식을 제어합니다.",
         "acceptBrowserRequest": {
-          "label": "Accept browser PiP requests",
-          "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
+          "label": "브라우저 PiP 요청 수락",
+          "info": "활성화되면 앱은 브라우저의 PIP(Picture-in-Picture) 요청에 응답합니다. 비활성화되면 미니 플레이어는 PiP 버튼을 통해서만 수동으로 열 수 있습니다."
         }
       },
       "lockScreenArtwork": {
         "group": "잠금 화면 아트워크",
         "description": "iOS 26 이상이 필요합니다. 레이아웃은 시스템이 제어하며 움직임은 기기에서 생성됩니다.",
-        "loading": "Loading artwork settings…",
-        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
-        "retry": "Retry",
-        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "loading": "작품 설정 로드 중…",
+        "unavailable": "작품 설정을 사용할 수 없습니다. 기본 앱을 업데이트하거나 다시 시도하세요.",
+        "retry": "다시 해 보다",
+        "unsupported": "이 장치 또는 iOS 버전은 몰입형 아트워크를 지원하지 않습니다. 일반 작품은 계속 사용할 수 있습니다.",
         "immersive": "몰입형 아트워크",
-        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "immersiveInfo": "표지 아트를 가장자리 너머로 확장하여 시스템에서 지원하는 레이아웃을 채웁니다.",
         "dynamic": "애니메이션 아트워크",
         "dynamicInfo": "깊이 움직임은 로컬에서 생성합니다. 모델은 필요할 때 다운로드하고 준비 중에는 정적 커버를 사용합니다.",
         "quality": "모델 품질",
@@ -611,8 +770,8 @@
         "automatic": "자동 ({{tier}})",
         "effectiveTier": "리소스 한도: {{tier}}",
         "wifiOnly": "Wi-Fi에서만 모델 다운로드",
-        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
-        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "wifiInfo": "모바일 데이터를 통한 모델 다운로드도 허용하려면 이 옵션을 끄세요. 모델 추론은 항상 이 장치에서 실행됩니다.",
+        "modelsInfo": "필요한 모델 계층만 자동으로 다운로드됩니다. 준비된 영상은 재사용됩니다. 추론 후 모델은 메모리에서 언로드됩니다. 모델을 삭제하면 생성된 동영상이 유지됩니다.",
         "download": "다운로드",
         "remove": "삭제",
         "cancel": "취소",
@@ -625,7 +784,8 @@
           "thermal": "기기 발열로 일시 중지",
           "lowPower": "저전력 모드에서 일시 중지",
           "reduceMotion": "동작 줄이기 설정으로 일시 중지",
-          "waitingForModel": "모델 준비 중. 정적 커버 사용"
+          "waitingForModel": "모델 준비 중. 정적 커버 사용",
+          "waitingForConsumer": "재생 인터페이스가 표시될 때까지 기다리는 중"
         },
         "model": {
           "notDownloaded": "다운로드되지 않음",
@@ -641,7 +801,16 @@
         "motionAmplitudeInfo": "경로를 유지하면서 시차와 카메라 움직임을 0.5×~2×로 조절합니다.",
         "motionSpeed": "모션 속도",
         "motionSpeedInfo": "24 FPS 루프: 0.5× / 0.75× / 1× / 1.5× / 2×는 12 / 8 / 6 / 4 / 3초입니다.",
-        "motionDefault": "기본값"
+        "motionDefault": "기본값",
+        "macGroup": "몰입형 아트워크",
+        "disableProtection": "리소스 보호 비활성화",
+        "disableProtectionInfo": "열, 저전력 모드 또는 메모리 부족에도 불구하고 자동 모델 다운그레이드 없이 생성 및 재생이 가능합니다. 이로 인해 발열과 배터리 사용량이 증가하고 iOS가 앱을 종료할 수 있습니다. 시스템 제한, 백그라운드 수명 주기 및 모션 감소가 계속 적용됩니다.",
+        "macImmersiveInfo": "음악 플레이어에서 재사용할 수 있도록 가장자리가 매끄럽게 확장된 표지 아트 비디오를 준비합니다.",
+        "macWifiOnly": "데이터 사용량에 따라 요금이 부과되지 않는 네트워크에서만 모델 다운로드",
+        "macWifiInfo": "데이터 사용량에 따른 요금이나 통신 제한이 없는 Wi-Fi 및 이더넷을 사용합니다. 이 옵션을 끄면 데이터 사용량에 따라 요금이 부과되는 네트워크도 허용합니다.",
+        "macDescription": "macOS에서 로컬로 몰입형 커버 비디오를 생성하세요. 요청 시 모델을 다운로드할 수 있습니다. 준비된 비디오는 플레이어에서 재사용할 수 있습니다.",
+        "depthPreview": "정규화된 깊이 맵",
+        "diagnostics": "macOS 아트워크 진단"
       }
     },
     "content": {
@@ -737,7 +906,8 @@
       "language": "언어 및 지역",
       "privacy": "개인정보 및 보안",
       "server": "서버",
-      "storage": "오프라인 환경"
+      "storage": "오프라인 환경",
+      "cross-device": "교차 장치"
     },
     "privacy": {
       "services": {
@@ -810,7 +980,9 @@
           "explicit": "명시적",
           "lru": "LRU",
           "playlist": "재생목록",
-          "smart": "스마트"
+          "smart": "스마트",
+          "immersive-static": "몰입형 정적 커버",
+          "immersive-dynamic": "몰입형 동적 커버"
         },
         "group": "캐시 관리자",
         "list": {
@@ -827,8 +999,16 @@
           "type_album": "앨범",
           "type_audio": "오디오",
           "type_cover": "커버",
-          "type_playlist": "재생목록"
-        }
+          "type_playlist": "재생목록",
+          "type_immersive-static": "몰입형 정적 커버",
+          "type_immersive-dynamic": "몰입형 동적 커버"
+        },
+        "videoInfo": "몰입형 비디오는 모델 파일과 별개입니다. 사용 중인 비디오는 보호됩니다. 생성된 비디오를 재구성할 수 있습니다.",
+        "refresh": "새로 고치다",
+        "clearVideos": "몰입형 커버 동영상 삭제",
+        "videoCleared": "{{deleted}}개의 동영상을 삭제했습니다. 사용 중인 {{retained}}개 파일을 보관했습니다.",
+        "inUse": "사용 중",
+        "motionParameters": "진폭 {{amplitude}}× · 속도 {{speed}}×"
       },
       "coverArt": {
         "clear": "커버 아트 캐시 지우기",
@@ -949,7 +1129,8 @@
             "description": "앨범 · 아티스트 · 재생목록 이미지"
           }
         },
-        "downloading": "{{count}}곡 다운로드 중"
+        "downloading": "{{count}}곡 다운로드 중",
+        "libraryCachingInfoIos": "오프라인 재생을 지원하려면 라이브러리 캐싱이 필요하며 iOS에서 항상 활성화되어 있습니다."
       }
     }
   },
@@ -1084,10 +1265,10 @@
     "light": "라이트",
     "marmalade-beaver": "마멀레이드 비버",
     "material-theme": "머티리얼 테마",
-    "modeDark": "Dark",
-    "modeLabel": "Mode",
-    "modeLight": "Light",
-    "modeSystem": "System",
+    "modeDark": "다크",
+    "modeLabel": "모드",
+    "modeLight": "라이트",
+    "modeSystem": "시스템",
     "monokai-pro": "모노카이 프로",
     "night-owl-light": "올빼미 라이트",
     "noctis-lilac": "Noctis 라일락",
@@ -1099,7 +1280,9 @@
     "vim-dark-soft": "Vim 다크 소프트",
     "vue-dark": "Vue 다크",
     "cool": "Cool",
-    "huacat-pink": "Huacat Pink"
+    "huacat-pink": "Huacat Pink",
+    "materialYou": "Material You 테마 색상",
+    "materialYouInfo": "시스템 배경화면을 기반으로 동적 색상을 사용합니다(Android 12+)."
   },
   "time": {
     "days_one": "{{days}}일",
@@ -1149,7 +1332,17 @@
       "selected": "선택됨",
       "currentSelection": "현재 선택: {{artist}} - {{title}}",
       "lyricsId": "ID: {{id}}",
-      "noPreview": "미리보기를 사용할 수 없습니다."
+      "noPreview": "미리보기를 사용할 수 없습니다.",
+      "offsetReset": "재설정",
+      "saveError": "선택한 가사를 저장하지 못했습니다.",
+      "disableLyrics": "가사 끄기",
+      "lyricsDisabled": "가사 꺼짐",
+      "offsetLabel": "가사 타이밍 오프셋",
+      "offsetHint": "양수 오프셋 값은 가사를 지연시킵니다.",
+      "hasRomaji": "로마자"
     }
+  },
+  "navigation": {
+    "back": "뒤쪽에"
   }
 }

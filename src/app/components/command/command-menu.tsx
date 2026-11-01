@@ -286,7 +286,7 @@ export default function CommandMenu() {
       <Button
         variant="outline"
         className="w-full h-fit flex flex-col justify-center items-center gap-1 md:hidden"
-        aria-label={t("command.search")}
+        aria-label={t("sidebar.miniSearch")}
         onClick={() => setOpen(true)}
       >
         <SearchIcon className="w-4 h-4" />

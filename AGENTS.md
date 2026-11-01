@@ -37,6 +37,7 @@ pnpm exec cap sync        # Copy the preceding build into Android/iOS
 
 # Lint & Format (Biome)
 pnpm run lint             # Check only
+pnpm run i18n:check       # Locale coverage, CLDR plurals, interpolation and source keys
 pnpm run lint:fix         # Auto-fix lint issues
 pnpm run lint:format      # Format files
 
@@ -448,6 +449,19 @@ Tailwind CSS uses CSS custom properties for layout dimensions
 (`--header-height`, `--sidebar-width`, `--player-height`, safe-area variables,
 etc.). Theme variables (HSL colors for dark/light) are in `src/themes.css`.
 Dark mode is class-based.
+
+### Internationalization
+
+`src/i18n/locales/en.json` is the shared renderer translation reference. Keep
+all 18 locale catalogs complete when adding keys, including each locale’s CLDR
+plural categories and unchanged interpolation variables. `pnpm run i18n:check`
+checks catalog coverage, empty strings, English copies, interpolation and
+resolvable translation calls in `src/` and `electron/`; CI runs it with lint.
+Dynamic key patterns are checked against the reference, but opaque runtime keys
+still need review. `scripts/i18n/shared-translations.json` explicitly allows
+product/theme names, format strings and words that are identical in a specific
+language; do not use it to exempt untranslated sentences. English fallback
+remains a runtime safeguard.
 
 ### Code Splitting
 

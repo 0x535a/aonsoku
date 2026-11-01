@@ -42,7 +42,12 @@
         "recentlyAdded": "Нещодавно додані",
         "recentlyPlayed": "Нещодавно відтворені",
         "releaseYear": "Рік випуску",
-        "search": "Пошук"
+        "search": "Пошук",
+        "label": "фільтр",
+        "year": {
+          "oldest": "Спочатку найстаріші",
+          "newest": "Спочатку найновіші"
+        }
       },
       "genre": {
         "label": "Виберіть жанр…",
@@ -122,7 +127,9 @@
     "headline": "Улюблене",
     "noSongs": "Поки немає улюблених пісень!",
     "songCount_one": "{{count}} пісня",
-    "songCount_other": "{{count}} пісень"
+    "songCount_other": "{{count}} пісень",
+    "songCount_few": "{{count}} пісні",
+    "songCount_many": "{{count}} пісень"
   },
   "fullscreen": {
     "emptyQueue": "Немає пісень у черзі",
@@ -136,7 +143,10 @@
     "queueHistory": "Історія",
     "queueRepeating": "Повторення",
     "switchButton": "Перейти до великого плеєра",
-    "selectLyrics": "Налаштування тексту"
+    "selectLyrics": "Налаштування тексту",
+    "dynamicArtwork": "Динамічна обкладинка альбому",
+    "dynamicArtworkInfo": "Використовуйте реалістичні обкладинки в повноекранному програвачі. Незалежно від оформлення екрана блокування.",
+    "queueShuffling": "Відтворення у випадковому порядку"
   },
   "generic": {
     "beta": "Бета",
@@ -152,13 +162,15 @@
         "list": "Список",
         "poster": "Постер"
       }
-    }
+    },
+    "cancel": "Скасувати"
   },
   "home": {
     "explore": "Відкрити для себе",
     "mostPlayed": "Найчастіше відтворювані",
     "recentlyAdded": "Нещодавно додані",
-    "recentlyPlayed": "Нещодавно відтворені"
+    "recentlyPlayed": "Нещодавно відтворені",
+    "pinned": "Закріплено"
   },
   "lanControl": {
     "remote": {
@@ -308,7 +320,9 @@
     },
     "removeDownload": "Видалити завантаження",
     "removeFromQueue": "Видалити з черги",
-    "unlike": "Забрати лайк"
+    "unlike": "Забрати лайк",
+    "pin": "Закріпити на головній сторінці",
+    "unpin": "Відкріпити з дому"
   },
   "player": {
     "noRadioPlaying": "Радіо не відтворюється",
@@ -342,6 +356,18 @@
         "mute": "Вимкнути звук",
         "unmute": "Увімкнути звук"
       }
+    },
+    "sleepTimer": {
+      "tooltip": "Таймер сну",
+      "title": "Таймер сну",
+      "endOfTrack": "Кінець поточної доріжки",
+      "minutes": "{{count}} хв",
+      "remaining": "Залишилося {{time}}",
+      "cancel": "Скасувати таймер",
+      "minutes_one": "{{count}} хв",
+      "minutes_other": "{{count}} хв",
+      "minutes_few": "{{count}} хв",
+      "minutes_many": "{{count}} хв"
     }
   },
   "playlist": {
@@ -493,6 +519,140 @@
     "songCount_many": "{{count}} треков"
   },
   "settings": {
+    "crossDevice": {
+      "playback": {
+        "otherDevices": "Відтворення на інших пристроях",
+        "showDevices": "Показати пристрої",
+        "fetchingSong": "Завантаження композиції...",
+        "unknownTrack": "Невідома композиція",
+        "online": "У мережі",
+        "offline": "Поза мережею",
+        "continue": "Продовжити",
+        "exitControl": "Вийти з керування",
+        "remoteControl": "Віддалене керування",
+        "relay": "Перенести відтворення",
+        "peerDevice": "віддалений пристрій",
+        "controllingDevice": "Керування {{name}}",
+        "continueConfirmTitle": "Продовжити відтворення тут?",
+        "continueConfirmDesc": "Це замінить активне локальне відтворення на цьому пристрої.",
+        "currentLocal": "Зараз відтворюється на цьому пристрої",
+        "thisDevice": "Цей пристрій",
+        "liveDevices": "Пристрої в мережі",
+        "offlineSnapshots": "Відновити відтворення з автономного пристрою",
+        "willContinue": "Продовжити з {{name}}"
+      },
+      "connect": "Підключитися",
+      "never": "Ніколи",
+      "device": {
+        "save": "Зберегти",
+        "cancel": "Скасувати",
+        "current": "Поточний пристрій",
+        "lastOnline": "Останній онлайн {{time}}",
+        "rename": "Перейменувати",
+        "revoke": "Відкликати",
+        "renamed": "Пристрій перейменовано",
+        "revoked": "Пристрій відкликано"
+      },
+      "delete": "Видалити",
+      "deleteConfirm": {
+        "description": "Цю дію не можна скасувати.",
+        "title": "Видалити всі дані координації?"
+      },
+      "title": "Крос-пристрої",
+      "description": "Синхронізуйте історію та продовжуйте відтворення на своїх пристроях.",
+      "setup": {
+        "title": "Підключіть цей пристрій до сервера",
+        "description": "Використовуйте той самий координаційний сервер на кожному пристрої, який потрібно синхронізувати.",
+        "requirement": "Ваші поточні облікові дані музичного сервера використовуються лише для авторизації цього пристрою."
+      },
+      "serverUrl": {
+        "label": "URL-адреса координаційного сервера",
+        "info": "URL вашого координаційного сервера."
+      },
+      "identityUrl": {
+        "label": "URL ідентифікатора",
+        "info": "URL-адреса вашого сервера Navidrome/Subsonic."
+      },
+      "deviceName": {
+        "label": "Назва пристрою",
+        "info": "Впізнавана назва цього пристрою.",
+        "placeholder": "Мій пристрій"
+      },
+      "retry": "Повторіть спробу",
+      "status": "Статус підключення",
+      "statusInfo": "Цей пристрій залишається доступним для передачі відтворення під час підключення.",
+      "currentDevice": "Поточний пристрій",
+      "disconnectShort": "Відключити",
+      "connectionState": {
+        "label": "Статус підключення",
+        "disconnected": "Відключено",
+        "connecting": "Підключення",
+        "authenticating": "Автентифікація",
+        "connected": "Підключено",
+        "error": "Помилка"
+      },
+      "lastSync": {
+        "label": "Остання синхронізація"
+      },
+      "error": {
+        "label": "Помилка",
+        "missingFields": "Заповніть усі поля",
+        "connectFailed": "Помилка підключення",
+        "disconnectedDescription": "Віддалені пристрої недоступні, доки сервер координації не підключиться повторно.",
+        "unconfiguredTitle": "Відтворення на різних пристроях",
+        "unconfiguredDescription": "Підключитися до координаційного сервера"
+      },
+      "disconnect": "Відключіть цей пристрій",
+      "connected": "Підключено",
+      "disconnected": "Відключено",
+      "devices": "Зареєстровані пристрої",
+      "deviceCount": "{{count}} пристроїв",
+      "devicesDescription": "Перейменуйте пристрої, щоб їх було легко розпізнати, або скасуйте старі сеанси.",
+      "deleteData": {
+        "label": "Видалити всі дані координації",
+        "info": "Видаліть свій обліковий запис і всі синхронізовані дані з координаційного сервера."
+      },
+      "disconnectConfirm": {
+        "title": "Відключити цей пристрій?",
+        "description": "Це припинить синхронізацію між пристроями на цьому пристрої."
+      },
+      "revokeConfirm": {
+        "title": "Відкликати пристрій?",
+        "description": "Ви впевнені, що бажаєте скасувати доступ для {{name}}?"
+      },
+      "deleted": "Координаційні дані видалено",
+      "toast": {
+        "relaySuccess": "Передача успішна!",
+        "relayFailed": "Помилка передачі: {{code}}",
+        "exitRemoteControl": "Дистанційне керування відтворенням зупинено",
+        "remoteControlSuccess": "Дистанційне керування: {{name}}",
+        "preparingRelay": "Підготовка передачі...",
+        "sessionSuperseded": "Цей сеанс перейшов до {{deviceName}}, відтворення призупинено."
+      },
+      "handoffError": {
+        "targetOffline": "Пристрій вийшов з мережі.",
+        "snapshotExpired": "Цей знімок відтворення застарий для продовження.",
+        "handoffConflict": "Інша передача вже зайняла цей сеанс.",
+        "sourceChanged": "Джерело змінилося до того, як його можна було передати.",
+        "sourcePauseTimeout": "Пристрій-джерело не підтвердило, що відтворення було призупинено до кінцевого терміну.",
+        "unsupportedMedia": "Цей тип медіа не можна продовжити на іншому пристрої.",
+        "deviceRevoked": "Цьому пристрою більше не дозволено використовувати синхронізацію між пристроями.",
+        "protocolIncompatible": "Оновіть Aonsoku на одному або кількох пристроях.",
+        "forbidden": "Зараз неможливо керувати чи передати цей пристрій.",
+        "fallback": "Помилка передачі: {{reason}}"
+      },
+      "handoff": {
+        "prepare": "Підготовка звукової доріжки...",
+        "relinquish": "Призупинення вихідного пристрою...",
+        "commit": "Продовження відтворення тут...",
+        "committed": "Передача успішна!",
+        "processing": "Синхронізація відтворення..."
+      },
+      "deviceCount_one": "{{count}} пристрій",
+      "deviceCount_other": "{{count}} пристроїв",
+      "deviceCount_few": "{{count}} пристрої",
+      "deviceCount_many": "{{count}} пристроїв"
+    },
     "accounts": {
       "discord": {
         "description": "Діліться піснею, яку ви слухаєте, з друзями у Discord.",
@@ -513,15 +673,20 @@
           "info": "Якщо ввімкнено, при відкритті великого плеєра додаток автоматично перейде в повноекранний режим.",
           "label": "Увімкнути автоматичний повноекранний режим"
         },
-        "group": "Загальні"
+        "group": "Загальні",
+        "usePointerCursors": {
+          "label": "Використовуйте курсори-вказівники",
+          "info": "Коли ввімкнено, показує курсори-вказівники для інтерактивних елементів; коли вимкнуто, зменшує курсори вказівників відповідно до нативної роботи програми."
+        }
       },
       "queue": {
         "colors": {
-          "info": "Si activé, l'application utilisera la couleur dominante de la pochette de l'album actuel comme couleur de fond.",
-          "label": "Activer la couleur de fond dynamique"
+          "info": "Якщо ввімкнено, застосунок використовує основний колір обкладинки поточного альбому як колір тла.",
+          "label": "Увімкнути динамічний колір тла",
+          "intensity": "Інтенсивність кольору фону"
         },
-        "description": "Personnaliser la page de la file d'attente et des paroles.",
-        "group": "File d'attente et paroles"
+        "description": "Налаштуйте чергу та сторінку текстів пісень.",
+        "group": "Черга й тексти"
       }
     },
     "audio": {
@@ -591,33 +756,33 @@
           "label": "Режим",
           "track": "Посилення треку"
         },
-        "preAmp": "PreAmp (dB)"
+        "preAmp": "Попередній підсилювач (дБ)"
       },
       "hapticFeedback": {
-        "description": "Control vibration feedback when interacting with the app.",
+        "description": "Керуйте вібросигналом під час взаємодії з програмою.",
         "enabled": {
-          "info": "When enabled, the device will vibrate when dragging queue items on mobile.",
-          "label": "Enable haptic feedback"
+          "info": "Якщо ввімкнено, пристрій вібруватиме під час перетягування елементів черги на мобільному пристрої.",
+          "label": "Увімкнути тактильний відгук"
         },
-        "group": "Haptic Feedback"
+        "group": "Тактильний зворотний зв'язок"
       },
       "pip": {
-        "group": "Picture-in-Picture",
-        "description": "Control how the app responds to picture-in-picture requests from the browser.",
+        "group": "Картинка в картинці",
+        "description": "Контролюйте, як програма відповідає на запити зображення в картинці від браузера.",
         "acceptBrowserRequest": {
-          "label": "Accept browser PiP requests",
-          "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
+          "label": "Приймати запити PIP браузера",
+          "info": "Якщо ввімкнено, програма відповідатиме на запити «картинка в картинці» від браузера. Якщо вимкнено, міні-програвач можна відкрити лише вручну за допомогою кнопки PiP."
         }
       },
       "lockScreenArtwork": {
         "group": "Обкладинка екрана блокування",
         "description": "Потрібна iOS 26+. Макетом керує система; рух створюється на пристрої.",
-        "loading": "Loading artwork settings…",
-        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
-        "retry": "Retry",
-        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "loading": "Завантаження налаштувань ілюстрації…",
+        "unavailable": "Налаштування ілюстрації недоступні. Оновіть рідну програму або повторіть спробу.",
+        "retry": "Повторіть спробу",
+        "unsupported": "Цей пристрій або версія iOS не підтримує захоплюючі ілюстрації. Звичайні твори мистецтва залишаються в наявності.",
         "immersive": "Імерсивна обкладинка",
-        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "immersiveInfo": "Витягніть обкладинку за межі її країв, щоб заповнити макет, який підтримується системою.",
         "dynamic": "Анімована обкладинка",
         "dynamicInfo": "Рух глибини створюється локально. Модель завантажується за потреби; поки використовується статична обкладинка.",
         "quality": "Якість моделі",
@@ -625,8 +790,8 @@
         "automatic": "Автоматично ({{tier}})",
         "effectiveTier": "Обмеження ресурсів: {{tier}}",
         "wifiOnly": "Завантажувати лише через Wi-Fi",
-        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
-        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "wifiInfo": "Вимкніть цю опцію, щоб також дозволити завантаження моделей через мобільні дані. Висновок моделі завжди працює на цьому пристрої.",
+        "modelsInfo": "Автоматично завантажується лише необхідний рівень моделі. Підготовлені відео використовуються повторно. Моделі вивантажуються з пам'яті після висновку. Видалення моделі зберігає створені відео.",
         "download": "Завантажити",
         "remove": "Видалити",
         "cancel": "Скасувати",
@@ -639,7 +804,8 @@
           "thermal": "Пристрій гарячий; призупинено",
           "lowPower": "Енергозбереження; призупинено",
           "reduceMotion": "Зменшення руху; призупинено",
-          "waitingForModel": "Підготовка моделі; статична обкладинка"
+          "waitingForModel": "Підготовка моделі; статична обкладинка",
+          "waitingForConsumer": "Очікування, поки інтерфейс відтворення стане видимим"
         },
         "model": {
           "notDownloaded": "Не завантажено",
@@ -655,7 +821,16 @@
         "motionAmplitudeInfo": "Масштабує паралакс і камеру від 0,5× до 2× без зміни траєкторії.",
         "motionSpeed": "Швидкість руху",
         "motionSpeedInfo": "Цикл 24 кадр/с: 0,5× / 0,75× / 1× / 1,5× / 2× відповідає 12 / 8 / 6 / 4 / 3 секундам.",
-        "motionDefault": "типово"
+        "motionDefault": "типово",
+        "macGroup": "Імерсивна обкладинка",
+        "disableProtection": "Вимкнути захист ресурсів",
+        "disableProtectionInfo": "Дозволяють генерувати та відтворювати, незважаючи на нагрівання, режим низького енергоспоживання або тиск пам’яті, без автоматичного зниження версії моделі. Це може збільшити нагрівання та використання акумулятора, а також призвести до того, що iOS припинить роботу програми. Системні обмеження, фоновий життєвий цикл і Reduce Motion все ще застосовуються.",
+        "macImmersiveInfo": "Підготуйте відео з обкладинками з плавно розширеними краями для повторного використання в музичному плеєрі.",
+        "macWifiOnly": "Завантажувати моделі лише через мережі без тарифікації трафіку",
+        "macWifiInfo": "Використовувати Wi-Fi та Ethernet лише без тарифікації трафіку й обмежень з’єднання. Вимкніть, щоб дозволити мережі з тарифікацією трафіку.",
+        "macDescription": "Створюйте захоплюючі обкладинки локально на macOS. Завантаження моделей на вимогу; підготовлені відео можуть бути повторно використані гравцем.",
+        "depthPreview": "Нормована карта глибини",
+        "diagnostics": "діагностика ілюстрацій macOS"
       }
     },
     "content": {
@@ -751,7 +926,8 @@
       "language": "Мова та регіон",
       "privacy": "Приватність та безпека",
       "server": "Сервер",
-      "storage": "Офлайн робота"
+      "storage": "Офлайн робота",
+      "cross-device": "Крос-пристрої"
     },
     "privacy": {
       "services": {
@@ -824,7 +1000,9 @@
           "explicit": "Явні",
           "lru": "LRU",
           "playlist": "Список відтворення",
-          "smart": "Розумні"
+          "smart": "Розумні",
+          "immersive-static": "Статична обкладинка з ефектом занурення",
+          "immersive-dynamic": "Анімована обкладинка з ефектом занурення"
         },
         "group": "Менеджер кешу",
         "list": {
@@ -841,8 +1019,16 @@
           "type_album": "Альбом",
           "type_audio": "Аудіо",
           "type_cover": "Обкладинка",
-          "type_playlist": "Список відтворення"
-        }
+          "type_playlist": "Список відтворення",
+          "type_immersive-static": "Статична обкладинка з ефектом занурення",
+          "type_immersive-dynamic": "Анімована обкладинка з ефектом занурення"
+        },
+        "videoInfo": "Імерсивні відео відокремлені від файлів моделі. Відео, що використовуються, захищені; створені відео можна перебудувати.",
+        "refresh": "Оновити",
+        "clearVideos": "Видалити відеообкладинки з ефектом занурення",
+        "videoCleared": "Видалено {{deleted}} відео; збережено {{retained}} використовуваних файлів.",
+        "inUse": "У користуванні",
+        "motionParameters": "Амплітуда {{amplitude}}× · Швидкість {{speed}}×"
       },
       "coverArt": {
         "clear": "Очистити кеш обкладинок",
@@ -963,7 +1149,10 @@
             "description": "Зображення альбомів · виконавців · списків відтворення"
           }
         },
-        "downloading": "Завантаження {{count}} пісень"
+        "downloading": "Завантаження {{count}} пісень",
+        "libraryCachingInfoIos": "Кешування бібліотеки потрібне та завжди ввімкнене в iOS для підтримки відтворення в режимі офлайн.",
+        "downloading_few": "Завантаження {{count}} пісень",
+        "downloading_many": "Завантаження {{count}} пісень"
       }
     }
   },
@@ -1115,7 +1304,9 @@
     "vim-dark-soft": "Vim Dark Soft",
     "vue-dark": "Vue Dark",
     "cool": "Cool",
-    "huacat-pink": "Huacat Pink"
+    "huacat-pink": "Huacat Pink",
+    "materialYou": "Колір теми Material You",
+    "materialYouInfo": "Використовувати динамічні кольори на основі системних шпалер (Android 12+)."
   },
   "time": {
     "days_one": "{{days}} день",
@@ -1167,7 +1358,17 @@
       "selected": "Вибрано",
       "currentSelection": "Поточний вибір: {{title}} — {{artist}}",
       "lyricsId": "ID: {{id}}",
-      "noPreview": "Попередній перегляд недоступний."
+      "noPreview": "Попередній перегляд недоступний.",
+      "offsetReset": "Скинути",
+      "saveError": "Не вдалося зберегти вибрані тексти.",
+      "disableLyrics": "Вимкніть тексти пісень",
+      "lyricsDisabled": "Тексти пісень вимкнено",
+      "offsetLabel": "Зміщення часу пісні",
+      "offsetHint": "Позитивні значення зсуву затримують тексти пісень.",
+      "hasRomaji": "Ромаджі"
     }
+  },
+  "navigation": {
+    "back": "Назад"
   }
 }

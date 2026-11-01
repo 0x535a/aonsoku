@@ -61,7 +61,7 @@ export default function MobileArtistsList() {
       <MobileEmptyState
         headerTitle={t("sidebar.artists")}
         title={t("sidebar.artists")}
-        description={t("common.noResults")}
+        description={t("command.noResults")}
         icon={<Mic2Icon className="size-12" />}
       />
     );

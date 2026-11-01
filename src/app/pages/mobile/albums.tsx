@@ -160,7 +160,7 @@ export default function MobileAlbumsList() {
         {albums.length === 0 ? (
           <div className="flex justify-center items-center py-16">
             <p className="text-sm text-muted-foreground">
-              {t("common.noResults")}
+              {t("command.noResults")}
             </p>
           </div>
         ) : (

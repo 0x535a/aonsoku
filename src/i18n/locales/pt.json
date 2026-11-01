@@ -1,7 +1,7 @@
 {
   "about": {
     "apiVersion": "Versão da API",
-    "buildTime": "Build Time",
+    "buildTime": "Tempo de construção",
     "client": "Cliente",
     "server": "Servidor",
     "toasts": {
@@ -42,7 +42,12 @@
         "recentlyAdded": "Adicionados recentemente",
         "recentlyPlayed": "Reproduzidos recentemente",
         "releaseYear": "Ano de lançamento",
-        "search": "Pesquisa"
+        "search": "Pesquisa",
+        "label": "Filtro",
+        "year": {
+          "oldest": "Mais antigo primeiro",
+          "newest": "O mais novo primeiro"
+        }
       },
       "genre": {
         "label": "Selecione um gênero…",
@@ -121,7 +126,8 @@
     "headline": "Favoritos",
     "noSongs": "Ainda não há músicas favoritas!",
     "songCount_one": "{{count}} música",
-    "songCount_other": "{{count}} músicas"
+    "songCount_other": "{{count}} músicas",
+    "songCount_many": "{{count}} músicas"
   },
   "fullscreen": {
     "emptyQueue": "Nenhuma música na fila",
@@ -135,7 +141,10 @@
     "queueHistory": "Histórico",
     "queueRepeating": "Repetindo",
     "switchButton": "Alternar para o Player Grande",
-    "selectLyrics": "Configurações de letra"
+    "selectLyrics": "Configurações de letra",
+    "dynamicArtwork": "Capa dinâmica do álbum",
+    "dynamicArtworkInfo": "Utilize vídeos de capa envolventes no leitor em ecrã inteiro. Independente da arte do ecrã de bloqueio.",
+    "queueShuffling": "Reprodução Aleatória"
   },
   "generic": {
     "beta": "Beta",
@@ -151,13 +160,15 @@
         "list": "Lista",
         "poster": "Cartaz"
       }
-    }
+    },
+    "cancel": "Cancelar"
   },
   "home": {
     "explore": "Explorar",
     "mostPlayed": "Mais reproduzidos",
     "recentlyAdded": "Adicionados recentemente",
-    "recentlyPlayed": "Reproduzidos recentemente"
+    "recentlyPlayed": "Reproduzidos recentemente",
+    "pinned": "Fixado"
   },
   "lanControl": {
     "remote": {
@@ -275,7 +286,7 @@
     "disconnected": "Servidor inacessível",
     "metered": "Limitado",
     "meteredTooltip": "Está numa ligação lenta ou limitada. A sincronização em segundo plano e os descarregamentos inteligentes estão pausados — toque num botão de descarregamento para forçar.",
-    "mode": "Offline",
+    "mode": "Off-line",
     "reconnectFailed": "Não foi possível restabelecer a ligação. A continuar em modo offline.",
     "reconnected": "Ligação restabelecida ao servidor",
     "reconnecting": "A restabelecer ligação…",
@@ -307,7 +318,9 @@
     },
     "removeDownload": "Remover descarregamento",
     "removeFromQueue": "Remover da fila",
-    "unlike": "Remover curtida"
+    "unlike": "Remover curtida",
+    "pin": "Fixar na página inicial",
+    "unpin": "Libertar da página inicial"
   },
   "player": {
     "noRadioPlaying": "Nenhum rádio tocando",
@@ -322,7 +335,7 @@
       },
       "next": "Avançar",
       "pause": "Pausar",
-      "play": "Play",
+      "play": "Reproduzir",
       "previous": "Voltar",
       "progress": "Procurar",
       "repeat": {
@@ -341,6 +354,17 @@
         "mute": "Mudo",
         "unmute": "Com som"
       }
+    },
+    "sleepTimer": {
+      "tooltip": "Temporizador",
+      "title": "Temporizador",
+      "endOfTrack": "Fim da faixa atual",
+      "minutes": "{{count}} min",
+      "remaining": "{{time}} restantes",
+      "cancel": "Cancelar cronómetro",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "minutes_many": "{{count}} min"
     }
   },
   "playlist": {
@@ -400,7 +424,7 @@
         "nameLength": "O nome da playlist deve conter pelo menos 2 caracteres."
       }
     },
-    "headline": "Playlist",
+    "headline": "Lista de reprodução",
     "noSongList": "Esta playlist não possui nenhuma música!",
     "refresh": "Atualizar playlists",
     "songCount_many": "{{count}} músicas",
@@ -486,13 +510,146 @@
     "status": "Estado"
   },
   "settings": {
+    "crossDevice": {
+      "playback": {
+        "otherDevices": "A reproduzir noutros dispositivos",
+        "showDevices": "Mostrar dispositivos",
+        "fetchingSong": "A carregar música...",
+        "unknownTrack": "Faixa desconhecida",
+        "online": "Online",
+        "offline": "Off-line",
+        "continue": "Continuar",
+        "exitControl": "Sair do controlo remoto",
+        "remoteControl": "Controlo remoto",
+        "relay": "Transferir reprodução",
+        "peerDevice": "dispositivo remoto",
+        "controllingDevice": "Controlando {{name}}",
+        "continueConfirmTitle": "Continuar a reprodução aqui?",
+        "continueConfirmDesc": "Isto substituirá a reprodução local ativa neste dispositivo.",
+        "currentLocal": "A reproduzir neste dispositivo",
+        "thisDevice": "Este dispositivo",
+        "liveDevices": "Dispositivos online",
+        "offlineSnapshots": "Retomar a reprodução de um dispositivo offline",
+        "willContinue": "Continuar de {{name}}"
+      },
+      "connect": "Conectar",
+      "never": "Nunca",
+      "device": {
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "current": "Dispositivo atual",
+        "lastOnline": "Última vez online {{time}}",
+        "rename": "Renomear",
+        "revoke": "Revogar",
+        "renamed": "Dispositivo renomeado",
+        "revoked": "Dispositivo revogado"
+      },
+      "delete": "Eliminar",
+      "deleteConfirm": {
+        "description": "Esta ação não poderá ser desfeita.",
+        "title": "Apagar todos os dados de coordenação?"
+      },
+      "title": "Entre dispositivos",
+      "description": "Sincronize o histórico e continue a reprodução nos seus dispositivos.",
+      "setup": {
+        "title": "Ligue este dispositivo ao servidor",
+        "description": "Utilize o mesmo servidor de coordenação em todos os dispositivos que pretende manter sincronizados.",
+        "requirement": "As suas credenciais atuais do servidor de música são utilizadas apenas para autorizar este dispositivo."
+      },
+      "serverUrl": {
+        "label": "URL do servidor de coordenação",
+        "info": "URL do seu servidor de coordenação."
+      },
+      "identityUrl": {
+        "label": "URL de identidade",
+        "info": "URL do seu servidor Navidrome/Subsonic."
+      },
+      "deviceName": {
+        "label": "Nome do dispositivo",
+        "info": "Um nome reconhecível para este dispositivo.",
+        "placeholder": "O meu dispositivo"
+      },
+      "retry": "Tentar novamente",
+      "status": "Estado da conexão",
+      "statusInfo": "Este dispositivo permanece disponível para transferência de reprodução enquanto estiver ligado.",
+      "currentDevice": "Dispositivo atual",
+      "disconnectShort": "Desconectar",
+      "connectionState": {
+        "label": "Estado da conexão",
+        "disconnected": "Desconectado",
+        "connecting": "Conectando",
+        "authenticating": "Autenticando",
+        "connected": "Conectado",
+        "error": "Erro"
+      },
+      "lastSync": {
+        "label": "Última sincronização"
+      },
+      "error": {
+        "label": "Erro",
+        "missingFields": "Preencha todos os campos",
+        "connectFailed": "Falha na ligação",
+        "disconnectedDescription": "Os dispositivos remotos ficam indisponíveis até que o servidor de coordenação seja novamente ligado.",
+        "unconfiguredTitle": "Reprodução entre dispositivos",
+        "unconfiguredDescription": "Ligue-se ao servidor de coordenação"
+      },
+      "disconnect": "Desligue este dispositivo",
+      "connected": "Conectado",
+      "disconnected": "Desconectado",
+      "devices": "Dispositivos registados",
+      "deviceCount": "{{count}} dispositivos",
+      "devicesDescription": "Renomeie os dispositivos para que sejam fáceis de reconhecer ou revogue sessões antigas.",
+      "deleteData": {
+        "label": "Apague todos os dados de coordenação",
+        "info": "Remova a sua conta e todos os dados sincronizados do servidor de coordenação."
+      },
+      "disconnectConfirm": {
+        "title": "Desligar este dispositivo?",
+        "description": "Isto interromperá a sincronização entre dispositivos neste dispositivo."
+      },
+      "revokeConfirm": {
+        "title": "Revogar dispositivo?",
+        "description": "Tem a certeza de que pretende revogar o acesso de {{name}}?"
+      },
+      "deleted": "Dados de coordenação excluídos",
+      "toast": {
+        "relaySuccess": "Transferência bem-sucedida!",
+        "relayFailed": "Falha na transferência: {{code}}",
+        "exitRemoteControl": "Controlo de reprodução remota interrompido",
+        "remoteControlSuccess": "Comando à distância: {{name}}",
+        "preparingRelay": "Preparar transferência...",
+        "sessionSuperseded": "Esta sessão foi assumida por {{deviceName}}, reprodução em pausa."
+      },
+      "handoffError": {
+        "targetOffline": "O dispositivo ficou offline.",
+        "snapshotExpired": "Este instantâneo de reprodução é demasiado antigo para continuar.",
+        "handoffConflict": "Outra transferência já ocorreu nesta sessão.",
+        "sourceChanged": "A fonte mudou antes de poder ser transferida.",
+        "sourcePauseTimeout": "O dispositivo de origem não confirmou que a reprodução foi pausada antes do prazo.",
+        "unsupportedMedia": "Este tipo de suporte não pode continuar noutro dispositivo.",
+        "deviceRevoked": "Este dispositivo já não tem permissão para utilizar a sincronização entre dispositivos.",
+        "protocolIncompatible": "Atualize o Aonsoku em um ou mais dispositivos.",
+        "forbidden": "Este dispositivo não pode ser controlado ou transferido neste momento.",
+        "fallback": "Falha na transferência: {{reason}}"
+      },
+      "handoff": {
+        "prepare": "Preparação da faixa de áudio...",
+        "relinquish": "Pausar dispositivo de origem...",
+        "commit": "Continuando a reprodução aqui...",
+        "committed": "Transferência bem-sucedida!",
+        "processing": "Sincronizando a reprodução..."
+      },
+      "deviceCount_one": "{{count}} dispositivo",
+      "deviceCount_other": "{{count}} dispositivos",
+      "deviceCount_many": "{{count}} dispositivos"
+    },
     "accounts": {
       "discord": {
         "description": "Partilhe a música que está a ouvir com amigos no Discord.",
         "enabled": {
           "label": "Ativar Integração"
         },
-        "group": "Discord Rich Presence"
+        "group": "Presença rica em discórdia"
       }
     },
     "appearance": {
@@ -506,15 +663,20 @@
           "info": "Se ativado, ao aceder o player grande, a app automaticamente ativará o modo ecrã cheio.",
           "label": "Ativar ecrã cheio automática"
         },
-        "group": "Geral"
+        "group": "Geral",
+        "usePointerCursors": {
+          "label": "Utilizar cursores de ponteiro",
+          "info": "Quando ativado, mostra cursores de ponteiros para elementos interativos; quando desativado, reduz os cursores para corresponder às experiências da aplicação nativa."
+        }
       },
       "queue": {
         "colors": {
-          "info": "Si activé, l'application utilisera la couleur dominante de la pochette de l'album actuel comme couleur de fond.",
-          "label": "Activer la couleur de fond dynamique"
+          "info": "Quando ativado, a aplicação utiliza a cor dominante da capa do álbum atual como cor de fundo.",
+          "label": "Ativar cor de fundo dinâmica",
+          "intensity": "Intensidade da cor de fundo"
         },
-        "description": "Personnaliser la page de la file d'attente et des paroles.",
-        "group": "File d'attente et paroles"
+        "description": "Personalize a fila e a página de letras.",
+        "group": "Fila e letras"
       }
     },
     "audio": {
@@ -587,30 +749,30 @@
         "preAmp": "Pré-amplificador (dB)"
       },
       "hapticFeedback": {
-        "description": "Control vibration feedback when interacting with the app.",
+        "description": "Controle o feedback de vibração ao interagir com a aplicação.",
         "enabled": {
-          "info": "When enabled, the device will vibrate when dragging queue items on mobile.",
-          "label": "Enable haptic feedback"
+          "info": "Quando ativado, o dispositivo vibrará ao arrastar os itens da fila no telemóvel.",
+          "label": "Ativar feedback tátil"
         },
-        "group": "Haptic Feedback"
+        "group": "Feedback tátil"
       },
       "pip": {
-        "group": "Picture-in-Picture",
-        "description": "Control how the app responds to picture-in-picture requests from the browser.",
+        "group": "Imagem em imagem",
+        "description": "Controle a forma como a aplicação responde às solicitações picture-in-picture do navegador.",
         "acceptBrowserRequest": {
-          "label": "Accept browser PiP requests",
-          "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
+          "label": "Aceitar pedidos PiP do navegador",
+          "info": "Quando ativado, a aplicação responderá às solicitações picture-in-picture do navegador. Quando desativado, o minijogador só pode ser aberto manualmente através do botão PiP."
         }
       },
       "lockScreenArtwork": {
         "group": "Capa do ecrã bloqueado",
         "description": "Requer iOS 26+. O sistema controla o layout; o movimento é gerado no dispositivo.",
-        "loading": "Loading artwork settings…",
-        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
-        "retry": "Retry",
-        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "loading": "Carregando as configurações de arte…",
+        "unavailable": "As definições de arte não estão disponíveis. Atualize a aplicação nativa ou tente novamente.",
+        "retry": "Tentar novamente",
+        "unsupported": "Este dispositivo ou versão iOS não suporta arte imersiva. A arte comum continua disponível.",
         "immersive": "Capa imersiva",
-        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "immersiveInfo": "Estenda a arte da capa para além das margens para preencher o layout suportado pelo sistema.",
         "dynamic": "Capa animada",
         "dynamicInfo": "O movimento de profundidade é gerado localmente. O modelo é transferido quando necessário; entretanto usa-se a capa estática.",
         "quality": "Qualidade do modelo",
@@ -618,8 +780,8 @@
         "automatic": "Automático ({{tier}})",
         "effectiveTier": "Limite de recursos: {{tier}}",
         "wifiOnly": "Transferir apenas por Wi-Fi",
-        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
-        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "wifiInfo": "Desative esta opção para permitir também downloads de modelos através de dados móveis. A inferência de modelos é sempre executada neste dispositivo.",
+        "modelsInfo": "Apenas a camada de modelo necessária é descarregada automaticamente. Os vídeos preparados são reutilizados. Os modelos são descarregados da memória após inferência. A eliminação de um modelo mantém os vídeos gerados.",
         "download": "Transferir",
         "remove": "Eliminar",
         "cancel": "Cancelar",
@@ -632,7 +794,8 @@
           "thermal": "Dispositivo quente; pausado",
           "lowPower": "Modo de baixo consumo; pausado",
           "reduceMotion": "Reduzir movimento; pausado",
-          "waitingForModel": "A preparar o modelo; capa estática"
+          "waitingForModel": "A preparar o modelo; capa estática",
+          "waitingForConsumer": "Aguardar que a interface de reprodução fique visível"
         },
         "model": {
           "notDownloaded": "Não transferido",
@@ -648,7 +811,16 @@
         "motionAmplitudeInfo": "Ajusta paralaxe e câmara de 0,5× a 2× mantendo a trajetória.",
         "motionSpeed": "Velocidade do movimento",
         "motionSpeedInfo": "Ciclo a 24 FPS: 0,5× / 0,75× / 1× / 1,5× / 2× corresponde a 12 / 8 / 6 / 4 / 3 segundos.",
-        "motionDefault": "predefinição"
+        "motionDefault": "predefinição",
+        "macGroup": "Capa imersiva",
+        "disableProtection": "Desativar proteção de recursos",
+        "disableProtectionInfo": "Permita a geração e a reprodução apesar do calor, do modo de baixo consumo ou da pressão da memória, sem downgrades automáticos do modelo. Isto pode aumentar o calor e o uso da bateria e fazer com que o iOS termine a aplicação. Os limites do sistema, o ciclo de vida em segundo plano e a redução de movimento ainda se aplicam.",
+        "macImmersiveInfo": "Prepare vídeos de capas com margens perfeitamente estendidas para reutilização pelo leitor de música.",
+        "macWifiOnly": "Descarregar modelos apenas em redes sem tráfego limitado",
+        "macWifiInfo": "Utilizar Wi-Fi e Ethernet apenas em ligações sem tráfego limitado nem restrições. Desative para permitir também redes com tráfego limitado.",
+        "macDescription": "Gere vídeos de capa envolventes localmente no macOS. Download de modelos on-demand; vídeos preparados podem ser reutilizados pelo leitor.",
+        "depthPreview": "Mapa de profundidade normalizado",
+        "diagnostics": "Diagnóstico de arte do macOS"
       }
     },
     "content": {
@@ -736,15 +908,16 @@
     },
     "label": "Configurações",
     "options": {
-      "accounts": "Accounts",
+      "accounts": "Contas",
       "appearance": "Aparência",
       "audio": "Reprodutor & Áudio",
       "content": "Conteúdo",
-      "desktop": "Desktop Application",
+      "desktop": "Aplicação de desktop",
       "language": "Linguagem & Região",
       "privacy": "Privacidade & Segurança",
       "server": "Servidor",
-      "storage": "Experiência Offline"
+      "storage": "Experiência Offline",
+      "cross-device": "Entre dispositivos"
     },
     "privacy": {
       "services": {
@@ -817,7 +990,9 @@
           "explicit": "Explícito",
           "lru": "LRU",
           "playlist": "Lista de reprodução",
-          "smart": "Inteligente"
+          "smart": "Inteligente",
+          "immersive-static": "Capa imersiva estática",
+          "immersive-dynamic": "Capa imersiva animada"
         },
         "group": "Gestor de Cache",
         "list": {
@@ -834,8 +1009,16 @@
           "type_album": "Álbum",
           "type_audio": "Áudio",
           "type_cover": "Capa",
-          "type_playlist": "Lista de reprodução"
-        }
+          "type_playlist": "Lista de reprodução",
+          "type_immersive-static": "Capa imersiva estática",
+          "type_immersive-dynamic": "Capa imersiva animada"
+        },
+        "videoInfo": "Os vídeos envolventes são separados dos ficheiros de modelo. Os vídeos em utilização são protegidos; vídeos gerados podem ser reconstruídos.",
+        "refresh": "Atualizar",
+        "clearVideos": "Eliminar vídeos de capa imersivos",
+        "videoCleared": "{{deleted}} vídeos eliminados; retidos {{retained}} ficheiros em utilização.",
+        "inUse": "Em uso",
+        "motionParameters": "Amplitude {{amplitude}}× · Velocidade {{speed}}×"
       },
       "coverArt": {
         "clear": "Limpar cache de capas",
@@ -956,7 +1139,9 @@
             "description": "Imagens de álbuns · artistas · listas de reprodução"
           }
         },
-        "downloading": "A descarregar {{count}} músicas"
+        "downloading": "A descarregar {{count}} músicas",
+        "libraryCachingInfoIos": "A cache da biblioteca é obrigatória e está sempre ativada no iOS para suportar a reprodução offline.",
+        "downloading_many": "A descarregar {{count}} músicas"
       }
     }
   },
@@ -992,7 +1177,7 @@
     "home": "Início",
     "library": "Biblioteca",
     "miniSearch": "Pesquisar",
-    "playlists": "Playlists",
+    "playlists": "Listas de reprodução",
     "radios": "Rádios",
     "search": "Pesquisar…",
     "songs": "Músicas"
@@ -1012,7 +1197,7 @@
       }
     },
     "sort": {
-      "album": "Album A-Z",
+      "album": "Álbum A-Z",
       "artist": "Artista A-Z",
       "lastAdded": "Adicionados Recentemente",
       "title": "Música A-Z"
@@ -1092,10 +1277,10 @@
     "light": "Claro",
     "marmalade-beaver": "Marmalade Beaver",
     "material-theme": "Material Theme",
-    "modeDark": "Dark",
-    "modeLabel": "Mode",
-    "modeLight": "Light",
-    "modeSystem": "System",
+    "modeDark": "Escuro",
+    "modeLabel": "Modo",
+    "modeLight": "Claro",
+    "modeSystem": "Sistema",
     "monokai-pro": "Monokai Pro",
     "night-owl-light": "Night Owl Light",
     "noctis-lilac": "Noctis Lilac",
@@ -1107,7 +1292,9 @@
     "vim-dark-soft": "Vim Dark Soft",
     "vue-dark": "Vue Dark",
     "cool": "Cool",
-    "huacat-pink": "Huacat Pink"
+    "huacat-pink": "Huacat Pink",
+    "materialYou": "Cor do tema Material You",
+    "materialYouInfo": "Utilizar cores dinâmicas com base no papel de parede do sistema (Android 12+)."
   },
   "time": {
     "days_many": "{{days}} dias",
@@ -1158,7 +1345,17 @@
       "selected": "Selecionada",
       "currentSelection": "Seleção atual: {{title}} por {{artist}}",
       "lyricsId": "ID: {{id}}",
-      "noPreview": "Pré-visualização indisponível."
+      "noPreview": "Pré-visualização indisponível.",
+      "offsetReset": "Restaurar",
+      "saveError": "Falha ao guardar as letras selecionadas.",
+      "disableLyrics": "Desligue as letras",
+      "lyricsDisabled": "Letras desativadas",
+      "offsetLabel": "Deslocamento do tempo das letras",
+      "offsetHint": "Valores de deslocamento positivos atrasam a letra.",
+      "hasRomaji": "Romaji"
     }
+  },
+  "navigation": {
+    "back": "Costas"
   }
 }

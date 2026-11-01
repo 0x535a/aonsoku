@@ -164,11 +164,12 @@
       "offsetLabel": "歌词偏移",
       "offsetReset": "重置",
       "offsetHint": "正值使歌词延后",
-      "hasRomaji": "罗马音"
+      "hasRomaji": "罗马音",
+      "saveError": "保存所选歌词失败。"
     }
   },
   "generic": {
-    "beta": "Beta",
+    "beta": "测试版",
     "clear": "清除",
     "hideDetails": "隐藏详情",
     "loading": "加载中…",
@@ -309,6 +310,16 @@
         "mute": "静音",
         "unmute": "取消静音"
       }
+    },
+    "sleepTimer": {
+      "tooltip": "睡眠定时器",
+      "title": "睡眠定时器",
+      "endOfTrack": "当前歌曲结束时",
+      "minutes": "{{count}} 分钟",
+      "remaining": "剩余 {{time}}",
+      "cancel": "取消定时器",
+      "minutes_one": "{{count}} 分钟",
+      "minutes_other": "{{count}} 分钟"
     }
   },
   "playlist": {
@@ -476,11 +487,12 @@
       },
       "queue": {
         "colors": {
-          "info": "Si activé, l'application utilisera la couleur dominante de la pochette de l'album actuel comme couleur de fond.",
-          "label": "Activer la couleur de fond dynamique"
+          "info": "启用后，使用当前专辑封面的主色调作为背景色。",
+          "label": "启用动态背景色",
+          "intensity": "背景色强度"
         },
-        "description": "Personnaliser la page de la file d'attente et des paroles.",
-        "group": "File d'attente et paroles"
+        "description": "自定义队列和歌词页面。",
+        "group": "队列与歌词"
       }
     },
     "audio": {
@@ -793,14 +805,35 @@
         "fallback": "接力失败: {{reason}}"
       },
       "playback": {
+        "otherDevices": "其他设备正在播放",
+        "showDevices": "查看设备",
+        "online": "在线",
+        "offline": "离线",
         "fetchingSong": "正在获取歌曲...",
         "unknownTrack": "未知曲目",
         "exitControl": "退出控制",
         "remoteControl": "远程控制",
         "relay": "接力",
         "peerDevice": "远程设备",
-        "controllingDevice": "正在控制 {{name}}"
-      }
+        "controllingDevice": "正在控制 {{name}}",
+        "continue": "继续",
+        "continueConfirmTitle": "在这里继续播放吗？",
+        "continueConfirmDesc": "这将替换此设备当前的本地播放内容。",
+        "currentLocal": "此设备当前播放",
+        "thisDevice": "本设备",
+        "liveDevices": "在线设备",
+        "offlineSnapshots": "继续离线设备的播放",
+        "willContinue": "接续 {{name}} 的播放"
+      },
+      "handoff": {
+        "committed": "接力成功！",
+        "prepare": "正在准备歌曲...",
+        "relinquish": "正在暂停源设备...",
+        "commit": "正在此设备继续播放...",
+        "processing": "正在同步播放..."
+      },
+      "deviceCount_other": "{{count}} 台设备",
+      "deviceCount_one": "{{count}} 台设备"
     },
     "privacy": {
       "services": {
@@ -1210,5 +1243,8 @@
   "warnings": {
     "reload": "有一首歌曲正在播放！\n你确定要重新加载页面吗？",
     "songError": "无法播放歌曲，请检查服务器！"
+  },
+  "navigation": {
+    "back": "返回"
   }
 }

@@ -81,7 +81,7 @@ function ColorIntensityOption(props: OptionProps) {
 
   return (
     <SettingWrapper
-      text={t("settings.appearance.colors.queue.intensity")}
+      text={t("settings.appearance.queue.colors.intensity")}
       {...props}
     >
       <Slider

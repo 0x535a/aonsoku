@@ -42,7 +42,12 @@
         "recentlyAdded": "Ostatnio dodane",
         "recentlyPlayed": "Ostatnio odtwarzane",
         "releaseYear": "Rok Wydania",
-        "search": "Wyszukiwanie"
+        "search": "Wyszukiwanie",
+        "label": "Filtr",
+        "year": {
+          "oldest": "Najpierw najstarszy",
+          "newest": "Najpierw najnowsze"
+        }
       },
       "genre": {
         "label": "Wybierz gatunek…",
@@ -76,7 +81,7 @@
     "info": {
       "albumsCount_few": "{{count}} albumy",
       "albumsCount_many": "{{count}} albumów",
-      "albumsCount_one": "{{count}} album",
+      "albumsCount_one": "{{count}} albumu",
       "albumsCount_other": "{{count}} albumów"
     },
     "recentAlbums": "Ostatnie albumy",
@@ -122,7 +127,9 @@
     "headline": "Ulubione",
     "noSongs": "Brak ulubionych utworów!",
     "songCount_one": "{{count}} utwór",
-    "songCount_other": "{{count}} utworów"
+    "songCount_other": "{{count}} utworów",
+    "songCount_few": "{{count}} utwory",
+    "songCount_many": "{{count}} utworów"
   },
   "fullscreen": {
     "emptyQueue": "Brak utworów w kolejce",
@@ -136,7 +143,10 @@
     "queueHistory": "Historia",
     "queueRepeating": "Powtarzanie",
     "switchButton": "Przełącz na Duży Odtwarzacz",
-    "selectLyrics": "Ustawienia tekstu"
+    "selectLyrics": "Ustawienia tekstu",
+    "dynamicArtwork": "Dynamiczna okładka albumu",
+    "dynamicArtworkInfo": "Korzystaj z wciągających filmów z okładek w odtwarzaczu pełnoekranowym. Niezależne od grafiki na ekranie blokady.",
+    "queueShuffling": "Odtwarzanie losowe"
   },
   "generic": {
     "beta": "Beta",
@@ -152,13 +162,15 @@
         "list": "Lista",
         "poster": "Plakat"
       }
-    }
+    },
+    "cancel": "Anuluj"
   },
   "home": {
     "explore": "Eksploruj",
     "mostPlayed": "Najczęściej odtwarzane",
     "recentlyAdded": "Ostatnio dodane",
-    "recentlyPlayed": "Ostatnio odtwarzane"
+    "recentlyPlayed": "Ostatnio odtwarzane",
+    "pinned": "Przypięty"
   },
   "lanControl": {
     "remote": {
@@ -276,7 +288,7 @@
     "disconnected": "Serwer nieosiągalny",
     "metered": "Ograniczony",
     "meteredTooltip": "Masz wolne lub limitowane połączenie. Synchronizacja w tle i inteligentne pobieranie są wstrzymane — kliknij przycisk pobierania, aby wymusić.",
-    "mode": "Offline",
+    "mode": "Nieaktywny",
     "reconnectFailed": "Nie można ponownie połączyć. Kontynuowanie w trybie offline.",
     "reconnected": "Ponownie połączono z serwerem",
     "reconnecting": "Ponowne łączenie…",
@@ -308,7 +320,9 @@
     },
     "removeDownload": "Usuń pobranie",
     "removeFromQueue": "Usuń z kolejki",
-    "unlike": "Usuń polubienie"
+    "unlike": "Usuń polubienie",
+    "pin": "Przypnij do strony głównej",
+    "unpin": "Odepnij od strony głównej"
   },
   "player": {
     "noRadioPlaying": "Żadne radio nie jest odtwarzane",
@@ -342,6 +356,18 @@
         "mute": "Wycisz",
         "unmute": "Wyłącz wyciszenie"
       }
+    },
+    "sleepTimer": {
+      "tooltip": "Timer uśpienia",
+      "title": "Timer uśpienia",
+      "endOfTrack": "Koniec bieżącego utworu",
+      "minutes": "{{count}} min",
+      "remaining": "Pozostało {{time}}",
+      "cancel": "Anuluj minutnik",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "minutes_few": "{{count}} min",
+      "minutes_many": "{{count}} min"
     }
   },
   "playlist": {
@@ -477,7 +503,7 @@
     },
     "folderCount_few": "{{count}} foldery",
     "folderCount_many": "{{count}} folderów",
-    "folderCount_one": "{{count}} folder",
+    "folderCount_one": "folderze {{count}}",
     "folderCount_other": "{{count}} folderów",
     "incompatible": {
       "description": "Ten serwer wykorzystuje starszą wersję protokołu Subsonic która nie jest w pełni wspierana. Postępuj z uwagą, bo mogą wystąpić problemy.",
@@ -493,13 +519,147 @@
     "status": "Status"
   },
   "settings": {
+    "crossDevice": {
+      "playback": {
+        "otherDevices": "Odtwarzanie na innych urządzeniach",
+        "showDevices": "Pokaż urządzenia",
+        "fetchingSong": "Wczytywanie utworu...",
+        "unknownTrack": "Nieznany utwór",
+        "online": "W Internecie",
+        "offline": "Nieaktywny",
+        "continue": "Kontynuuj",
+        "exitControl": "Zakończ zdalne sterowanie",
+        "remoteControl": "Zdalne sterowanie",
+        "relay": "Przenieś odtwarzanie",
+        "peerDevice": "urządzenie zdalne",
+        "controllingDevice": "Kontrolowanie {{name}}",
+        "continueConfirmTitle": "Kontynuować odtwarzanie tutaj?",
+        "continueConfirmDesc": "Zastąpi to aktywne odtwarzanie lokalne na tym urządzeniu.",
+        "currentLocal": "Teraz odtwarzane na tym urządzeniu",
+        "thisDevice": "To urządzenie",
+        "liveDevices": "Urządzenia online",
+        "offlineSnapshots": "Wznów odtwarzanie na urządzeniu offline",
+        "willContinue": "Kontynuuj od {{name}}"
+      },
+      "connect": "Połącz",
+      "never": "Nigdy",
+      "device": {
+        "save": "Zapisz",
+        "cancel": "Anuluj",
+        "current": "Bieżące urządzenie",
+        "lastOnline": "Ostatni online {{time}}",
+        "rename": "Przemianować",
+        "revoke": "Unieważnić",
+        "renamed": "Zmieniono nazwę urządzenia",
+        "revoked": "Urządzenie wycofane"
+      },
+      "delete": "Usuń",
+      "deleteConfirm": {
+        "description": "Tego działania nie można cofnąć.",
+        "title": "Usunąć wszystkie dane koordynacyjne?"
+      },
+      "title": "Wiele urządzeń",
+      "description": "Synchronizuj historię i kontynuuj odtwarzanie na swoich urządzeniach.",
+      "setup": {
+        "title": "Podłącz to urządzenie do serwera",
+        "description": "Użyj tego samego serwera koordynacyjnego na każdym urządzeniu, które chcesz synchronizować.",
+        "requirement": "Twoje aktualne dane uwierzytelniające serwera muzycznego służą wyłącznie do autoryzacji tego urządzenia."
+      },
+      "serverUrl": {
+        "label": "Adres URL serwera koordynacyjnego",
+        "info": "Adres URL Twojego serwera koordynacyjnego."
+      },
+      "identityUrl": {
+        "label": "Adres URL tożsamości",
+        "info": "Adres URL Twojego serwera Navidrome/Subsonic."
+      },
+      "deviceName": {
+        "label": "Nazwa urządzenia",
+        "info": "Rozpoznawalna nazwa tego urządzenia.",
+        "placeholder": "Moje urządzenie"
+      },
+      "retry": "Spróbować ponownie",
+      "status": "Stan połączenia",
+      "statusInfo": "To urządzenie pozostaje dostępne do przekazywania odtwarzania po podłączeniu.",
+      "currentDevice": "Bieżące urządzenie",
+      "disconnectShort": "Odłączyć",
+      "connectionState": {
+        "label": "Stan połączenia",
+        "disconnected": "Bezładny",
+        "connecting": "Złączony",
+        "authenticating": "Uwierzytelnianie",
+        "connected": "Połączony",
+        "error": "Błąd"
+      },
+      "lastSync": {
+        "label": "Ostatnia synchronizacja"
+      },
+      "error": {
+        "label": "Błąd",
+        "missingFields": "Wypełnij wszystkie pola",
+        "connectFailed": "Połączenie nie powiodło się",
+        "disconnectedDescription": "Urządzenia zdalne są niedostępne do czasu ponownego połączenia serwera koordynującego.",
+        "unconfiguredTitle": "Odtwarzanie na różnych urządzeniach",
+        "unconfiguredDescription": "Połącz się z serwerem koordynacyjnym"
+      },
+      "disconnect": "Odłącz to urządzenie",
+      "connected": "Połączony",
+      "disconnected": "Bezładny",
+      "devices": "Zarejestrowane urządzenia",
+      "deviceCount": "{{count}} urządzeń",
+      "devicesDescription": "Zmień nazwy urządzeń, aby były łatwe do rozpoznania, lub unieważnij stare sesje.",
+      "deleteData": {
+        "label": "Usuń wszystkie dane koordynacyjne",
+        "info": "Usuń swoje konto i wszystkie zsynchronizowane dane z serwera koordynacyjnego."
+      },
+      "disconnectConfirm": {
+        "title": "Odłączyć to urządzenie?",
+        "description": "Spowoduje to zatrzymanie synchronizacji między urządzeniami na tym urządzeniu."
+      },
+      "revokeConfirm": {
+        "title": "Unieważnić urządzenie?",
+        "description": "Czy na pewno chcesz odebrać dostęp dla {{name}}?"
+      },
+      "deleted": "Dane koordynacyjne usunięte",
+      "toast": {
+        "relaySuccess": "Przekazanie udane!",
+        "relayFailed": "Przekazanie nie powiodło się: {{code}}",
+        "exitRemoteControl": "Zatrzymano zdalne sterowanie odtwarzaniem",
+        "remoteControlSuccess": "Zdalne sterowanie: {{name}}",
+        "preparingRelay": "Przygotowywanie przekazania...",
+        "sessionSuperseded": "Ta sesja została przejęta przez {{deviceName}}, odtwarzanie zostało wstrzymane."
+      },
+      "handoffError": {
+        "targetOffline": "Urządzenie przeszło w tryb offline.",
+        "snapshotExpired": "Ta migawka odtwarzania jest zbyt stara, aby kontynuować.",
+        "handoffConflict": "Kolejne przekazanie odbyło się już w tej sesji.",
+        "sourceChanged": "Źródło zmieniło się, zanim można było je przenieść.",
+        "sourcePauseTimeout": "Urządzenie źródłowe nie potwierdziło przed upływem terminu wstrzymania odtwarzania.",
+        "unsupportedMedia": "Tego typu multimediów nie można kontynuować na innym urządzeniu.",
+        "deviceRevoked": "Na tym urządzeniu nie można już korzystać z synchronizacji między urządzeniami.",
+        "protocolIncompatible": "Zaktualizuj Aonsoku na jednym lub większej liczbie urządzeń.",
+        "forbidden": "W tej chwili nie można sterować tym urządzeniem ani go przenosić.",
+        "fallback": "Przekazanie nie powiodło się: {{reason}}"
+      },
+      "handoff": {
+        "prepare": "Przygotowanie ścieżki dźwiękowej...",
+        "relinquish": "Wstrzymuję urządzenie źródłowe...",
+        "commit": "Kontynuowanie odtwarzania tutaj...",
+        "committed": "Przekazanie udane!",
+        "processing": "Synchronizowanie odtwarzania..."
+      },
+      "deviceCount_one": "{{count}} urządzenie",
+      "deviceCount_other": "{{count}} urządzeń",
+      "deviceCount_few": "{{count}} urządzenia",
+      "deviceCount_many": "{{count}} urządzeń"
+    },
     "accounts": {
       "discord": {
         "description": "Udostępniaj znajomym na Discordzie aktualnie odtwarzany utwór.",
         "enabled": {
           "label": "Włącz integrację"
         },
-        "group": "Discord Rich Presence"
+        "group": "Bogata obecność Discord"
       }
     },
     "appearance": {
@@ -513,15 +673,20 @@
           "info": "Jeżeli włączone, przy włączaniu dużego odtwarzacza, aplikacja automatycznie przejdzie w tryb pełnoekranowy.",
           "label": "Włącz automatyczne przełączanie na pełny ekran"
         },
-        "group": "Ogólne"
+        "group": "Ogólne",
+        "usePointerCursors": {
+          "label": "Użyj kursorów wskaźnikowych",
+          "info": "Po włączeniu pokazuje kursory wskaźników dla elementów interaktywnych; po wyłączeniu zmniejsza kursory wskaźnika, aby dopasować je do środowiska aplikacji natywnej."
+        }
       },
       "queue": {
         "colors": {
-          "info": "Si activé, l'application utilisera la couleur dominante de la pochette de l'album actuel comme couleur de fond.",
-          "label": "Activer la couleur de fond dynamique"
+          "info": "Po włączeniu aplikacja użyje dominującego koloru bieżącej okładki albumu jako koloru tła.",
+          "label": "Włącz dynamiczny kolor tła",
+          "intensity": "Intensywność koloru tła"
         },
-        "description": "Personnaliser la page de la file d'attente et des paroles.",
-        "group": "File d'attente et paroles"
+        "description": "Dostosuj kolejkę i stronę tekstów.",
+        "group": "Kolejka i teksty"
       }
     },
     "audio": {
@@ -591,33 +756,33 @@
           "label": "Tryb",
           "track": "Gain utworu"
         },
-        "preAmp": "PreAmp (dB)"
+        "preAmp": "Przedwzmacniacz (dB)"
       },
       "hapticFeedback": {
-        "description": "Control vibration feedback when interacting with the app.",
+        "description": "Kontroluj wibracje podczas interakcji z aplikacją.",
         "enabled": {
-          "info": "When enabled, the device will vibrate when dragging queue items on mobile.",
-          "label": "Enable haptic feedback"
+          "info": "Po włączeniu urządzenie będzie wibrować podczas przeciągania elementów kolejki na urządzeniu mobilnym.",
+          "label": "Włącz informację dotykową"
         },
-        "group": "Haptic Feedback"
+        "group": "Informacje zwrotne dotykowe"
       },
       "pip": {
-        "group": "Picture-in-Picture",
-        "description": "Control how the app responds to picture-in-picture requests from the browser.",
+        "group": "Obraz w obrazie",
+        "description": "Kontroluj sposób, w jaki aplikacja odpowiada na żądania obrazu w obrazie z przeglądarki.",
         "acceptBrowserRequest": {
-          "label": "Accept browser PiP requests",
-          "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
+          "label": "Akceptuj żądania PiP przeglądarki",
+          "info": "Po włączeniu aplikacja będzie odpowiadać na żądania obrazu w obrazie z przeglądarki. Po wyłączeniu miniodtwarzacz można otworzyć wyłącznie ręcznie za pomocą przycisku PiP."
         }
       },
       "lockScreenArtwork": {
         "group": "Okładka ekranu blokady",
         "description": "Wymaga iOS 26+. Układ kontroluje system; ruch jest generowany na urządzeniu.",
-        "loading": "Loading artwork settings…",
-        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
-        "retry": "Retry",
-        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "loading": "Ładowanie ustawień grafiki…",
+        "unavailable": "Ustawienia grafiki są niedostępne. Zaktualizuj aplikację natywną lub spróbuj ponownie.",
+        "retry": "Spróbować ponownie",
+        "unsupported": "To urządzenie lub wersja iOS nie obsługuje wciągających grafik. Zwykła grafika pozostaje dostępna.",
         "immersive": "Immersyjna okładka",
-        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "immersiveInfo": "Wyciągnij okładkę poza jej krawędzie, aby wypełnić układ obsługiwany przez system.",
         "dynamic": "Animowana okładka",
         "dynamicInfo": "Ruch głębi jest generowany lokalnie. Model pobiera się w razie potrzeby; w międzyczasie używana jest statyczna okładka.",
         "quality": "Jakość modelu",
@@ -625,8 +790,8 @@
         "automatic": "Automatycznie ({{tier}})",
         "effectiveTier": "Limit zasobów: {{tier}}",
         "wifiOnly": "Pobieraj tylko przez Wi-Fi",
-        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
-        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "wifiInfo": "Wyłącz tę opcję, aby umożliwić pobieranie modeli również przez mobilną transmisję danych. Wnioskowanie o modelu zawsze działa na tym urządzeniu.",
+        "modelsInfo": "Automatycznie pobierana jest tylko wymagana warstwa modelu. Przygotowane filmy są ponownie wykorzystywane. Po wnioskowaniu modele są usuwane z pamięci. Usunięcie modelu powoduje zachowanie wygenerowanych filmów.",
         "download": "Pobierz",
         "remove": "Usuń",
         "cancel": "Anuluj",
@@ -639,7 +804,8 @@
           "thermal": "Urządzenie gorące; wstrzymano",
           "lowPower": "Tryb oszczędzania energii; wstrzymano",
           "reduceMotion": "Redukcja ruchu; wstrzymano",
-          "waitingForModel": "Przygotowywanie modelu; statyczna okładka"
+          "waitingForModel": "Przygotowywanie modelu; statyczna okładka",
+          "waitingForConsumer": "Czekam, aż interfejs odtwarzania stanie się widoczny"
         },
         "model": {
           "notDownloaded": "Nie pobrano",
@@ -655,7 +821,16 @@
         "motionAmplitudeInfo": "Skaluje paralaksę i kamerę od 0,5× do 2× bez zmiany trajektorii.",
         "motionSpeed": "Szybkość ruchu",
         "motionSpeedInfo": "Pętla 24 FPS: 0,5× / 0,75× / 1× / 1,5× / 2× odpowiada 12 / 8 / 6 / 4 / 3 sekundom.",
-        "motionDefault": "domyślnie"
+        "motionDefault": "domyślnie",
+        "macGroup": "Immersyjna okładka",
+        "disableProtection": "Wyłącz ochronę zasobów",
+        "disableProtectionInfo": "Umożliwia generowanie i odtwarzanie pomimo wysokiej temperatury, trybu niskiego zużycia energii lub dużego obciążenia pamięci, bez automatycznego obniżania wersji modelu. Może to zwiększyć ciepło i zużycie baterii, a także spowodować zamknięcie aplikacji w systemie iOS. Ograniczenia systemowe, cykl życia w tle i funkcja Redukuj ruch nadal obowiązują.",
+        "macImmersiveInfo": "Przygotuj filmy z okładkami z płynnie wydłużonymi krawędziami do ponownego wykorzystania w odtwarzaczu muzyki.",
+        "macWifiOnly": "Pobieraj modele tylko w sieciach bez taryfy za transmisję danych",
+        "macWifiInfo": "Używaj Wi-Fi i Ethernetu tylko bez taryfy za transmisję danych i bez ograniczeń połączenia. Wyłącz, aby zezwolić także na sieci taryfowe.",
+        "macDescription": "Generuj wciągające filmy z okładek lokalnie w systemie macOS. Modele do pobrania na żądanie; przygotowane filmy mogą być ponownie wykorzystane przez gracza.",
+        "depthPreview": "Znormalizowana mapa głębokości",
+        "diagnostics": "Diagnostyka grafiki w systemie macOS"
       }
     },
     "content": {
@@ -751,7 +926,8 @@
       "language": "Język i region",
       "privacy": "Prywatność i bezpieczeństwo",
       "server": "Serwer",
-      "storage": "Doświadczenie offline"
+      "storage": "Doświadczenie offline",
+      "cross-device": "Wiele urządzeń"
     },
     "privacy": {
       "services": {
@@ -824,7 +1000,9 @@
           "explicit": "Ręczne",
           "lru": "LRU",
           "playlist": "Playlista",
-          "smart": "Inteligentne"
+          "smart": "Inteligentne",
+          "immersive-static": "Immersyjna okładka statyczna",
+          "immersive-dynamic": "Immersyjna okładka animowana"
         },
         "group": "Menedżer pamięci podręcznej",
         "list": {
@@ -841,8 +1019,16 @@
           "type_album": "Album",
           "type_audio": "Audio",
           "type_cover": "Okładka",
-          "type_playlist": "Playlista"
-        }
+          "type_playlist": "Playlista",
+          "type_immersive-static": "Immersyjna okładka statyczna",
+          "type_immersive-dynamic": "Immersyjna okładka animowana"
+        },
+        "videoInfo": "Wciągające filmy wideo są oddzielone od plików modeli. Używane filmy są chronione; wygenerowane filmy można odbudować.",
+        "refresh": "Odświeżać",
+        "clearVideos": "Usuń immersyjne filmy okładek",
+        "videoCleared": "Usunięto {{deleted}} filmów; zachowano {{retained}} używanych plików.",
+        "inUse": "W użyciu",
+        "motionParameters": "Amplituda {{amplitude}}× · Prędkość {{speed}}×"
       },
       "coverArt": {
         "clear": "Wyczyść pamięć podręczną okładek",
@@ -963,7 +1149,10 @@
             "description": "Obrazy albumów · artystów · playlist"
           }
         },
-        "downloading": "Pobieranie {{count}} utworów"
+        "downloading": "Pobieranie {{count}} utworów",
+        "libraryCachingInfoIos": "Buforowanie biblioteki jest wymagane i zawsze włączone w systemie iOS, aby obsługiwać odtwarzanie w trybie offline.",
+        "downloading_few": "Pobieranie {{count}} utworów",
+        "downloading_many": "Pobieranie {{count}} utworów"
       }
     }
   },
@@ -1038,7 +1227,7 @@
       "albumPeak": "Peak albumu",
       "artist": "Wykonawca",
       "bitDepth": "Głębia bitowa",
-      "bitrate": "Bitrate",
+      "bitrate": "Szybkość transmisji",
       "bpm": "BPM",
       "channelCount": "Liczba kanałów",
       "codec": "Kodek",
@@ -1084,7 +1273,7 @@
     "sort": {
       "asc": "Rosnąco",
       "desc": "Malejąco",
-      "reset": "Reset"
+      "reset": "Nastawić"
     }
   },
   "theme": {
@@ -1100,10 +1289,10 @@
     "light": "Jasny",
     "marmalade-beaver": "Marmalade Beaver",
     "material-theme": "Motyw Material",
-    "modeDark": "Dark",
-    "modeLabel": "Mode",
-    "modeLight": "Light",
-    "modeSystem": "System",
+    "modeDark": "Ciemny",
+    "modeLabel": "Tryb",
+    "modeLight": "Jasny",
+    "modeSystem": "Systemowy",
     "monokai-pro": "Monokai Pro",
     "night-owl-light": "Night Owl Light",
     "noctis-lilac": "Noctis Lilac",
@@ -1115,7 +1304,9 @@
     "vim-dark-soft": "Vim Dark Soft",
     "vue-dark": "Vue Dark",
     "cool": "Cool",
-    "huacat-pink": "Huacat Pink"
+    "huacat-pink": "Huacat Pink",
+    "materialYou": "Kolor motywu Material You",
+    "materialYouInfo": "Używaj dynamicznych kolorów na podstawie tapety systemowej (Android 12+)."
   },
   "time": {
     "days_few": "{{days}} dni",
@@ -1167,7 +1358,17 @@
       "selected": "Wybrano",
       "currentSelection": "Bieżący wybór: {{title}} wykonawcy {{artist}}",
       "lyricsId": "ID: {{id}}",
-      "noPreview": "Podgląd niedostępny."
+      "noPreview": "Podgląd niedostępny.",
+      "saveError": "Nie udało się zapisać wybranych tekstów.",
+      "disableLyrics": "Wyłącz teksty",
+      "lyricsDisabled": "Tekst wyłączony",
+      "offsetLabel": "Przesunięcie czasu tekstu",
+      "offsetReset": "Nastawić",
+      "offsetHint": "Dodatnie wartości przesunięcia opóźniają tekst.",
+      "hasRomaji": "Romaji"
     }
+  },
+  "navigation": {
+    "back": "Z powrotem"
   }
 }

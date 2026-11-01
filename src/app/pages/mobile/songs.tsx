@@ -152,7 +152,7 @@ export default function MobileSongsList() {
       <MobileEmptyState
         headerTitle={title}
         title={title}
-        description={t("common.noResults")}
+        description={t("command.noResults")}
         icon={<Music2Icon className="size-12" />}
       />
     );
@@ -209,7 +209,7 @@ export default function MobileSongsList() {
         {songlist.length === 0 ? (
           <div className="flex justify-center items-center py-16">
             <p className="text-sm text-muted-foreground">
-              {t("common.noResults")}
+              {t("command.noResults")}
             </p>
           </div>
         ) : (

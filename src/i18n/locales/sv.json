@@ -32,7 +32,7 @@
         "title": "Oj, inga album här!"
       },
       "filter": {
-        "artist": "Artist",
+        "artist": "Konstnär",
         "discography": "Diskografi",
         "favorites": "Favoriter",
         "genre": "Genre",
@@ -42,7 +42,12 @@
         "recentlyAdded": "Nyligen tillagt",
         "recentlyPlayed": "Spelades nyligen",
         "releaseYear": "Utgivningsår",
-        "search": "Sök"
+        "search": "Sök",
+        "label": "Filtrera",
+        "year": {
+          "oldest": "Äldst först",
+          "newest": "Nyaste först"
+        }
       },
       "genre": {
         "label": "Välj en genre…",
@@ -72,7 +77,7 @@
       "play": "Spela {{artist}} radio",
       "shuffle": "Spela {{artist}} radio i shuffle-läge"
     },
-    "headline": "Artist",
+    "headline": "Konstnär",
     "info": {
       "albumsCount_one": "{{count}} album",
       "albumsCount_other": "{{count}} album"
@@ -134,7 +139,10 @@
     "queueHistory": "Historik",
     "queueRepeating": "Upprepar",
     "switchButton": "Byt till storspelare",
-    "selectLyrics": "Textinställningar"
+    "selectLyrics": "Textinställningar",
+    "dynamicArtwork": "Dynamiskt albumomslag",
+    "dynamicArtworkInfo": "Använd uppslukande omslagsvideor i helskärmsspelaren. Oberoende av konstverk på låsskärmen.",
+    "queueShuffling": "Blanda uppspelning"
   },
   "generic": {
     "beta": "Beta",
@@ -150,13 +158,15 @@
         "list": "Lista",
         "poster": "Affisch"
       }
-    }
+    },
+    "cancel": "Avbryt"
   },
   "home": {
     "explore": "Utforska",
     "mostPlayed": "Mest spelad",
     "recentlyAdded": "Nyligen tillagd",
-    "recentlyPlayed": "Nyligen spelad"
+    "recentlyPlayed": "Nyligen spelad",
+    "pinned": "Fäst"
   },
   "lanControl": {
     "remote": {
@@ -306,7 +316,9 @@
     },
     "removeDownload": "Ta bort nedladdning",
     "removeFromQueue": "Ta bort från kön",
-    "unlike": "Ta bort like"
+    "unlike": "Ta bort like",
+    "pin": "Fäst till Hem",
+    "unpin": "Lossa från hemmet"
   },
   "player": {
     "noRadioPlaying": "Ingen radio spelar",
@@ -340,6 +352,16 @@
         "mute": "Tysta",
         "unmute": "Återställ ljud"
       }
+    },
+    "sleepTimer": {
+      "tooltip": "Insomningstimer",
+      "title": "Insomningstimer",
+      "endOfTrack": "Slut på aktuellt spår",
+      "minutes": "{{count}} min",
+      "remaining": "{{time}} kvar",
+      "cancel": "Avbryt timer",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min"
     }
   },
   "playlist": {
@@ -479,13 +501,145 @@
     "status": "Status"
   },
   "settings": {
+    "crossDevice": {
+      "playback": {
+        "otherDevices": "Spelar på andra enheter",
+        "showDevices": "Visa enheter",
+        "fetchingSong": "Hämtar låt...",
+        "unknownTrack": "Okänd låt",
+        "online": "Online",
+        "offline": "Offline-läge",
+        "continue": "Fortsätt",
+        "exitControl": "Avsluta fjärrstyrning",
+        "remoteControl": "Fjärrstyrning",
+        "relay": "Överför uppspelning",
+        "peerDevice": "fjärrenhet",
+        "controllingDevice": "Styr {{name}}",
+        "continueConfirmTitle": "Vill du fortsätta spela här?",
+        "continueConfirmDesc": "Detta kommer att ersätta den aktiva lokala uppspelningen på den här enheten.",
+        "currentLocal": "Spelas på den här enheten",
+        "thisDevice": "Denna enhet",
+        "liveDevices": "Enheter online",
+        "offlineSnapshots": "Återuppta uppspelningen från en offlineenhet",
+        "willContinue": "Fortsätt från {{name}}"
+      },
+      "connect": "Anslut",
+      "never": "Aldrig",
+      "device": {
+        "save": "Spara",
+        "cancel": "Avbryt",
+        "current": "Aktuell enhet",
+        "lastOnline": "Senast online {{time}}",
+        "rename": "Döpa om",
+        "revoke": "Återkalla",
+        "renamed": "Enheten har bytt namn",
+        "revoked": "Enheten återkallad"
+      },
+      "delete": "Ta bort",
+      "deleteConfirm": {
+        "description": "Denna åtgärd kan inte ångras.",
+        "title": "Ta bort all koordinationsdata?"
+      },
+      "title": "Mellan enheter",
+      "description": "Synkronisera historiken och fortsätt uppspelningen på dina enheter.",
+      "setup": {
+        "title": "Anslut den här enheten till servern",
+        "description": "Använd samma koordinationsserver på varje enhet du vill hålla synkroniserad.",
+        "requirement": "Dina aktuella musikserveruppgifter används endast för att auktorisera den här enheten."
+      },
+      "serverUrl": {
+        "label": "Koordinationsserverns URL",
+        "info": "URL till din koordinationsserver."
+      },
+      "identityUrl": {
+        "label": "Identitets-URL",
+        "info": "Webbadressen till din Navidrome/Subsonic-server."
+      },
+      "deviceName": {
+        "label": "Enhetens namn",
+        "info": "Ett igenkännbart namn för den här enheten.",
+        "placeholder": "Min enhet"
+      },
+      "retry": "Försöka igen",
+      "status": "Anslutningsstatus",
+      "statusInfo": "Den här enheten förblir tillgänglig för uppspelning när den är ansluten.",
+      "currentDevice": "Aktuell enhet",
+      "disconnectShort": "Koppla från",
+      "connectionState": {
+        "label": "Anslutningsstatus",
+        "disconnected": "Osammanhängande",
+        "connecting": "Ansluter",
+        "authenticating": "Autentiseras",
+        "connected": "Ansluten",
+        "error": "Fel"
+      },
+      "lastSync": {
+        "label": "Senaste synkronisering"
+      },
+      "error": {
+        "label": "Fel",
+        "missingFields": "Fyll i alla fält",
+        "connectFailed": "Anslutning misslyckades",
+        "disconnectedDescription": "Fjärrenheter är inte tillgängliga förrän koordinationsservern återansluter.",
+        "unconfiguredTitle": "Uppspelning över flera enheter",
+        "unconfiguredDescription": "Anslut till koordinationsserver"
+      },
+      "disconnect": "Koppla bort den här enheten",
+      "connected": "Ansluten",
+      "disconnected": "Osammanhängande",
+      "devices": "Registrerade enheter",
+      "deviceCount": "{{count}} enheter",
+      "devicesDescription": "Byt namn på enheter så att de är lätta att känna igen, eller återkalla gamla sessioner.",
+      "deleteData": {
+        "label": "Radera all koordinationsdata",
+        "info": "Ta bort ditt konto och all synkroniserad data från koordinationsservern."
+      },
+      "disconnectConfirm": {
+        "title": "Koppla bort den här enheten?",
+        "description": "Detta stoppar synkronisering över flera enheter på den här enheten."
+      },
+      "revokeConfirm": {
+        "title": "Återkalla enheten?",
+        "description": "Är du säker på att du vill återkalla åtkomst för {{name}}?"
+      },
+      "deleted": "Samordningsdata raderade",
+      "toast": {
+        "relaySuccess": "Överlämningen lyckades!",
+        "relayFailed": "Handoff misslyckades: {{code}}",
+        "exitRemoteControl": "Stoppad fjärruppspelningskontroll",
+        "remoteControlSuccess": "Fjärrkontroll: {{name}}",
+        "preparingRelay": "Förbereder överlämning...",
+        "sessionSuperseded": "Den här sessionen har tagits över av {{deviceName}}, uppspelningen pausad."
+      },
+      "handoffError": {
+        "targetOffline": "Enheten gick offline.",
+        "snapshotExpired": "Den uppspelningsbilden är för gammal för att fortsätta.",
+        "handoffConflict": "En annan handoff tog redan denna session.",
+        "sourceChanged": "Källan ändrades innan den kunde överföras.",
+        "sourcePauseTimeout": "Källenheten bekräftade inte att uppspelningen pausades före deadline.",
+        "unsupportedMedia": "Den här mediatypen kan inte fortsätta på en annan enhet.",
+        "deviceRevoked": "Den här enheten får inte längre använda synkronisering över flera enheter.",
+        "protocolIncompatible": "Uppdatera Aonsoku på en eller flera enheter.",
+        "forbidden": "Den här enheten kan inte kontrolleras eller överföras just nu.",
+        "fallback": "Handoff misslyckades: {{reason}}"
+      },
+      "handoff": {
+        "prepare": "Förbereder ljudspåret...",
+        "relinquish": "Pausar källenhet...",
+        "commit": "Fortsätter uppspelningen här...",
+        "committed": "Överlämningen lyckades!",
+        "processing": "Synkroniserar uppspelning..."
+      },
+      "deviceCount_one": "{{count}} enhet",
+      "deviceCount_other": "{{count}} enheter"
+    },
     "accounts": {
       "discord": {
         "description": "Dela din aktuella låt med vänner på Discord.",
         "enabled": {
           "label": "Aktivera integration"
         },
-        "group": "Discord Rich Presence"
+        "group": "Discord rik närvaro"
       }
     },
     "appearance": {
@@ -499,15 +653,20 @@
           "info": "Om den är aktiverad kommer appen automatiskt att gå in i helskärmsläge när du öppnar den stora spelaren.",
           "label": "Aktivera automatisk helskärm"
         },
-        "group": "Allmänt"
+        "group": "Allmänt",
+        "usePointerCursors": {
+          "label": "Använd pekare",
+          "info": "När aktiverat, visar pekare för interaktiva element; när den är inaktiverad reduceras pekarmarkörerna för att matcha inbyggda appupplevelser."
+        }
       },
       "queue": {
         "colors": {
-          "info": "Si activé, l'application utilisera la couleur dominante de la pochette de l'album actuel comme couleur de fond.",
-          "label": "Activer la couleur de fond dynamique"
+          "info": "När detta är aktiverat används den dominerande färgen på det aktuella albumomslaget som bakgrundsfärg.",
+          "label": "Aktivera dynamisk bakgrundsfärg",
+          "intensity": "Bakgrundsfärgens intensitet"
         },
-        "description": "Personnaliser la page de la file d'attente et des paroles.",
-        "group": "File d'attente et paroles"
+        "description": "Anpassa kön och sidan med sångtexter.",
+        "group": "Kö och sångtexter"
       }
     },
     "audio": {
@@ -577,33 +736,33 @@
           "label": "Läge",
           "track": "Spårförstärkning"
         },
-        "preAmp": "PreAmp (dB)"
+        "preAmp": "Förförstärkning (dB)"
       },
       "hapticFeedback": {
-        "description": "Control vibration feedback when interacting with the app.",
+        "description": "Styr vibrationsfeedback när du interagerar med appen.",
         "enabled": {
-          "info": "When enabled, the device will vibrate when dragging queue items on mobile.",
-          "label": "Enable haptic feedback"
+          "info": "När den är aktiverad kommer enheten att vibrera när du drar köobjekt på mobilen.",
+          "label": "Aktivera haptisk feedback"
         },
-        "group": "Haptic Feedback"
+        "group": "Haptisk feedback"
       },
       "pip": {
-        "group": "Picture-in-Picture",
-        "description": "Control how the app responds to picture-in-picture requests from the browser.",
+        "group": "Bild-i-bild",
+        "description": "Styr hur appen svarar på bild-i-bild-förfrågningar från webbläsaren.",
         "acceptBrowserRequest": {
-          "label": "Accept browser PiP requests",
-          "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
+          "label": "Acceptera PiP-förfrågningar från webbläsaren",
+          "info": "När den är aktiverad kommer appen att svara på bild-i-bild-förfrågningar från webbläsaren. När den är inaktiverad kan minispelaren endast öppnas manuellt via PiP-knappen."
         }
       },
       "lockScreenArtwork": {
         "group": "Omslag på låsskärmen",
         "description": "Kräver iOS 26+. Systemet styr layouten; rörelsen skapas på enheten.",
-        "loading": "Loading artwork settings…",
-        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
-        "retry": "Retry",
-        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "loading": "Läser in konstinställningar...",
+        "unavailable": "Konstverksinställningar är inte tillgängliga. Uppdatera den inbyggda appen eller försök igen.",
+        "retry": "Försöka igen",
+        "unsupported": "Den här enheten eller iOS-versionen stöder inte uppslukande konstverk. Vanligt konstverk finns kvar.",
         "immersive": "Uppslukande omslag",
-        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "immersiveInfo": "Förläng omslagsbilden utanför dess kanter för att fylla layouten som stöds av systemet.",
         "dynamic": "Animerat omslag",
         "dynamicInfo": "Djup­rörelsen skapas lokalt. Modellen hämtas vid behov; det statiska omslaget används medan den förbereds.",
         "quality": "Modellkvalitet",
@@ -611,8 +770,8 @@
         "automatic": "Automatiskt ({{tier}})",
         "effectiveTier": "Resursgräns: {{tier}}",
         "wifiOnly": "Hämta endast via Wi-Fi",
-        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
-        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "wifiInfo": "Inaktivera det här alternativet för att även tillåta modellnedladdningar via mobildata. Modellinferens körs alltid på den här enheten.",
+        "modelsInfo": "Endast den obligatoriska modellnivån laddas ned automatiskt. Förberedda videor återanvänds. Modeller laddas ur minnet efter slutledning. Om du tar bort en modell behålls de genererade videorna.",
         "download": "Hämta",
         "remove": "Ta bort",
         "cancel": "Avbryt",
@@ -625,7 +784,8 @@
           "thermal": "Enheten är varm; pausad",
           "lowPower": "Strömsparläge; pausad",
           "reduceMotion": "Minska rörelse; pausad",
-          "waitingForModel": "Modellen förbereds; statiskt omslag"
+          "waitingForModel": "Modellen förbereds; statiskt omslag",
+          "waitingForConsumer": "Väntar på att uppspelningsgränssnittet ska bli synligt"
         },
         "model": {
           "notDownloaded": "Inte hämtad",
@@ -641,7 +801,16 @@
         "motionAmplitudeInfo": "Skalar parallax och kamera från 0,5× till 2× utan att ändra banan.",
         "motionSpeed": "Rörelsehastighet",
         "motionSpeedInfo": "Loop i 24 FPS: 0,5× / 0,75× / 1× / 1,5× / 2× motsvarar 12 / 8 / 6 / 4 / 3 sekunder.",
-        "motionDefault": "standard"
+        "motionDefault": "standard",
+        "macGroup": "Uppslukande omslag",
+        "disableProtection": "Inaktivera resursskydd",
+        "disableProtectionInfo": "Tillåt generering och uppspelning trots värme, lågeffektläge eller minnestryck, utan automatisk modellnedgradering. Detta kan öka värme- och batterianvändningen och kan få iOS att avsluta appen. Systemgränser, bakgrundslivscykel och Reduce Motion gäller fortfarande.",
+        "macImmersiveInfo": "Förbered omslagsvideor med sömlöst förlängda kanter för återanvändning av musikspelaren.",
+        "macWifiOnly": "Hämta modeller endast via nätverk utan databegränsning",
+        "macWifiInfo": "Använd Wi-Fi och Ethernet endast utan databegränsning eller begränsad anslutning. Stäng av för att även tillåta nätverk med databegränsning.",
+        "macDescription": "Skapa uppslukande omslagsvideor lokalt på macOS. Nedladdning av modeller på begäran; förberedda videor kan återanvändas av spelaren.",
+        "depthPreview": "Normaliserad djupkarta",
+        "diagnostics": "macOS konstverk diagnostik"
       }
     },
     "content": {
@@ -737,7 +906,8 @@
       "language": "Språk och region",
       "privacy": "Integritet & säkerhet",
       "server": "Server",
-      "storage": "Offline upplevelse"
+      "storage": "Offline upplevelse",
+      "cross-device": "Mellan enheter"
     },
     "privacy": {
       "services": {
@@ -807,10 +977,12 @@
           "all": "Alla",
           "audio": "Ljud",
           "cover": "Omslagsbild",
-          "explicit": "Explicit",
+          "explicit": "Manuellt sparat",
           "lru": "LRU",
           "playlist": "Spellista",
-          "smart": "Smart"
+          "smart": "Smart",
+          "immersive-static": "Statiskt omslag med djupkänsla",
+          "immersive-dynamic": "Animerat omslag med djupkänsla"
         },
         "group": "Cachehanterare",
         "list": {
@@ -827,8 +999,16 @@
           "type_album": "Album",
           "type_audio": "Ljud",
           "type_cover": "Omslag",
-          "type_playlist": "Spellista"
-        }
+          "type_playlist": "Spellista",
+          "type_immersive-static": "Statiskt omslag med djupkänsla",
+          "type_immersive-dynamic": "Animerat omslag med djupkänsla"
+        },
+        "videoInfo": "Uppslukande videor är separata från modellfiler. Videor som används är skyddade; genererade videor kan byggas om.",
+        "refresh": "Uppdatera",
+        "clearVideos": "Ta bort omslagsvideor med djupkänsla",
+        "videoCleared": "Raderade {{deleted}} videor; behållit {{retained}} filer som används.",
+        "inUse": "I bruk",
+        "motionParameters": "Amplitud {{amplitude}}× · Hastighet {{speed}}×"
       },
       "coverArt": {
         "clear": "Rensa omslagsbildscache",
@@ -949,7 +1129,8 @@
             "description": "Album- · artist- · spellistebilder"
           }
         },
-        "downloading": "Laddar ner {{count}} låtar"
+        "downloading": "Laddar ner {{count}} låtar",
+        "libraryCachingInfoIos": "Bibliotekscache krävs och är alltid aktiverat på iOS för att stödja offlineuppspelning."
       }
     }
   },
@@ -962,7 +1143,7 @@
       "title": "Kortkommandon för tangentbord"
     },
     "navigation": {
-      "label": "Navigation"
+      "label": "Navigering"
     },
     "playback": {
       "label": "Uppspelning",
@@ -1022,7 +1203,7 @@
       "albumCount": "Antal album",
       "albumGain": "Albumförstärkning",
       "albumPeak": "Albumtopp",
-      "artist": "Artist",
+      "artist": "Konstnär",
       "bitDepth": "Bitdjup",
       "bitrate": "Bithastighet",
       "bpm": "BPM",
@@ -1084,10 +1265,10 @@
     "light": "Ljusläge",
     "marmalade-beaver": "Marmalade Beaver",
     "material-theme": "Material Tema",
-    "modeDark": "Dark",
-    "modeLabel": "Mode",
-    "modeLight": "Light",
-    "modeSystem": "System",
+    "modeDark": "Mörkläge",
+    "modeLabel": "Läge",
+    "modeLight": "Ljusläge",
+    "modeSystem": "Systemläge",
     "monokai-pro": "Monokai Pro",
     "night-owl-light": "Nattuggla Ljus",
     "noctis-lilac": "Noctis Lila",
@@ -1099,7 +1280,9 @@
     "vim-dark-soft": "Vim Mörk Mjuk",
     "vue-dark": "Utsikt Mörk",
     "cool": "Cool",
-    "huacat-pink": "Huacat Pink"
+    "huacat-pink": "Huacat Pink",
+    "materialYou": "Temafärg för Material You",
+    "materialYouInfo": "Använd dynamiska färger baserat på systemets bakgrundsbild (Android 12+)."
   },
   "time": {
     "days_one": "{{days}} dag",
@@ -1143,13 +1326,23 @@
       "serverDisabled": "Använd en anpassad texttjänst för att välja fler texter",
       "empty": "Inga anpassade textkandidater hittades.",
       "searchTitle": "Låttitel",
-      "searchArtist": "Artist",
+      "searchArtist": "Konstnär",
       "search": "Sök",
       "select": "Välj",
       "selected": "Vald",
       "currentSelection": "Aktuellt val: {{title}} av {{artist}}",
       "lyricsId": "ID: {{id}}",
-      "noPreview": "Ingen förhandsvisning tillgänglig."
+      "noPreview": "Ingen förhandsvisning tillgänglig.",
+      "offsetReset": "Återställ",
+      "saveError": "Det gick inte att spara valda texter.",
+      "disableLyrics": "Stäng av texter",
+      "lyricsDisabled": "Texten avstängd",
+      "offsetLabel": "Timing offset för texter",
+      "offsetHint": "Positiva offsetvärden fördröjer sångtexten.",
+      "hasRomaji": "Romaji"
     }
+  },
+  "navigation": {
+    "back": "Tillbaka"
   }
 }

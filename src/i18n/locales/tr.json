@@ -42,7 +42,12 @@
         "recentlyAdded": "Son eklenenler",
         "recentlyPlayed": "Son çalınanlar",
         "releaseYear": "Yayın Yılı",
-        "search": "Ara"
+        "search": "Ara",
+        "label": "Filtre",
+        "year": {
+          "oldest": "Önce en eski",
+          "newest": "Önce en yeni"
+        }
       },
       "genre": {
         "label": "Bir tür seçin…",
@@ -134,7 +139,10 @@
     "queueHistory": "Geçmiş",
     "queueRepeating": "Tekrarlanıyor",
     "switchButton": "Büyük Oynatıcıya geç",
-    "selectLyrics": "Şarkı sözü ayarları"
+    "selectLyrics": "Şarkı sözü ayarları",
+    "dynamicArtwork": "Dinamik albüm kapağı",
+    "dynamicArtworkInfo": "Tam ekran oynatıcıda sürükleyici kapak videolarını kullanın. Kilit ekranı çizimlerinden bağımsız.",
+    "queueShuffling": "Karışık oynatma"
   },
   "generic": {
     "beta": "Beta",
@@ -150,13 +158,15 @@
         "list": "Liste",
         "poster": "Poster"
       }
-    }
+    },
+    "cancel": "İptal"
   },
   "home": {
     "explore": "Keşfet",
     "mostPlayed": "En çok çalınanlar",
     "recentlyAdded": "Son eklenenler",
-    "recentlyPlayed": "Son çalınanlar"
+    "recentlyPlayed": "Son çalınanlar",
+    "pinned": "Sabitlendi"
   },
   "lanControl": {
     "remote": {
@@ -271,13 +281,13 @@
       "orphan": "Sunucudan kaldırıldı (çevrimdışı oynatılabilir)",
       "smart": "Akıllı indirme kuralıyla kaydedildi"
     },
-    "disconnected": "Server unreachable",
+    "disconnected": "Sunucuya ulaşılamıyor",
     "metered": "Sınırlı",
     "meteredTooltip": "Yavaş veya sınırlı bir bağlantıdasınız. Arka plan senkronizasyonu ve akıllı indirmeler duraklatıldı — geçersiz kılmak için bir indirme düğmesine dokunun.",
     "mode": "Çevrimdışı",
     "reconnectFailed": "Yeniden bağlanılamadı. Çevrimdışı modda devam ediliyor.",
     "reconnected": "Sunucuya yeniden bağlanıldı",
-    "reconnecting": "Reconnecting…",
+    "reconnecting": "Yeniden bağlanılıyor…",
     "searchUnavailable": "Arama, çevrimdışı kitaplık senkronizasyonu gerektirir.",
     "songUnavailable": "Bu şarkı çevrimdışı olarak kullanılamıyor"
   },
@@ -306,7 +316,9 @@
     },
     "removeDownload": "İndirmeyi kaldır",
     "removeFromQueue": "Kuyruktan kaldır",
-    "unlike": "Beğenmekten vazgeç"
+    "unlike": "Beğenmekten vazgeç",
+    "pin": "Ana Sayfaya Sabitle",
+    "unpin": "Ana Sayfadaki sabitlemeyi kaldır"
   },
   "player": {
     "noRadioPlaying": "Çalan radyo yok",
@@ -340,6 +352,16 @@
         "mute": "Sessiz",
         "unmute": "Sesi aç"
       }
+    },
+    "sleepTimer": {
+      "tooltip": "Uyku zamanlayıcısı",
+      "title": "Uyku zamanlayıcısı",
+      "endOfTrack": "Geçerli parçanın sonu",
+      "minutes": "{{count}} dk.",
+      "remaining": "{{time}} kaldı",
+      "cancel": "Zamanlayıcıyı iptal et",
+      "minutes_one": "{{count}} dk.",
+      "minutes_other": "{{count}} dk."
     }
   },
   "playlist": {
@@ -479,13 +501,145 @@
     "status": "Durum"
   },
   "settings": {
+    "crossDevice": {
+      "playback": {
+        "otherDevices": "Diğer cihazlarda çalınıyor",
+        "showDevices": "Cihazları göster",
+        "fetchingSong": "Şarkı yükleniyor...",
+        "unknownTrack": "Bilinmeyen parça",
+        "online": "Çevrimiçi",
+        "offline": "Çevrimdışı",
+        "continue": "Devam Et",
+        "exitControl": "Uzaktan denetimden çık",
+        "remoteControl": "Uzaktan denetim",
+        "relay": "Oynatmayı aktar",
+        "peerDevice": "uzak cihaz",
+        "controllingDevice": "{{name}} kontrol ediliyor",
+        "continueConfirmTitle": "Oynatmaya burada devam edilsin mi?",
+        "continueConfirmDesc": "Bu, bu cihazdaki etkin yerel oynatmanın yerini alacak.",
+        "currentLocal": "Bu cihazda çalıyor",
+        "thisDevice": "Bu Cihaz",
+        "liveDevices": "Çevrimiçi cihazlar",
+        "offlineSnapshots": "Çevrimdışı bir cihazdan oynatmayı sürdürme",
+        "willContinue": "{{name}} adresinden devam et"
+      },
+      "connect": "Bağlan",
+      "never": "Hiçbir zaman",
+      "device": {
+        "save": "Kaydet",
+        "cancel": "İptal",
+        "current": "Geçerli cihaz",
+        "lastOnline": "Son çevrimiçi {{time}}",
+        "rename": "Yeniden isimlendirmek",
+        "revoke": "Geri çekmek",
+        "renamed": "Cihaz yeniden adlandırıldı",
+        "revoked": "Cihaz iptal edildi"
+      },
+      "delete": "Sil",
+      "deleteConfirm": {
+        "description": "Bu işlem geri alınamaz.",
+        "title": "Tüm koordinasyon verileri silinsin mi?"
+      },
+      "title": "Cihazlar Arası",
+      "description": "Geçmişi senkronize edin ve cihazlarınız arasında oynatmaya devam edin.",
+      "setup": {
+        "title": "Bu cihazı sunucuya bağlayın",
+        "description": "Senkronize etmek istediğiniz her cihazda aynı koordinasyon sunucusunu kullanın.",
+        "requirement": "Mevcut müzik sunucusu kimlik bilgileriniz yalnızca bu cihazı yetkilendirmek için kullanılır."
+      },
+      "serverUrl": {
+        "label": "Koordinasyon sunucusu URL'si",
+        "info": "Koordinasyon sunucunuzun URL'si."
+      },
+      "identityUrl": {
+        "label": "Kimlik URL'si",
+        "info": "Navidrome/Subsonic sunucu URL'niz."
+      },
+      "deviceName": {
+        "label": "Cihaz adı",
+        "info": "Bu cihaz için tanınabilir bir ad.",
+        "placeholder": "Cihazım"
+      },
+      "retry": "Yeniden dene",
+      "status": "Bağlantı durumu",
+      "statusInfo": "Bu cihaz bağlıyken oynatma aktarımı için kullanılabilir durumda kalır.",
+      "currentDevice": "Geçerli cihaz",
+      "disconnectShort": "Bağlantıyı kes",
+      "connectionState": {
+        "label": "Bağlantı durumu",
+        "disconnected": "Bağlantı kesildi",
+        "connecting": "Bağlanıyor",
+        "authenticating": "Kimlik doğrulama",
+        "connected": "Bağlı",
+        "error": "Hata"
+      },
+      "lastSync": {
+        "label": "Son senkronizasyon"
+      },
+      "error": {
+        "label": "Hata",
+        "missingFields": "Tüm alanları doldurun",
+        "connectFailed": "Bağlantı başarısız oldu",
+        "disconnectedDescription": "Koordinasyon sunucusu yeniden bağlanana kadar uzak cihazlar kullanılamaz.",
+        "unconfiguredTitle": "Cihazlar Arası Oynatma",
+        "unconfiguredDescription": "Koordinasyon sunucusuna bağlanın"
+      },
+      "disconnect": "Bu cihazın bağlantısını kesin",
+      "connected": "Bağlı",
+      "disconnected": "Bağlantı kesildi",
+      "devices": "Kayıtlı cihazlar",
+      "deviceCount": "{{count}} cihaz",
+      "devicesDescription": "Cihazları tanınmaları kolay olacak şekilde yeniden adlandırın veya eski oturumları iptal edin.",
+      "deleteData": {
+        "label": "Tüm koordinasyon verilerini sil",
+        "info": "Hesabınızı ve senkronize edilen tüm verileri koordinasyon sunucusundan kaldırın."
+      },
+      "disconnectConfirm": {
+        "title": "Bu cihazın bağlantısı kesilsin mi?",
+        "description": "Bu işlem, bu cihazda cihazlar arası senkronizasyonu durduracaktır."
+      },
+      "revokeConfirm": {
+        "title": "Cihaz iptal edilsin mi?",
+        "description": "{{name}} erişimini iptal etmek istediğinizden emin misiniz?"
+      },
+      "deleted": "Koordinasyon verileri silindi",
+      "toast": {
+        "relaySuccess": "Aktarım başarılı!",
+        "relayFailed": "Aktarım başarısız oldu: {{code}}",
+        "exitRemoteControl": "Uzaktan oynatma kontrolü durduruldu",
+        "remoteControlSuccess": "Uzaktan kontrol: {{name}}",
+        "preparingRelay": "Devir teslim hazırlanıyor...",
+        "sessionSuperseded": "Bu oturum {{deviceName}} tarafından devralındı, oynatma duraklatıldı."
+      },
+      "handoffError": {
+        "targetOffline": "Cihaz çevrimdışı oldu.",
+        "snapshotExpired": "Bu oynatma anlık görüntüsü devam edemeyecek kadar eski.",
+        "handoffConflict": "Bu oturumda başka bir aktarım zaten gerçekleşti.",
+        "sourceChanged": "Kaynak aktarılamadan değiştirildi.",
+        "sourcePauseTimeout": "Kaynak cihaz, oynatmanın son tarihten önce duraklatıldığını onaylamadı.",
+        "unsupportedMedia": "Bu medya türüne başka bir cihazda devam edilemez.",
+        "deviceRevoked": "Bu cihazın artık cihazlar arası senkronizasyonu kullanmasına izin verilmiyor.",
+        "protocolIncompatible": "Aonsoku'yu bir veya daha fazla cihazda güncelleyin.",
+        "forbidden": "Bu cihaz şu anda kontrol edilemiyor veya aktarılamıyor.",
+        "fallback": "Aktarım başarısız oldu: {{reason}}"
+      },
+      "handoff": {
+        "prepare": "Ses parçası hazırlanıyor...",
+        "relinquish": "Kaynak cihaz duraklatılıyor...",
+        "commit": "Burada oynatmaya devam ediliyor...",
+        "committed": "Aktarım başarılı!",
+        "processing": "Oynatma senkronize ediliyor..."
+      },
+      "deviceCount_one": "{{count}} cihaz",
+      "deviceCount_other": "{{count}} cihaz"
+    },
     "accounts": {
       "discord": {
         "description": "Şu an dinlediğiniz şarkıyı Discord'daki arkadaşlarınızla paylaşın.",
         "enabled": {
           "label": "Entegrasyonu Etkinleştir"
         },
-        "group": "Discord Rich Presence"
+        "group": "Discord Zengin Durumu"
       }
     },
     "appearance": {
@@ -499,15 +653,20 @@
           "info": "Etkinleştirilirse, büyük oynatıcıya erişildiğinde uygulama otomatik olarak tam ekran moduna geçer.",
           "label": "Otomatik tam ekranı etkinleştir"
         },
-        "group": "Genel"
+        "group": "Genel",
+        "usePointerCursors": {
+          "label": "İşaretçi imleçlerini kullanma",
+          "info": "Etkinleştirildiğinde etkileşimli öğeler için işaretçi imleçlerini gösterir; devre dışı bırakıldığında, yerel uygulama deneyimlerine uyacak şekilde işaretçi imleçlerini azaltır."
+        }
       },
       "queue": {
         "colors": {
-          "info": "Si activé, l'application utilisera la couleur dominante de la pochette de l'album actuel comme couleur de fond.",
-          "label": "Activer la couleur de fond dynamique"
+          "info": "Etkinleştirildiğinde, geçerli albüm kapağının baskın rengi arka plan rengi olarak kullanılır.",
+          "label": "Dinamik arka plan rengini etkinleştir",
+          "intensity": "Arka plan rengi yoğunluğu"
         },
-        "description": "Personnaliser la page de la file d'attente et des paroles.",
-        "group": "File d'attente et paroles"
+        "description": "Kuyruk ve şarkı sözleri sayfasını özelleştir.",
+        "group": "Kuyruk ve şarkı sözleri"
       }
     },
     "audio": {
@@ -580,30 +739,30 @@
         "preAmp": "Ön Amplifikatör (dB)"
       },
       "hapticFeedback": {
-        "description": "Control vibration feedback when interacting with the app.",
+        "description": "Uygulamayla etkileşimde bulunurken titreşim geri bildirimini kontrol edin.",
         "enabled": {
-          "info": "When enabled, the device will vibrate when dragging queue items on mobile.",
-          "label": "Enable haptic feedback"
+          "info": "Etkinleştirildiğinde, mobil cihazda kuyruk öğeleri sürüklenirken cihaz titreyecektir.",
+          "label": "Dokunsal geri bildirimi etkinleştir"
         },
-        "group": "Haptic Feedback"
+        "group": "Dokunsal Geribildirim"
       },
       "pip": {
-        "group": "Picture-in-Picture",
-        "description": "Control how the app responds to picture-in-picture requests from the browser.",
+        "group": "Resim İçinde Resim",
+        "description": "Uygulamanın tarayıcıdan gelen resim içinde resim isteklerine nasıl yanıt vereceğini kontrol edin.",
         "acceptBrowserRequest": {
-          "label": "Accept browser PiP requests",
-          "info": "When enabled, the app will respond to picture-in-picture requests from the browser. When disabled, the mini-player can only be opened manually via the PiP button."
+          "label": "Tarayıcı PiP isteklerini kabul edin",
+          "info": "Etkinleştirildiğinde uygulama, tarayıcıdan gelen resim içinde resim isteklerine yanıt verecektir. Devre dışı bırakıldığında mini oynatıcı yalnızca PiP düğmesi aracılığıyla manuel olarak açılabilir."
         }
       },
       "lockScreenArtwork": {
         "group": "Kilit ekranı kapağı",
         "description": "iOS 26+ gerekir. Düzeni sistem yönetir; hareket cihazda oluşturulur.",
-        "loading": "Loading artwork settings…",
-        "unavailable": "Artwork settings are unavailable. Update the native app or retry.",
-        "retry": "Retry",
-        "unsupported": "This device or iOS version does not support immersive artwork. Ordinary artwork remains available.",
+        "loading": "Resim ayarları yükleniyor…",
+        "unavailable": "Resim ayarları kullanılamıyor. Yerel uygulamayı güncelleyin veya yeniden deneyin.",
+        "retry": "Yeniden dene",
+        "unsupported": "Bu cihaz veya iOS sürümü sürükleyici çizimleri desteklemiyor. Sıradan sanat eserleri mevcut olmaya devam ediyor.",
         "immersive": "Sürükleyici kapak",
-        "immersiveInfo": "Extend cover edges continuously into the system-supported layout.",
+        "immersiveInfo": "Sistem tarafından desteklenen düzeni doldurmak için kapak resmini kenarlarının ötesine uzatın.",
         "dynamic": "Hareketli kapak",
         "dynamicInfo": "Derinlik hareketi yerel olarak oluşturulur. Model gerektiğinde indirilir; hazırlanırken statik kapak kullanılır.",
         "quality": "Model kalitesi",
@@ -611,8 +770,8 @@
         "automatic": "Otomatik ({{tier}})",
         "effectiveTier": "Kaynak sınırı: {{tier}}",
         "wifiOnly": "Yalnızca Wi-Fi ile indir",
-        "wifiInfo": "Disable to also allow model downloads over cellular. Inference always runs locally.",
-        "modelsInfo": "Only the required tier downloads automatically. Prepared videos are reused; models are released after inference. Deleting a model keeps generated videos.",
+        "wifiInfo": "Modelin mobil veri üzerinden indirilmesine de izin vermek için bu seçeneği kapatın. Model çıkarımı her zaman bu cihazda çalışır.",
+        "modelsInfo": "Yalnızca gerekli model katmanı otomatik olarak indirilir. Hazırlanan videolar yeniden kullanılır. Çıkarım sonrasında modeller bellekten kaldırılır. Bir modelin silinmesi, oluşturulan videoları korur.",
         "download": "İndir",
         "remove": "Sil",
         "cancel": "İptal",
@@ -625,7 +784,8 @@
           "thermal": "Cihaz sıcak; duraklatıldı",
           "lowPower": "Düşük Güç Modu; duraklatıldı",
           "reduceMotion": "Hareketi Azalt; duraklatıldı",
-          "waitingForModel": "Model hazırlanıyor; statik kapak"
+          "waitingForModel": "Model hazırlanıyor; statik kapak",
+          "waitingForConsumer": "Oynatma arayüzünün görünür hale gelmesi bekleniyor"
         },
         "model": {
           "notDownloaded": "İndirilmedi",
@@ -641,7 +801,16 @@
         "motionAmplitudeInfo": "Yörüngeyi değiştirmeden paralaksı ve kamerayı 0,5×–2× ölçekler.",
         "motionSpeed": "Hareket hızı",
         "motionSpeedInfo": "24 FPS döngü: 0,5× / 0,75× / 1× / 1,5× / 2× sırasıyla 12 / 8 / 6 / 4 / 3 saniyedir.",
-        "motionDefault": "varsayılan"
+        "motionDefault": "varsayılan",
+        "macGroup": "Sürükleyici kapak",
+        "disableProtection": "Kaynak korumasını devre dışı bırak",
+        "disableProtectionInfo": "Isıya, Düşük Güç Moduna veya bellek basıncına rağmen otomatik model düşürmeye gerek kalmadan üretime ve oynatmaya izin verin. Bu, ısı ve pil kullanımını artırabilir ve iOS'un uygulamayı sonlandırmasına neden olabilir. Sistem sınırları, arka plan yaşam döngüsü ve Hareketi Azaltma hâlâ geçerlidir.",
+        "macImmersiveInfo": "Müzik çalar tarafından yeniden kullanılmak üzere kusursuz şekilde uzatılmış kenarlara sahip kapak resmi videoları hazırlayın.",
+        "macWifiOnly": "Modelleri yalnızca tarifeli olmayan ağlarda indir",
+        "macWifiInfo": "Wi-Fi ve Ethernet bağlantılarını yalnızca tarifeli veya kısıtlı olmadıklarında kullan. Tarifeli ağlara izin vermek için bu seçeneği kapat.",
+        "macDescription": "MacOS'ta yerel olarak sürükleyici kapak videoları oluşturun. Talep üzerine indirilen modeller; hazırlanan videolar oynatıcı tarafından yeniden kullanılabilir.",
+        "depthPreview": "Normalleştirilmiş derinlik haritası",
+        "diagnostics": "macOS sanat eseri teşhisi"
       }
     },
     "content": {
@@ -737,7 +906,8 @@
       "language": "Dil ve Bölge",
       "privacy": "Gizlilik ve Güvenlik",
       "server": "Sunucu",
-      "storage": "Çevrimdışı Deneyim"
+      "storage": "Çevrimdışı Deneyim",
+      "cross-device": "Cihazlar Arası"
     },
     "privacy": {
       "services": {
@@ -810,7 +980,9 @@
           "explicit": "Açık",
           "lru": "LRU",
           "playlist": "Çalma Listesi",
-          "smart": "Akıllı"
+          "smart": "Akıllı",
+          "immersive-static": "Sürükleyici sabit kapak",
+          "immersive-dynamic": "Sürükleyici hareketli kapak"
         },
         "group": "Önbellek Yöneticisi",
         "list": {
@@ -827,8 +999,16 @@
           "type_album": "Albüm",
           "type_audio": "Ses",
           "type_cover": "Kapak",
-          "type_playlist": "Çalma Listesi"
-        }
+          "type_playlist": "Çalma Listesi",
+          "type_immersive-static": "Sürükleyici sabit kapak",
+          "type_immersive-dynamic": "Sürükleyici hareketli kapak"
+        },
+        "videoInfo": "Sürükleyici videolar model dosyalarından ayrıdır. Kullanılan videolar korunmaktadır; oluşturulan videolar yeniden oluşturulabilir.",
+        "refresh": "Yenile",
+        "clearVideos": "Sürükleyici kapak videolarını sil",
+        "videoCleared": "{{deleted}} video silindi; {{retained}} kullanımdaki dosya tutuldu.",
+        "inUse": "Kullanımda",
+        "motionParameters": "Genlik {{amplitude}}× · Hız {{speed}}×"
       },
       "coverArt": {
         "clear": "Kapak resmi önbelleğini temizle",
@@ -949,7 +1129,8 @@
             "description": "Albüm · Sanatçı · Çalma listesi görselleri"
           }
         },
-        "downloading": "{{count}} şarkı indiriliyor"
+        "downloading": "{{count}} şarkı indiriliyor",
+        "libraryCachingInfoIos": "Kitaplığı önbelleğe alma gereklidir ve çevrimdışı oynatmayı desteklemek için iOS'ta her zaman etkinleştirilir."
       }
     }
   },
@@ -1027,7 +1208,7 @@
       "bitrate": "Bit hızı",
       "bpm": "BPM",
       "channelCount": "Kanal sayısı",
-      "codec": "Codec",
+      "codec": "Kodlayıcı",
       "comment": "Yorum",
       "contributors": "Katkıda bulunanlar",
       "discNumber": "Disk numarası",
@@ -1084,10 +1265,10 @@
     "light": "Açık",
     "marmalade-beaver": "Marmalade Beaver",
     "material-theme": "Material Theme",
-    "modeDark": "Dark",
-    "modeLabel": "Mode",
-    "modeLight": "Light",
-    "modeSystem": "System",
+    "modeDark": "Koyu",
+    "modeLabel": "Mod",
+    "modeLight": "Açık",
+    "modeSystem": "Sistem",
     "monokai-pro": "Monokai Pro",
     "night-owl-light": "Night Owl Light",
     "noctis-lilac": "Noctis Lilac",
@@ -1099,7 +1280,9 @@
     "vim-dark-soft": "Vim Dark Soft",
     "vue-dark": "Vue Dark",
     "cool": "Cool",
-    "huacat-pink": "Huacat Pink"
+    "huacat-pink": "Huacat Pink",
+    "materialYou": "Material You tema rengi",
+    "materialYouInfo": "Sistem duvar kâğıdına göre dinamik renkler kullan (Android 12+)."
   },
   "time": {
     "days_one": "{{days}} gün",
@@ -1149,7 +1332,17 @@
       "selected": "Seçildi",
       "currentSelection": "Geçerli seçim: {{artist}} - {{title}}",
       "lyricsId": "ID: {{id}}",
-      "noPreview": "Önizleme yok."
+      "noPreview": "Önizleme yok.",
+      "offsetReset": "Sıfırla",
+      "saveError": "Seçilen şarkı sözleri kaydedilemedi.",
+      "disableLyrics": "Şarkı sözlerini kapat",
+      "lyricsDisabled": "Şarkı sözleri kapalı",
+      "offsetLabel": "Şarkı sözleri zamanlama farkı",
+      "offsetHint": "Pozitif ofset değerleri şarkı sözlerini geciktirir.",
+      "hasRomaji": "Romaji"
     }
+  },
+  "navigation": {
+    "back": "Geri"
   }
 }

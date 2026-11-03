@@ -257,6 +257,20 @@ with automatic foreground sync disabled.
   buttons animate their selected appearance. Hidden content immediately stops
   accepting touches and accessibility focus. Reduce Motion replaces content
   movement with a short fade and keeps the short artwork transition.
+  Synced lyrics reproduce the web player's Apple Music Like Lyrics: three
+  stacked rows per line (romanization, original, translation) with only the
+  original emphasized, per-line springs that stagger as the current line
+  advances, distance-based blur, an intro dots indicator, and the current line's
+  top at 35% of the viewport. The maths lives in `LyricsMotion.swift` and is
+  tested without a simulator by `scripts/test-ios-lyrics-motion.sh`; the view,
+  `SyncedLyricsView.swift`, keeps a native scroll view so browsing, rubber
+  banding and the dismiss pan stay system behaviour.
+  `LyricsText.swift` gives romanization, original and translation explicit widths
+  and their full content heights using the same unlimited UIKit text layout for
+  measurement and drawing. Long lyrics wrap to any number of lines; focus
+  transforms do not change line breaks or feed back into row measurement.
+  `scripts/test-ios-lyrics-layout.sh` exercises this text layer inside a SwiftUI
+  Button/canvas on an iPhone Simulator across widths, text sizes and focus states.
   Every queue entry resets to the
   current track at the top, including reopening fullscreen with Queue selected.
   Once settled at that anchor, a downward pan on the current-track row dismisses

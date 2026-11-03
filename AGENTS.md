@@ -92,6 +92,8 @@ xcodebuild -project ios/Aonsoku.xcodeproj -scheme Aonsoku \
   -destination 'generic/platform=iOS Simulator' build
 node scripts/check-ios-strings.mjs # Every translation key the app uses exists
 bash scripts/test-ios-queue-scroll.sh # Queue/history snap geometry and animation curve (macOS, no Simulator)
+bash scripts/test-ios-lyrics-motion.sh # Synced lyrics layout, springs and interlude maths vs AMLL values (macOS, no Simulator)
+bash scripts/test-ios-lyrics-layout.sh # UIKit/SwiftUI unlimited lyric wrapping regression checks (booted iPhone Simulator; IOS_SIMULATOR_ID optional)
 
 # Electron desktop native audio
 pnpm native-audio:build   # Build the Node-API libmpv addon
@@ -316,6 +318,32 @@ node scripts/native-audio/ci/collect-runtime-darwin.mjs --root <libmpv.dylib> --
   resize callbacks do not toggle the footer. The footer stays mounted to retain
   slider state, with hit testing and accessibility disabled while collapsed.
   Collapsed sliders also stop excluding touches from the player dismiss pan.
+  Synced lyrics port the web player's Apple Music Like Lyrics (AMLL 0.2.0) layout
+  and motion, kept native. `LyricsMotion.swift` is pure Swift (no UIKit/SwiftUI,
+  checked on a Mac by `scripts/test-ios-lyrics-motion.sh` against values from
+  AMLL's own spring): per-line damped springs (position mass 0.9/damping 15/
+  stiffness 90, scale 2/25/100), the active line's top aligned to 35% of the
+  viewport, a stagger of 0.05s per line growing by 1/1.05, blur of distance+1
+  (+2 above) times 0.8, original opacity 0.85/0.2 and line scale 1/0.97, and the
+  intro dots (only where AMLL shows them: a first line starting 4s+ in).
+  `SyncedLyricsView.swift` draws the lines in the real scroll view, one
+  `@Perceptible` `LyricLineMotion` per line, with `LyricsMotionController`
+  feeding the engine the playback clock every frame through `ViewUpdateLink`.
+  Following moves the scroll offset in one step and each line springs from where
+  it was (its offset is shifted by the same amount), so hand-browsing keeps
+  native scrolling, rubber banding and the dismiss pan. Browsing holds the layout
+  still for 5s after the finger lifts and turns blur off until 0.5s after; the
+  next line change then resumes following. Each line is romanization above the
+  original above the translation; only the original brightens, grows from 0.862
+  to full size (`1.16em` is `8vw` ≈ 36pt on a 390pt phone, translations and
+  romanization `.5em` at 30% opacity). Original text retains semibold in both
+  states so emphasis cannot change wrapping. `LyricsText.swift` measures and
+  renders each layer with the same unlimited, word-wrapping UILabel at an
+  explicit content width. Complete text heights determine row height before
+  transforms; no animated geometry or hidden measuring copy feeds layout back
+  into the motion engine. All layers expand to as many lines as needed.
+  A tap or a clock jump over 0.5s seeks (quick spring, no stagger); Reduce Motion
+  uses quick springs, no blur or scaling.
   The compact queue is one native `List` matching the progress bar width and
   extending directly to its top edge: history, a current-track metadata
   row with an artwork layout marker, then the upcoming section with pinned

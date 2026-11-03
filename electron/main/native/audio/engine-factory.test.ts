@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
     readonly platformKey: string;
 
     constructor(searchedPaths: string[], platformKey: string) {
-      super("Unable to load the Aonsoku libmpv native addon.");
+      super("Unable to load the SZ Music libmpv native addon.");
       this.name = "LibMpvBindingLoadError";
       this.searchedPaths = searchedPaths;
       this.platformKey = platformKey;
@@ -140,7 +140,7 @@ describe("createDesktopAudioEngine", () => {
       backend: "libmpv",
       status: "unavailable",
       code: "libmpv-addon-unavailable",
-      message: "Unable to load the Aonsoku libmpv native addon.",
+      message: "Unable to load the SZ Music libmpv native addon.",
       platformKey: "linux-x64",
       searchedPaths: ["/missing/aonsoku_libmpv.node"],
     });

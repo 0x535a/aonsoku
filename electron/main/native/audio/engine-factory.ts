@@ -17,7 +17,7 @@ export function createDesktopAudioEngine(): DesktopAudioEngine {
     const runtimeInfo = binding.runtimeInfo?.();
     if (runtimeInfo?.systemMediaSessionApiVersion !== "2") {
       throw new Error(
-        "The Aonsoku libmpv addon does not provide system media session API version 2.",
+        "The SZ Music libmpv addon does not provide system media session API version 2.",
       );
     }
     const capabilityProbe = createNativeMpvPlayer(binding);

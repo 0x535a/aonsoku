@@ -19,7 +19,6 @@ import { usePlayerBreakpoint } from "@/app/hooks/use-player-breakpoint";
 import { usePreloadAudio } from "@/app/hooks/use-preload-audio";
 import { useScrobble } from "@/app/hooks/use-scrobble";
 import { useSleepTimer } from "@/app/hooks/use-sleep-timer";
-import { NativeIOSShell } from "@/app/layout/native-ios-shell";
 import {
   getAudioDurationSeconds,
   getAudioProgressSnapshot,
@@ -399,7 +398,6 @@ export function Player() {
 
   return (
     <footer
-      data-native-web-player
       className="border-t h-[--player-height] w-full flex items-center fixed bottom-[--bottom-nav-height] left-0 right-0 z-40 bg-background"
       style={{
         paddingLeft: "var(--safe-area-left)",
@@ -407,34 +405,6 @@ export function Player() {
       }}
       onClick={handleFooterClick}
     >
-      <NativeIOSShell
-        trackId={
-          remoteProjection.active || isSong
-            ? (displaySong?.id ?? "")
-            : (radio?.id ?? "")
-        }
-        title={
-          remoteProjection.active || isSong
-            ? (displaySong?.title ?? "")
-            : (radio?.name ?? "")
-        }
-        artist={
-          remoteProjection.active || isSong
-            ? (displaySong?.artist ?? "")
-            : radioLabel
-        }
-        isPlaying={displayIsPlaying}
-        hasNext={displayHasNext || displayLoopState === LoopState.All}
-        progress={
-          remoteProjection.active ? remoteProjection.progress : undefined
-        }
-        duration={
-          remoteProjection.active ? remoteProjection.duration : undefined
-        }
-        canOpenPlayer={
-          Boolean(displaySong) && (remoteProjection.active || isSong)
-        }
-      />
       <div className="w-full h-full grid grid-cols-[1fr_auto] gap-3 px-3 md:grid-cols-player md:gap-2 md:px-4">
         {/* Track Info */}
         <div className="flex items-center gap-1 w-full min-w-0 md:gap-2">

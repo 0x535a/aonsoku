@@ -1,0 +1,42 @@
+{
+  "name": "@aonsoku/coordination-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "check": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "deploy": "wrangler deploy",
+    "build:ci": "wrangler deploy --config wrangler.ci.jsonc --dry-run --outdir dist",
+    "deploy:ci": "wrangler deploy --config wrangler.ci.jsonc --keep-vars",
+    "deploy:guided": "node scripts/deploy.mjs",
+    "deploy:raw": "wrangler deploy",
+    "test:deploy": "node --test scripts/deploy.test.mjs"
+  },
+  "cloudflare": {
+    "bindings": {
+      "ALLOWED_IDENTITY_ORIGINS": {
+        "description": "Trusted HTTPS Navidrome/Subsonic origins, comma-separated; do not include a port unless the origin actually uses a non-default HTTPS port."
+      },
+      "ENABLE_OFFLINE_HANDOFF": {
+        "description": "Boolean value (true or false): allow a device to take over playback from an offline device within the eight-hour snapshot window. Defaults to true in wrangler.jsonc; change it after deployment if needed."
+      },
+      "MAX_DEVICES": {
+        "description": "Number from 1 to 1000: maximum registered devices per account. Leave empty for the default 100."
+      },
+      "STABLE_KEY": {
+        "description": "Secret HMAC key, at least 32 random characters. Generate it in a password manager and keep it unchanged across deployments."
+      }
+    }
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260930.1",
+    "esbuild": "0.28.1",
+    "miniflare": "5.20260926.1-alpha",
+    "typescript": "5.9.3",
+    "vitest": "4.1.5",
+    "wrangler": "^4.144.0"
+  }
+}

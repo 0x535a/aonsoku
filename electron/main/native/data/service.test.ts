@@ -1,13 +1,15 @@
+import { rm } from "node:fs/promises";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   stores: new Map<string, Record<string, unknown>>(),
   request: vi.fn(),
   downloadBinary: vi.fn(),
+  testRoot: `/tmp/aonsoku-native-data-test-${process.pid}`,
 }));
 
 vi.mock("electron", () => ({
-  app: { getPath: () => "/tmp/aonsoku-native-data-test" },
+  app: { getPath: () => mocks.testRoot },
 }));
 
 vi.mock("../../core/store", () => ({
@@ -34,7 +36,8 @@ function response(data: Record<string, unknown>) {
 }
 
 describe("DesktopNativeDataService", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await rm(mocks.testRoot, { recursive: true, force: true });
     mocks.stores.clear();
     mocks.request.mockReset();
     mocks.downloadBinary.mockReset();
@@ -82,7 +85,11 @@ describe("DesktopNativeDataService", () => {
     const service = new DesktopNativeDataService(
       {
         request: mocks.request,
-        getCredentials: () => ({ serverType: "navidrome" }),
+        getCredentials: () => ({
+          serverType: "navidrome",
+          serverUrl: "https://server.test",
+          username: "alice",
+        }),
       } as never,
       (event) => events.push(event),
     );
@@ -91,6 +98,10 @@ describe("DesktopNativeDataService", () => {
 
     expect(service.getArtists({ limit: 10, offset: 0 }).items).toHaveLength(1);
     expect(service.getAlbums({ limit: 10, offset: 0 }).items).toHaveLength(1);
+    expect(
+      service.getAlbums({ limit: 10, offset: 0, sortBy: "random" })
+        .libraryOwner,
+    ).toBe(JSON.stringify(["https://server.test", "alice"]));
     expect(service.getSongs({ limit: 10, offset: 0 }).items).toHaveLength(1);
     expect(service.getAlbum({ id: "al1" })?.song).toHaveLength(1);
     expect(events).toContain("dataChanged");
@@ -101,10 +112,37 @@ describe("DesktopNativeDataService", () => {
     });
   });
 
-  it("resolves stored covers to local file URIs", async () => {
+  it("drops cached data and rejects an old playlist completion after account reset", async () => {
+    let complete!: (value: ReturnType<typeof response>) => void;
+    mocks.request.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
     const service = new DesktopNativeDataService(
       { request: mocks.request } as never,
       () => {},
+    );
+    const store = mocks.stores.get("native-library")!;
+    store.songs = [{ id: "same-id", title: "A's private song" }];
+    store.lyrics = { "same-id": { content: "A's lyrics" } };
+    const oldRequest = service.getPlaylist({ id: "private-playlist" });
+    await service.resetAccount();
+    complete(
+      response({ playlist: { id: "private-playlist", name: "A's playlist" } }),
+    );
+    expect(await oldRequest).toBeNull();
+    expect(service.getSongs({ limit: 10, offset: 0 }).items).toEqual([]);
+    expect(service.getLyrics({ songId: "same-id" })).toBeNull();
+    expect(store.playlistDetails).toEqual({});
+  });
+
+  it("resolves stored covers to local file URIs", async () => {
+    const events: Array<{ event: string; payload: unknown }> = [];
+    const service = new DesktopNativeDataService(
+      { request: mocks.request } as never,
+      (event, payload) => events.push({ event, payload }),
     );
     await service.storeCoverImage({
       coverArtId: "mpris-cover",
@@ -115,8 +153,133 @@ describe("DesktopNativeDataService", () => {
 
     const uri = service.resolveCoverFileUri("mpris-cover");
     expect(uri).toMatch(/^file:\/\//);
-    expect(uri).toContain("/aonsoku-native-data-test/CoverCache/");
+    expect(uri).toContain(`${mocks.testRoot}/CoverCache/`);
     expect(service.resolveCoverFileUri("missing-cover")).toBeUndefined();
+
+    const resolved = await service.resolveCoverImage({
+      coverArtId: "mpris-cover",
+    });
+    expect(resolved.file?.revision).toBeTruthy();
+    expect(resolved.file?.uri).toContain(`&v=${resolved.file?.revision}`);
+    expect(events).toContainEqual({
+      event: "coverCacheChanged",
+      payload: {
+        coverArtId: "mpris-cover",
+        file: resolved.file,
+      },
+    });
+  });
+
+  it("deduplicates cover downloads and upgrades behind a smaller request", async () => {
+    const downloads: Array<{
+      resolve: (value: { data: Buffer; contentType: string }) => void;
+    }> = [];
+    mocks.downloadBinary.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          downloads.push({ resolve });
+        }),
+    );
+    const service = new DesktopNativeDataService(
+      { downloadBinary: mocks.downloadBinary } as never,
+      () => {},
+    );
+
+    const small = service.downloadCoverImage({
+      coverArtId: "shared-cover",
+      size: "100",
+    });
+    await vi.waitFor(() => expect(downloads).toHaveLength(1));
+    const large = service.downloadCoverImage({
+      coverArtId: "shared-cover",
+      size: "700",
+    });
+    downloads[0].resolve({
+      data: Buffer.from("small"),
+      contentType: "image/jpeg",
+    });
+    await small;
+    await vi.waitFor(() => expect(downloads).toHaveLength(2));
+
+    const medium = service.downloadCoverImage({
+      coverArtId: "shared-cover",
+      size: "300",
+    });
+    downloads[1].resolve({
+      data: Buffer.from("large"),
+      contentType: "image/jpeg",
+    });
+    const [largeResult, mediumResult] = await Promise.all([large, medium]);
+    await service.storeCoverImage({
+      coverArtId: "shared-cover",
+      dataBase64: Buffer.from("late small").toString("base64"),
+      contentType: "image/jpeg",
+      coverSize: "100",
+    });
+
+    expect(mocks.downloadBinary).toHaveBeenCalledTimes(2);
+    expect(largeResult.file?.coverSize).toBe("700");
+    expect(mediumResult.file?.coverSize).toBe("700");
+    await expect(
+      service.readCoverWithMeta("shared-cover"),
+    ).resolves.toMatchObject({
+      data: Buffer.from("large"),
+      coverSize: "700",
+    });
+  });
+
+  it("releases a failed cover download so the next request can retry", async () => {
+    mocks.downloadBinary
+      .mockRejectedValueOnce(new Error("network failed"))
+      .mockResolvedValueOnce({
+        data: Buffer.from("retry"),
+        contentType: "image/png",
+      });
+    const service = new DesktopNativeDataService(
+      { downloadBinary: mocks.downloadBinary } as never,
+      () => {},
+    );
+
+    await expect(
+      service.downloadCoverImage({ coverArtId: "retry-cover", size: "300" }),
+    ).rejects.toThrow("network failed");
+    await expect(
+      service.downloadCoverImage({ coverArtId: "retry-cover", size: "300" }),
+    ).resolves.toMatchObject({ file: { coverSize: "300" } });
+
+    expect(mocks.downloadBinary).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not let a late image error delete a newer cover revision", async () => {
+    const service = new DesktopNativeDataService(
+      { request: mocks.request } as never,
+      () => {},
+    );
+    const first = await service.storeCoverImage({
+      coverArtId: "revision-guard",
+      dataBase64: Buffer.from("old cover").toString("base64"),
+      contentType: "image/jpeg",
+      coverSize: "300",
+    });
+    const second = await service.storeCoverImage({
+      coverArtId: "revision-guard",
+      dataBase64: Buffer.from("new cover").toString("base64"),
+      contentType: "image/jpeg",
+      coverSize: "300",
+    });
+
+    await expect(
+      service.deleteCoverImage({
+        coverArtId: "revision-guard",
+        expectedRevision: first.file?.revision,
+      }),
+    ).resolves.toEqual({ deleted: false });
+    await expect(
+      service.readCoverWithMeta("revision-guard"),
+    ).resolves.toMatchObject({
+      data: Buffer.from("new cover"),
+      revision: second.file?.revision,
+    });
   });
 
   it("downloads covers when native sync receives cover options", async () => {
@@ -144,7 +307,11 @@ describe("DesktopNativeDataService", () => {
       {
         request: mocks.request,
         downloadBinary: mocks.downloadBinary,
-        getCredentials: () => ({ serverType: "navidrome" }),
+        getCredentials: () => ({
+          serverType: "navidrome",
+          serverUrl: "https://server.test",
+          username: "alice",
+        }),
       } as never,
       () => {},
     );

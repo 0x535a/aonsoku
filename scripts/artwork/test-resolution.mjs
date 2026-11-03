@@ -8,8 +8,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const output = mkdtempSync(join(tmpdir(), "aonsoku-resolution-"));
 try {
   const paths = [
-    "capacitor-plugins/capacitor-native/ios/Sources/AonsokuNativePlugin/Audio/LockScreenArtworkRenderer.swift",
-    "capacitor-plugins/capacitor-native/ios/Sources/AonsokuNativePlugin/Audio/LockScreenArtworkSettings.swift",
+    "ios/AonsokuKit/Sources/AonsokuKit/Audio/LockScreenArtworkRenderer.swift",
+    "ios/AonsokuKit/Sources/AonsokuKit/Audio/LockScreenArtworkSettings.swift",
     "src-tauri/native/artwork/ArtworkRenderer.swift",
     "src-tauri/native/artwork/ArtworkSettings.swift",
     "scripts/artwork/resolution-tests.swift",

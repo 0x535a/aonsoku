@@ -113,10 +113,9 @@ describe("desktop native coordination playback", () => {
       clear: vi.fn().mockResolvedValue(undefined),
     };
   }
-  type EnvelopePayload<T = Envelope> = T extends Envelope
-    ? Omit<T, "version" | "messageId">
-    : never;
-  function envelope(payload: EnvelopePayload): Envelope {
+  function envelope(
+    payload: Omit<Envelope, "version" | "messageId">,
+  ): Envelope {
     return { version: 1, messageId: "message", ...payload } as Envelope;
   }
   beforeEach(() => {

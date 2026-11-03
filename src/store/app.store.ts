@@ -1,4 +1,5 @@
 import merge from "lodash/merge";
+import { markAccountReset } from "@/lib/account-reset";
 import omit from "lodash/omit";
 import { devtools, persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
@@ -348,6 +349,10 @@ export const useAppStore = createWithEqualityFn<IAppContext>()(
               }
 
               if (isNativeBridgeAvailable()) {
+                const { useCoordinationStore } = await import(
+                  "@/coordination/store"
+                );
+                await useCoordinationStore.getState().endSession();
                 const result = await getNativeBridge().login({
                   url: primaryUrl,
                   fallbackUrl: normalizedFallbackUrl || undefined,
@@ -374,6 +379,7 @@ export const useAppStore = createWithEqualityFn<IAppContext>()(
                     state.data.serverType = result.serverType || "subsonic";
                     state.data.isServerConfigured = true;
                   });
+                  await markAccountReset();
                   return true;
                 }
 
@@ -398,6 +404,10 @@ export const useAppStore = createWithEqualityFn<IAppContext>()(
                 );
 
                 if (canConnect) {
+                  const { useCoordinationStore } = await import(
+                    "@/coordination/store"
+                  );
+                  await useCoordinationStore.getState().endSession();
                   const serverInfo =
                     await getServerInfoWithOverride(primaryUrl);
 
@@ -413,6 +423,7 @@ export const useAppStore = createWithEqualityFn<IAppContext>()(
                     state.data.serverType = serverInfo.serverType;
                     state.data.isServerConfigured = true;
                   });
+                  await markAccountReset();
                   return true;
                 }
               }
@@ -459,11 +470,27 @@ export const useAppStore = createWithEqualityFn<IAppContext>()(
                 return false;
               }
 
+              const previousPrimary = normalizeServerUrl(
+                get().data.primaryUrl || get().data.url,
+              );
+              const changedAccountServer =
+                normalizedPrimaryUrl !== previousPrimary;
+              if (changedAccountServer) {
+                const { useCoordinationStore } = await import(
+                  "@/coordination/store"
+                );
+                await useCoordinationStore.getState().endSession();
+                if (isNativeBridgeAvailable())
+                  await getNativeBridge().clearCredentials();
+              }
+
               set((state) => {
                 applyConfiguredServerState(state.data, resolvedServer);
               });
 
               await syncCredentialsToKeychain(get().data);
+
+              if (changedAccountServer) await markAccountReset();
 
               return true;
             },
@@ -525,9 +552,13 @@ export const useAppStore = createWithEqualityFn<IAppContext>()(
 
               return true;
             },
-            removeConfig: () => {
+            removeConfig: async () => {
+              const { useCoordinationStore } = await import(
+                "@/coordination/store"
+              );
+              await useCoordinationStore.getState().endSession();
               if (isNativeBridgeAvailable()) {
-                getNativeBridge().clearCredentials();
+                await getNativeBridge().clearCredentials();
               }
 
               set((state) => {
@@ -548,6 +579,7 @@ export const useAppStore = createWithEqualityFn<IAppContext>()(
                 state.pages.hideRadiosSection = HIDE_RADIOS_SECTION ?? true;
                 state.pages.artistsPageViewType = "table";
               });
+              await markAccountReset();
             },
             setLogoutDialogState: (value) => {
               set((state) => {

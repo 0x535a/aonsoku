@@ -150,6 +150,7 @@ async function resolveTauriArtworkPayload(
     albumId: song.albumId,
     size: MEDIA_SESSION_COVER_SIZE,
   });
+  if (!artworkUrl) return null;
   const cacheKeys = resolveCacheKeys(song.coverArt, "song", song.albumId);
   const artworkKey = cacheKeys[0] ?? artworkUrl;
   let sourceUrl = artworkUrl;

@@ -18,6 +18,8 @@ export interface ArtistRow extends ISimilarArtist {
 }
 
 export interface AlbumRow extends Albums {
+  /** Account/server that supplied this row in a completed metadata sync. */
+  libraryOwner?: string;
   starredAt?: number;
 }
 
@@ -49,6 +51,8 @@ export interface CacheMetaRow {
   triggers?: string[];
   /** For cover entries: the resolution (e.g. "700") that was requested. */
   coverSize?: string;
+  /** Stable content revision for a cached cover. */
+  revision?: string;
   sizeBytes: number;
   cachedAt: number;
   lastAccessedAt: number;

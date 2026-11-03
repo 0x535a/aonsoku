@@ -16,7 +16,7 @@ try {
   const executable = join(build, "interface-tests");
   run("xcrun", [
     "swiftc",
-    "capacitor-plugins/capacitor-native/ios/Sources/AonsokuNativePlugin/Audio/DynamicCoverRegistry.swift",
+    "ios/AonsokuKit/Sources/AonsokuKit/Audio/DynamicCoverRegistry.swift",
     "scripts/ios/dynamic-cover-interface-tests.swift",
     "-o",
     executable,

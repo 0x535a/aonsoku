@@ -82,7 +82,7 @@ export async function listenTauriWindowStateChanges(handler: () => void) {
 
   const listeners = await Promise.all(
     WINDOW_STATE_EVENTS.map((event) =>
-      window.listen(event, handler).catch((error) => {
+      window.listen?.(event, handler).catch((error) => {
         logger.error(`[TauriWindow] listen ${event} failed`, error);
         return null;
       }),

@@ -133,7 +133,8 @@
     "table.columns.codec",
     "lyrics.customSelect.hasRomaji",
     "theme.modeLabel",
-    "settings.audio.replayGain.mode.label"
+    "settings.audio.replayGain.mode.label",
+    "player.tooltips.volume.label"
   ],
   "fr": [
     "about.version",
@@ -159,7 +160,8 @@
     "table.columns.codec",
     "lyrics.customSelect.hasRomaji",
     "theme.modeLabel",
-    "settings.audio.replayGain.mode.label"
+    "settings.audio.replayGain.mode.label",
+    "player.tooltips.volume.label"
   ],
   "it": [
     "about.server",
@@ -190,7 +192,9 @@
     "table.columns.codec",
     "time.minutes",
     "time.seconds",
-    "lyrics.customSelect.hasRomaji"
+    "lyrics.customSelect.hasRomaji",
+    "player.tooltips.volume.label",
+    "menu.account"
   ],
   "pl": [
     "album.headline",
@@ -220,7 +224,8 @@
     "player.sleepTimer.minutes_many",
     "server.status",
     "table.columns.codec",
-    "lyrics.customSelect.hasRomaji"
+    "lyrics.customSelect.hasRomaji",
+    "player.tooltips.volume.label"
   ],
   "pt": [
     "generic.beta",
@@ -230,7 +235,8 @@
     "player.sleepTimer.minutes_many",
     "settings.crossDevice.playback.online",
     "table.columns.codec",
-    "lyrics.customSelect.hasRomaji"
+    "lyrics.customSelect.hasRomaji",
+    "player.tooltips.volume.label"
   ],
   "sv": [
     "about.server",
@@ -264,5 +270,7 @@
     "generic.viewMode.modes.poster",
     "lyrics.customSelect.hasRomaji"
   ],
-  "uk": ["settings.accounts.discord.group"]
+  "uk": [
+    "settings.accounts.discord.group"
+  ]
 }

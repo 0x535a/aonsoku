@@ -4,6 +4,30 @@ import {
   isLockScreenArtworkAvailable,
   lockScreenArtwork,
 } from "@/native/audio/lock-screen-artwork";
+
+function convertFileSrc(uri: string): string {
+  if (typeof uri !== "string" || !uri.startsWith("file:")) {
+    return Capacitor.convertFileSrc(uri);
+  }
+  const serverUrl = Capacitor.getServerUrl?.() ?? "";
+  if (!serverUrl) return Capacitor.convertFileSrc(uri);
+
+  // Handle all file: URI variants produced by the native layer:
+  //   "file:///absolute/path"  – RFC 8089 (iOS, Capacitor's own convertFileSrc)
+  //   "file:/absolute/path"    – Java File.toURI() (Android native plugin)
+  //   "file://relative/path"   – not used, handled for safety
+  // Strip the "file:" scheme, then normalize leading slashes to "/".
+  let filePath = uri.slice(5);
+  while (filePath.startsWith("//")) {
+    filePath = filePath.slice(1);
+  }
+  if (!filePath.startsWith("/")) {
+    filePath = "/" + filePath;
+  }
+
+  return `${serverUrl}/_capacitor_file_${filePath}`;
+}
+
 import { asyncPool } from "@/service/cache/concurrency";
 import { subsonic } from "@/service/subsonic";
 import { useCacheStore } from "@/store/cache.store";
@@ -51,29 +75,6 @@ import {
 import { syncService } from "./sync-worker-adapter";
 
 export { buildAudioUrl } from "./audio-url-resolver";
-
-function convertFileSrc(uri: string): string {
-  if (typeof uri !== "string" || !uri.startsWith("file:")) {
-    return Capacitor.convertFileSrc(uri);
-  }
-  const serverUrl = Capacitor.getServerUrl?.() ?? "";
-  if (!serverUrl) return Capacitor.convertFileSrc(uri);
-
-  // Handle all file: URI variants produced by the native layer:
-  //   "file:///absolute/path"  – RFC 8089 (iOS, Capacitor's own convertFileSrc)
-  //   "file:/absolute/path"    – Java File.toURI() (Android native plugin)
-  //   "file://relative/path"   – not used, handled for safety
-  // Strip the "file:" scheme, then normalize leading slashes to "/".
-  let filePath = uri.slice(5);
-  while (filePath.startsWith("//")) {
-    filePath = filePath.slice(1);
-  }
-  if (!filePath.startsWith("/")) {
-    filePath = "/" + filePath;
-  }
-
-  return `${serverUrl}/_capacitor_file_${filePath}`;
-}
 
 export interface CachedItemDetail {
   key: string;
@@ -151,6 +152,52 @@ function normalizeCoverSize(size: string | undefined): number {
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
+export interface CachedCoverLookupOptions {
+  /** Return an existing lower-resolution cover when the requested size is unavailable. */
+  allowLowerResolution?: boolean;
+}
+
+function coverContentVersion(
+  meta: CachedItemMeta | undefined,
+): string | undefined {
+  if (!meta) return undefined;
+  if (meta.revision) return `revision:${meta.revision}`;
+  return ["legacy", meta.coverSize ?? "", meta.sizeBytes, meta.cachedAt].join(
+    ":",
+  );
+}
+
+let lastLocalCoverRevision = 0;
+
+function createLocalCoverRevision(previous?: string): string {
+  const previousNumber = Number(previous);
+  lastLocalCoverRevision = Math.max(
+    Date.now(),
+    lastLocalCoverRevision + 1,
+    Number.isFinite(previousNumber) ? previousNumber + 1 : 0,
+  );
+  return String(lastLocalCoverRevision);
+}
+
+function nativeCoverRevision(file: object): string | undefined {
+  return (file as { revision?: string }).revision;
+}
+
+function withCoverRevision(url: string, revision: string | undefined): string {
+  if (!revision) return url;
+  const encoded = encodeURIComponent(revision);
+  if (/[?&]v=[^&]*/.test(url)) {
+    return url.replace(/([?&])v=[^&]*/, `$1v=${encoded}`);
+  }
+  return `${url}${url.includes("?") ? "&" : "?"}v=${encoded}`;
+}
+
+function coverRevisionFromUrl(url: string): string | undefined {
+  const queryStart = url.indexOf("?");
+  if (queryStart === -1) return undefined;
+  return new URLSearchParams(url.slice(queryStart + 1)).get("v") ?? undefined;
+}
+
 class AsyncLimiter {
   private active = 0;
   private queue: Array<() => void> = [];
@@ -190,11 +237,19 @@ class CacheManager {
   >();
   private nativeCoverUrlCache = new Map<
     string,
-    { url: string; coverSize?: string }
+    { url: string; coverSize?: string; contentVersion: string }
+  >();
+  private coverSourceByUrl = new Map<
+    string,
+    { coverArtId: string; revision?: string }
   >();
   private nativeCoverUrlInflight = new Map<
     string,
-    { requestedSize: number; promise: Promise<string | null> }
+    {
+      requestedSize: number;
+      allowLowerResolution: boolean;
+      promise: Promise<string | null>;
+    }
   >();
   private coverDownloadLimiter = new AsyncLimiter(4);
 
@@ -304,7 +359,6 @@ class CacheManager {
     }
 
     if (await this.restoreCachedAudioIndex(songId, "smart", triggers)) return;
-
     return audioCacheService.cacheSong({
       songId,
       priority: Priority.Background,
@@ -395,11 +449,7 @@ class CacheManager {
     if (isNativeImageCacheAdapterAvailable()) {
       const adapter = getNativeImageCacheAdapter();
       const existing = await adapter.getCoverImageSize(coverArtId);
-      if (
-        existing.coverSize &&
-        (existing.coverSize === "original" ||
-          Number(existing.coverSize) >= Number(size))
-      ) {
+      if (existing.coverSize && Number(existing.coverSize) >= Number(size)) {
         return;
       }
 
@@ -407,23 +457,32 @@ class CacheManager {
         adapter.downloadCoverImage(coverArtId, size),
       );
       if (!result) return;
-      const storedSize = result.coverSize ?? size;
-      this.rememberNativeCoverUrl(
-        coverArtId,
-        convertFileSrc(result.uri),
-        storedSize,
-      );
+
+      const previous = getCacheIndexItems()[key];
+      const coverSize = result.coverSize ?? size;
+      const revision =
+        nativeCoverRevision(result) ??
+        createLocalCoverRevision(previous?.revision);
+      const now = Date.now();
 
       const meta: CachedItemMeta = {
         id: coverArtId,
         type: "cover",
-        source: "explicit",
-        coverSize: storedSize,
+        source: previous?.source ?? "explicit",
+        coverSize,
+        revision,
         sizeBytes: result.sizeBytes ?? 0,
-        cachedAt: Date.now(),
-        lastAccessedAt: Date.now(),
+        cachedAt: previous?.cachedAt ?? now,
+        lastAccessedAt: now,
       };
 
+      this.rememberNativeCoverUrl(
+        coverArtId,
+        convertFileSrc(result.uri),
+        coverSize,
+        coverContentVersion(meta)!,
+        revision,
+      );
       getCacheIndexActions().addItem(key, meta);
       this.scheduleStatsRefresh();
       persistCacheMeta(key, { key, ...meta });
@@ -470,7 +529,8 @@ class CacheManager {
 
   /**
    * Resolve a cached cover art blob to a local URL for <img> elements.
-   * Returns `null` when the cover is not in the cache.
+   * Returns `null` when the cover is absent or smaller than `requestedSize`.
+   * Callers may explicitly allow a lower-resolution result for offline use.
    *
    * **Callers must call `URL.revokeObjectURL()` on the returned string
    * when they are done with it to avoid leaking memory.**
@@ -478,27 +538,45 @@ class CacheManager {
   async getCachedCoverUrl(
     coverArtId: string,
     requestedSize?: string,
+    options: CachedCoverLookupOptions = {},
   ): Promise<string | null> {
     const key = coverKey(coverArtId);
+    const allowLowerResolution = options.allowLowerResolution === true;
 
     if (isNativeImageCacheAdapterAvailable()) {
+      const { items, loaded } = useCacheIndexStore.getState();
+      const indexedMeta = items[key];
+      const indexedContentVersion = coverContentVersion(indexedMeta);
       const cachedUrl = this.nativeCoverUrlCache.get(coverArtId);
-      if (cachedUrl && isCoverSizeAtLeast(cachedUrl.coverSize, requestedSize)) {
+      if (
+        cachedUrl &&
+        ((!loaded && !indexedContentVersion) ||
+          cachedUrl.contentVersion === indexedContentVersion) &&
+        (allowLowerResolution ||
+          isCoverSizeAtLeast(cachedUrl.coverSize, requestedSize))
+      ) {
         getCacheIndexActions().touchItem(key);
         return cachedUrl.url;
       }
+      if (cachedUrl) this.nativeCoverUrlCache.delete(coverArtId);
 
       const inflight = this.nativeCoverUrlInflight.get(coverArtId);
       const requestedSizeNumber = normalizeCoverSize(requestedSize);
       if (inflight) {
-        if (inflight.requestedSize >= requestedSizeNumber) {
+        if (
+          !allowLowerResolution &&
+          !inflight.allowLowerResolution &&
+          inflight.requestedSize >= requestedSizeNumber
+        ) {
           return inflight.promise;
         }
-        // Re-check after a low-size resolve so a concurrent high-size caller
-        // can observe a later cache upgrade instead of inheriting null/low
-        // quality metadata from the first caller.
-        return inflight.promise.then(() =>
-          this.getCachedCoverUrl(coverArtId, requestedSize),
+        // Re-check after an incompatible resolve. A strict caller cannot
+        // inherit a lower-resolution result, while a permissive caller must
+        // retry when a strict resolve rejected the usable smaller file.
+        return inflight.promise.then((url) =>
+          allowLowerResolution && url
+            ? url
+            : this.getCachedCoverUrl(coverArtId, requestedSize, options),
         );
       }
 
@@ -506,6 +584,7 @@ class CacheManager {
         coverArtId,
         key,
         requestedSize,
+        allowLowerResolution,
       ).finally(() => {
         if (this.nativeCoverUrlInflight.get(coverArtId)?.promise === resolve) {
           this.nativeCoverUrlInflight.delete(coverArtId);
@@ -513,6 +592,7 @@ class CacheManager {
       });
       this.nativeCoverUrlInflight.set(coverArtId, {
         requestedSize: requestedSizeNumber,
+        allowLowerResolution,
         promise: resolve,
       });
       return resolve;
@@ -526,6 +606,7 @@ class CacheManager {
     if (
       loaded &&
       isCoverCached(coverArtId) &&
+      !allowLowerResolution &&
       !isCoverSizeAtLeast(indexedCoverSize, requestedSize)
     ) {
       return null;
@@ -557,6 +638,7 @@ class CacheManager {
           cachedAt: existingRow.cachedAt,
           lastAccessedAt: Date.now(),
           removedFromServer: existingRow.removedFromServer,
+          revision: existingRow.revision,
         });
       } else {
         const syntheticMeta = {
@@ -575,16 +657,41 @@ class CacheManager {
       getCacheIndexActions().touchItem(key);
     }
 
-    return URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    this.rememberCoverSource(
+      url,
+      coverArtId,
+      getCacheIndexItems()[key]?.revision,
+    );
+    return url;
   }
 
   private async resolveNativeCachedCoverUrl(
     coverArtId: string,
     key: string,
     requestedSize?: string,
+    allowLowerResolution = false,
+    retryOnStale = true,
   ): Promise<string | null> {
     const adapter = getNativeImageCacheAdapter();
+    const lookupVersion = coverContentVersion(getCacheIndexItems()[key]);
     const result = await adapter.resolveCoverImage(coverArtId);
+    const currentMeta = getCacheIndexItems()[key];
+    if (
+      coverContentVersion(currentMeta) !== lookupVersion &&
+      (!result || nativeCoverRevision(result) !== currentMeta?.revision)
+    ) {
+      this.nativeCoverUrlCache.delete(coverArtId);
+      return retryOnStale
+        ? this.resolveNativeCachedCoverUrl(
+            coverArtId,
+            key,
+            requestedSize,
+            allowLowerResolution,
+            false,
+          )
+        : null;
+    }
     if (!result) {
       this.nativeCoverUrlCache.delete(coverArtId);
       if (isCoverCached(coverArtId)) {
@@ -593,15 +700,20 @@ class CacheManager {
       return null;
     }
 
+    const resultRevision = nativeCoverRevision(result);
     const coverSize = result.coverSize ?? getCacheIndexItems()[key]?.coverSize;
-    if (!isCoverSizeAtLeast(coverSize, requestedSize)) {
+    if (
+      !allowLowerResolution &&
+      !isCoverSizeAtLeast(coverSize, requestedSize)
+    ) {
       return null;
     }
 
-    if (!isCoverCached(coverArtId)) {
+    let indexedMeta = getCacheIndexItems()[key];
+    if (!indexedMeta) {
       const existingRow = await libraryDb.cacheMeta.get(key);
       if (existingRow) {
-        getCacheIndexActions().addItem(key, {
+        indexedMeta = {
           id: existingRow.id,
           type: existingRow.type,
           source: existingRow.source,
@@ -612,20 +724,56 @@ class CacheManager {
           cachedAt: existingRow.cachedAt,
           lastAccessedAt: Date.now(),
           removedFromServer: existingRow.removedFromServer,
-        });
+          revision: existingRow.revision,
+        };
       } else {
-        const syntheticMeta = {
+        indexedMeta = {
           id: coverArtId,
           type: "cover" as const,
           source: "explicit" as const,
           coverSize: result.coverSize ?? "700",
+          revision: result.revision,
           sizeBytes: result.sizeBytes ?? 0,
           cachedAt: Date.now(),
           lastAccessedAt: Date.now(),
         };
-        getCacheIndexActions().addItem(key, syntheticMeta);
-        persistCacheMeta(key, { key, ...syntheticMeta });
       }
+    }
+
+    const latestMeta = getCacheIndexItems()[key];
+    if (
+      coverContentVersion(latestMeta) !== lookupVersion &&
+      resultRevision !== latestMeta?.revision
+    ) {
+      this.nativeCoverUrlCache.delete(coverArtId);
+      return retryOnStale
+        ? this.resolveNativeCachedCoverUrl(
+            coverArtId,
+            key,
+            requestedSize,
+            allowLowerResolution,
+            false,
+          )
+        : null;
+    }
+    if (latestMeta) indexedMeta = latestMeta;
+
+    const revision =
+      resultRevision ?? indexedMeta.revision ?? createLocalCoverRevision();
+    const resolvedMeta: CachedItemMeta = {
+      ...indexedMeta,
+      coverSize,
+      revision,
+      sizeBytes: result.sizeBytes ?? indexedMeta.sizeBytes,
+      lastAccessedAt: Date.now(),
+    };
+    const metadataChanged =
+      !isCoverCached(coverArtId) ||
+      coverContentVersion(getCacheIndexItems()[key]) !==
+        coverContentVersion(resolvedMeta);
+    if (metadataChanged) {
+      getCacheIndexActions().addItem(key, resolvedMeta);
+      persistCacheMeta(key, { key, ...resolvedMeta });
     } else {
       getCacheIndexActions().touchItem(key);
     }
@@ -634,6 +782,8 @@ class CacheManager {
       coverArtId,
       convertFileSrc(result.uri),
       coverSize,
+      coverContentVersion(resolvedMeta)!,
+      revision,
     );
   }
 
@@ -641,16 +791,105 @@ class CacheManager {
     coverArtId: string,
     url: string,
     coverSize?: string,
+    contentVersion?: string,
+    revision?: string,
   ): string {
+    const version = contentVersion ?? revision ?? "legacy";
+    const versionedUrl = withCoverRevision(url, revision ?? contentVersion);
     this.nativeCoverUrlCache.delete(coverArtId);
-    this.nativeCoverUrlCache.set(coverArtId, { url, coverSize });
+    this.nativeCoverUrlCache.set(coverArtId, {
+      url: versionedUrl,
+      coverSize,
+      contentVersion: version,
+    });
+    this.rememberCoverSource(versionedUrl, coverArtId, revision);
 
     if (this.nativeCoverUrlCache.size > 500) {
       const oldest = this.nativeCoverUrlCache.keys().next().value;
       if (oldest) this.nativeCoverUrlCache.delete(oldest);
     }
 
-    return url;
+    return versionedUrl;
+  }
+
+  private rememberCoverSource(
+    url: string,
+    coverArtId: string,
+    revision?: string,
+  ): void {
+    this.coverSourceByUrl.delete(url);
+    this.coverSourceByUrl.set(url, { coverArtId, revision });
+    if (this.coverSourceByUrl.size > 1_000) {
+      const oldest = this.coverSourceByUrl.keys().next().value;
+      if (oldest) this.coverSourceByUrl.delete(oldest);
+    }
+  }
+
+  /**
+   * Remove the exact cached cover source that failed to decode.
+   *
+   * The source revision is checked again by the native owner before deletion,
+   * so an error delivered late by an old <img> cannot remove newer bytes.
+   */
+  async invalidateCachedCover(
+    coverArtId: string,
+    failedUrl: string,
+  ): Promise<boolean> {
+    const failedSource = this.coverSourceByUrl.get(failedUrl);
+    if (!failedSource || failedSource.coverArtId !== coverArtId) return false;
+
+    const key = coverKey(coverArtId);
+    const expectedRevision =
+      failedSource.revision ?? coverRevisionFromUrl(failedUrl);
+
+    if (isNativeImageCacheAdapterAvailable()) {
+      const adapter = getNativeImageCacheAdapter();
+      const current = await adapter.resolveCoverImage(coverArtId);
+      const currentRevision =
+        current?.revision ?? getCacheIndexItems()[key]?.revision;
+      if (
+        (expectedRevision !== undefined || currentRevision !== undefined) &&
+        expectedRevision !== currentRevision
+      ) {
+        return false;
+      }
+
+      const deleted = await adapter.deleteCoverImage(
+        coverArtId,
+        expectedRevision,
+      );
+      if (!deleted && current) return false;
+    } else {
+      const currentRevision = getCacheIndexItems()[key]?.revision;
+      if (
+        (expectedRevision !== undefined || currentRevision !== undefined) &&
+        expectedRevision !== currentRevision
+      ) {
+        return false;
+      }
+      await cacheStorage.delete(key);
+    }
+
+    const latest = getCacheIndexItems()[key];
+    const latestRevision = latest?.revision;
+    if (
+      latest &&
+      (expectedRevision !== undefined || latestRevision !== undefined) &&
+      expectedRevision !== latestRevision
+    ) {
+      return false;
+    }
+
+    const remembered = this.nativeCoverUrlCache.get(coverArtId);
+    if (remembered?.url === failedUrl) {
+      this.nativeCoverUrlCache.delete(coverArtId);
+      this.nativeCoverUrlInflight.delete(coverArtId);
+    }
+    this.coverSourceByUrl.delete(failedUrl);
+    getCacheIndexActions().removeItem(key);
+    await deleteCacheMeta(key);
+    this.scheduleStatsRefresh();
+    return true;
   }
 
   async cacheAvatar(username: string, size = "150"): Promise<void> {
@@ -1032,7 +1271,8 @@ class CacheManager {
     if (isNativeImageCacheAdapterAvailable()) {
       const isCover = key.startsWith(COVER_PREFIX) || key.startsWith("avatar:");
       if (isCover) {
-        const id = key.split(":")[1];
+        const prefix = key.startsWith(COVER_PREFIX) ? COVER_PREFIX : "avatar:";
+        const id = key.slice(prefix.length);
         if (id) {
           this.nativeCoverUrlCache.delete(id);
           this.nativeCoverUrlInflight.delete(id);
@@ -1157,7 +1397,7 @@ class CacheManager {
       results.push(
         ...videos.map((video): CachedItemDetail => {
           const descriptor = video.id.match(
-            /^motion-v\d+-(.+?)(?:-a(\d+)-s(\d+))?-720x(?:720|960)-/,
+            /^motion-v\d+-(.+?)(?:-a(\d+)-s(\d+))?-\d+x\d+-/,
           );
           return {
             key: `immersive-video:${video.id}`,
@@ -1192,9 +1432,8 @@ class CacheManager {
     audioCacheService.cancelAll();
     syncService.cancel();
     const nativeClears: Promise<void>[] = [clearNativeAudioFilesIfAvailable()];
-    if (isLockScreenArtworkAvailable()) {
+    if (isLockScreenArtworkAvailable())
       nativeClears.push(lockScreenArtwork.clearVideos().then(() => undefined));
-    }
 
     if (isNativeImageCacheAdapterAvailable()) {
       nativeClears.push(getNativeImageCacheAdapter().clearCoverImages());

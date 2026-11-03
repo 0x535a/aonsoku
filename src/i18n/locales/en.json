@@ -25,7 +25,8 @@
     "language": "Language",
     "server": "Server",
     "about": "About",
-    "serverLogout": "Logout"
+    "serverLogout": "Logout",
+    "account": "Account"
   },
   "generic": {
     "seeMore": "See more",
@@ -42,7 +43,9 @@
       }
     },
     "beta": "Beta",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "moveUp": "Move up",
+    "moveDown": "Move down"
   },
   "theme": {
     "label": "Theme",
@@ -315,7 +318,8 @@
     "lyrics": "Lyrics",
     "selectLyrics": "Lyrics settings",
     "switchButton": "Switch to Big Player",
-    "emptyQueue": "No songs in queue"
+    "emptyQueue": "No songs in queue",
+    "close": "Close"
   },
   "lyrics": {
     "customSelect": {
@@ -416,7 +420,8 @@
       },
       "volume": {
         "mute": "Mute",
-        "unmute": "Unmute"
+        "unmute": "Unmute",
+        "label": "Volume"
       }
     },
     "sleepTimer": {
@@ -654,7 +659,8 @@
         "connecting": "Connecting",
         "authenticating": "Authenticating",
         "connected": "Connected",
-        "error": "Error"
+        "error": "Error",
+        "reconnecting": "Reconnecting"
       },
       "lastSync": {
         "label": "Last sync"
@@ -718,7 +724,7 @@
         "sourcePauseTimeout": "The source device did not confirm pause in time.",
         "unsupportedMedia": "This media type cannot be continued on another device.",
         "deviceRevoked": "This device is no longer allowed to use cross-device sync.",
-        "protocolIncompatible": "Update Aonsoku on one or more devices.",
+        "protocolIncompatible": "Update SZ Music on one or more devices.",
         "forbidden": "This device cannot be controlled or transferred right now.",
         "fallback": "Handoff failed: {{reason}}"
       },
@@ -741,7 +747,7 @@
         "thisDevice": "This Device",
         "liveDevices": "Live peer devices",
         "offlineSnapshots": "Continue from offline playback",
-        "willContinue": "Continue from {{name}}"
+        "willContinue": "Will continue from {{name}}"
       },
       "handoff": {
         "prepare": "Preparing track...",
@@ -758,7 +764,7 @@
       "description": "Manage the primary server and optional fallback URL used at startup.",
       "primaryUrl": {
         "label": "Primary URL",
-        "info": "The server URL Aonsoku tries first when the app starts.",
+        "info": "The server URL SZ Music tries first when the app starts.",
         "placeholder": "https://your-server.example.com"
       },
       "fallbackUrl": {
@@ -815,6 +821,11 @@
         },
         "description": "Customize the queue and lyrics page.",
         "group": "Queue and lyrics"
+      },
+      "colors": {
+        "queue": {
+          "intensity": "Color intensity"
+        }
       }
     },
     "audio": {
@@ -964,7 +975,7 @@
     "privacy": {
       "services": {
         "group": "External Services",
-        "description": "Manage the external services that Aonsoku can access.",
+        "description": "Manage the external services that SZ Music can access.",
         "lrclib": {
           "info": "LRCLIB is used to find song lyrics.",
           "label": "LRCLIB"
@@ -1180,7 +1191,7 @@
         "description": "Check for and install application updates.",
         "currentVersion": {
           "label": "Current Version",
-          "info": "The version of Aonsoku you are currently running."
+          "info": "The version of SZ Music you are currently running."
         },
         "status": {
           "label": "Update Status",
@@ -1246,5 +1257,8 @@
   },
   "navigation": {
     "back": "Back"
+  },
+  "common": {
+    "noResults": "No results found"
   }
 }

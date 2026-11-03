@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NativeAudioPlugin } from "@/native/audio";
+import type { getTauriInvoke } from "@/utils/tauri";
 import type { NativeCacheAdapter } from "./contracts";
 import { FakeNativeCacheAdapter } from "./contracts/fakes";
 import {
@@ -13,6 +14,8 @@ import {
   storeNativeAudioFileIfAvailable,
   TauriNativeCacheAdapter,
 } from "./native-cache-adapter";
+
+type TauriInvoke = NonNullable<ReturnType<typeof getTauriInvoke>>;
 
 const mocks = vi.hoisted(() => ({
   getRuntime: vi.fn(),
@@ -354,7 +357,9 @@ describe("IosNativeCacheAdapter", () => {
 describe("TauriNativeCacheAdapter", () => {
   it("stores blobs through Tauri invoke as base64", async () => {
     const invoke = createTauriInvoke();
-    const adapter = new TauriNativeCacheAdapter(invoke);
+    const adapter = new TauriNativeCacheAdapter(
+      invoke as unknown as TauriInvoke,
+    );
 
     const stored = await adapter.storeAudioFile(
       "song-1",
@@ -380,7 +385,9 @@ describe("TauriNativeCacheAdapter", () => {
 
   it("resolves, sizes, deletes, evicts, and clears through Tauri invoke", async () => {
     const invoke = createTauriInvoke();
-    const adapter = new TauriNativeCacheAdapter(invoke);
+    const adapter = new TauriNativeCacheAdapter(
+      invoke as unknown as TauriInvoke,
+    );
 
     await expect(adapter.resolveAudioFile("song-1")).resolves.toEqual({
       songId: "song-1",

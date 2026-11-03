@@ -20,7 +20,8 @@
     "electron/main/**/*",
     "electron/preload/**/*",
     "src/coordination/types.ts",
-    "src/coordination/native-full-state-snapshot.ts"
+    "src/coordination/native-full-state-snapshot.ts",
+    "src/lib/library-owner.ts"
   ],
   "exclude": []
 }

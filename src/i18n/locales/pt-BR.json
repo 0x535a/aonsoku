@@ -145,7 +145,8 @@
     "selectLyrics": "Configurações de letra",
     "dynamicArtwork": "Capa dinâmica do álbum",
     "dynamicArtworkInfo": "Use vídeos de capa envolventes no player em tela cheia. Independente da arte da tela de bloqueio.",
-    "queueShuffling": "Reprodução Aleatória"
+    "queueShuffling": "Reprodução Aleatória",
+    "close": "Fechar"
   },
   "generic": {
     "beta": "Beta",
@@ -162,7 +163,9 @@
         "poster": "Cartaz"
       }
     },
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "moveUp": "Mover para cima",
+    "moveDown": "Mover para baixo"
   },
   "home": {
     "explore": "Explorar",
@@ -270,7 +273,8 @@
     "about": "Sobre",
     "language": "Linguagem",
     "server": "Servidor",
-    "serverLogout": "Desconectar"
+    "serverLogout": "Desconectar",
+    "account": "Conta"
   },
   "mobile": {
     "access_recommendation": "Por favor, acesse-o a partir de um computador ou tablet.",
@@ -353,7 +357,8 @@
       "unstar": "Remover favorito da música atual",
       "volume": {
         "mute": "Mudo",
-        "unmute": "Com som"
+        "unmute": "Com som",
+        "label": "Volume"
       }
     },
     "sleepTimer": {
@@ -584,7 +589,8 @@
         "connecting": "Conectando",
         "authenticating": "Autenticando",
         "connected": "Conectado",
-        "error": "Erro"
+        "error": "Erro",
+        "reconnecting": "Reconectando…"
       },
       "lastSync": {
         "label": "Última sincronização"
@@ -632,7 +638,7 @@
         "sourcePauseTimeout": "O dispositivo de origem não confirmou que a reprodução foi pausada antes do prazo.",
         "unsupportedMedia": "Este tipo de mídia não pode continuar em outro dispositivo.",
         "deviceRevoked": "Este dispositivo não tem mais permissão para usar a sincronização entre dispositivos.",
-        "protocolIncompatible": "Atualize o Aonsoku em um ou mais dispositivos.",
+        "protocolIncompatible": "Atualize o SZ Music em um ou mais dispositivos.",
         "forbidden": "Este dispositivo não pode ser controlado ou transferido neste momento.",
         "fallback": "Falha na transferência: {{reason}}"
       },
@@ -681,6 +687,11 @@
         },
         "description": "Personalize a fila e a página de letras.",
         "group": "Fila e letras"
+      },
+      "colors": {
+        "queue": {
+          "intensity": "Intensidade da cor de fundo"
+        }
       }
     },
     "audio": {
@@ -886,7 +897,7 @@
         "checking": "Verificando atualizações...",
         "checkingManually": "Verificando atualizações...",
         "currentVersion": {
-          "info": "A versão do Aonsoku que você está executando no momento.",
+          "info": "A versão do SZ Music que você está executando no momento.",
           "label": "Versão Atual"
         },
         "description": "Verificar e instalar atualizações do aplicativo.",
@@ -925,7 +936,7 @@
     },
     "privacy": {
       "services": {
-        "description": "Gerencie os serviços externos que o Aonsoku pode acessar.",
+        "description": "Gerencie os serviços externos que o SZ Music pode acessar.",
         "group": "Serviços Externos",
         "lrclib": {
           "info": "O LRCLIB é usado para encontrar letras de músicas.",
@@ -955,7 +966,7 @@
       "group": "Servidor",
       "locked": "As configurações de URL do servidor estão bloqueadas por esta implantação.",
       "primaryUrl": {
-        "info": "O URL do servidor que o Aonsoku tenta primeiro quando o aplicativo inicia.",
+        "info": "O URL do servidor que o SZ Music tenta primeiro quando o aplicativo inicia.",
         "label": "URL Principal",
         "placeholder": "https://your-server.example.com"
       },
@@ -1361,5 +1372,8 @@
   },
   "navigation": {
     "back": "Voltar"
+  },
+  "common": {
+    "noResults": "Nenhum resultado encontrado."
   }
 }

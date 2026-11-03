@@ -146,7 +146,8 @@
     "selectLyrics": "Nastavení textu",
     "dynamicArtwork": "Dynamická grafika alba",
     "dynamicArtworkInfo": "V přehrávači na celou obrazovku používejte poutavá videa s přebaly. Nezávislé na kresbě uzamčené obrazovky.",
-    "queueShuffling": "Náhodné přehrávání"
+    "queueShuffling": "Náhodné přehrávání",
+    "close": "Zavřít"
   },
   "generic": {
     "beta": "Beta",
@@ -163,7 +164,9 @@
         "poster": "Plakát"
       }
     },
-    "cancel": "Zrušit"
+    "cancel": "Zrušit",
+    "moveUp": "Posunout nahoru",
+    "moveDown": "Posunout dolů"
   },
   "home": {
     "explore": "Objevujte",
@@ -271,7 +274,8 @@
     "about": "O aplikaci",
     "language": "Jazyk",
     "server": "Server",
-    "serverLogout": "Odhlásit se"
+    "serverLogout": "Odhlásit se",
+    "account": "Účet"
   },
   "mobile": {
     "access_recommendation": "Prosím přistupujte z počítače nebo tabletu.",
@@ -354,7 +358,8 @@
       "unstar": "Odznačit aktuální skladbu",
       "volume": {
         "mute": "Ztlumit",
-        "unmute": "Odztlumit"
+        "unmute": "Odztlumit",
+        "label": "Hlasitost"
       }
     },
     "sleepTimer": {
@@ -589,7 +594,8 @@
         "connecting": "Spojovací",
         "authenticating": "Ověřování",
         "connected": "Připojeno",
-        "error": "Chyba"
+        "error": "Chyba",
+        "reconnecting": "Znovupřipojování…"
       },
       "lastSync": {
         "label": "Poslední synchronizace"
@@ -637,7 +643,7 @@
         "sourcePauseTimeout": "Zdrojové zařízení nepotvrdilo, že přehrávání bylo pozastaveno před uzávěrkou.",
         "unsupportedMedia": "Tento typ média nemůže pokračovat na jiném zařízení.",
         "deviceRevoked": "Toto zařízení již nemá povoleno používat synchronizaci mezi zařízeními.",
-        "protocolIncompatible": "Aktualizujte Aonsoku na jednom nebo více zařízeních.",
+        "protocolIncompatible": "Aktualizujte SZ Music na jednom nebo více zařízeních.",
         "forbidden": "Toto zařízení nyní nelze ovládat ani přenášet.",
         "fallback": "Předání se nezdařilo: {{reason}}"
       },
@@ -687,6 +693,11 @@
         },
         "description": "Přizpůsobte stránku fronty a textů.",
         "group": "Fronta a texty"
+      },
+      "colors": {
+        "queue": {
+          "intensity": "Intenzita barvy pozadí"
+        }
       }
     },
     "audio": {
@@ -892,7 +903,7 @@
         "checking": "Kontrola aktualizací…",
         "checkingManually": "Kontrola aktualizací…",
         "currentVersion": {
-          "info": "Verze Aonsoku, kterou právě používáte.",
+          "info": "Verze SZ Music, kterou právě používáte.",
           "label": "Aktuální verze"
         },
         "description": "Zkontrolovat a nainstalovat aktualizace aplikace.",
@@ -931,7 +942,7 @@
     },
     "privacy": {
       "services": {
-        "description": "Spravujte externí služby, ke kterým má Aonsoku přístup.",
+        "description": "Spravujte externí služby, ke kterým má SZ Music přístup.",
         "group": "Externí služby",
         "lrclib": {
           "info": "LRCLIB se používá k vyhledávání textů písní.",
@@ -961,7 +972,7 @@
       "group": "Server",
       "locked": "Nastavení URL serveru je uzamčeno touto instalací.",
       "primaryUrl": {
-        "info": "URL serveru, kterou Aonsoku zkouší jako první při spuštění.",
+        "info": "URL serveru, kterou SZ Music zkouší jako první při spuštění.",
         "label": "Primární URL",
         "placeholder": "https://your-server.example.com"
       },
@@ -1370,5 +1381,8 @@
   },
   "navigation": {
     "back": "Zadní"
+  },
+  "common": {
+    "noResults": "Žádné výsledky."
   }
 }

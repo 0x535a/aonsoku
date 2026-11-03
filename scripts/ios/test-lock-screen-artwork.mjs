@@ -13,7 +13,7 @@ const build = mkdtempSync(join(tmpdir(), "aonsoku-artwork-tests-"));
 const output = resolve(process.argv[2] ?? "/tmp/aonsoku-artwork-qa");
 const source = join(
   root,
-  "capacitor-plugins/capacitor-native/ios/Sources/AonsokuNativePlugin/Audio",
+  "ios/AonsokuKit/Sources/AonsokuKit/Audio",
 );
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: root, stdio: "inherit" });

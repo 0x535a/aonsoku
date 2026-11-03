@@ -142,7 +142,8 @@
     "selectLyrics": "가사 설정",
     "dynamicArtwork": "다이나믹한 앨범 아트워크",
     "dynamicArtworkInfo": "전체 화면 플레이어에서 몰입형 커버 동영상을 사용하세요. 잠금 화면 아트웍과 독립적입니다.",
-    "queueShuffling": "셔플 재생"
+    "queueShuffling": "셔플 재생",
+    "close": "닫기"
   },
   "generic": {
     "beta": "베타",
@@ -159,7 +160,9 @@
         "poster": "포스터"
       }
     },
-    "cancel": "취소"
+    "cancel": "취소",
+    "moveUp": "위로 이동",
+    "moveDown": "아래로 이동"
   },
   "home": {
     "explore": "탐색",
@@ -267,7 +270,8 @@
     "about": "앱 정보",
     "language": "언어",
     "server": "서버",
-    "serverLogout": "로그아웃"
+    "serverLogout": "로그아웃",
+    "account": "계정"
   },
   "mobile": {
     "access_recommendation": "컴퓨터 및 태블릿에서 접속하세요.",
@@ -350,7 +354,8 @@
       "unstar": "현재 곡 즐겨찾기 취소",
       "volume": {
         "mute": "음소거",
-        "unmute": "음소거 해제"
+        "unmute": "음소거 해제",
+        "label": "음량"
       }
     },
     "sleepTimer": {
@@ -571,7 +576,8 @@
         "connecting": "연결 중",
         "authenticating": "인증 중",
         "connected": "연결됨",
-        "error": "오류"
+        "error": "오류",
+        "reconnecting": "재연결 중…"
       },
       "lastSync": {
         "label": "마지막 동기화"
@@ -619,7 +625,7 @@
         "sourcePauseTimeout": "소스 장치에서 마감일 이전에 재생이 일시 중지되었는지 확인하지 않았습니다.",
         "unsupportedMedia": "이 미디어 유형은 다른 장치에서 계속 사용할 수 없습니다.",
         "deviceRevoked": "이 장치는 더 이상 장치 간 동기화를 사용할 수 없습니다.",
-        "protocolIncompatible": "하나 이상의 장치에서 Aonsoku를 업데이트하세요.",
+        "protocolIncompatible": "하나 이상의 장치에서 SZ Music를 업데이트하세요.",
         "forbidden": "지금은 이 장치를 제어하거나 전송할 수 없습니다.",
         "fallback": "전달 실패: {{reason}}"
       },
@@ -667,6 +673,11 @@
         },
         "description": "대기열과 가사 페이지를 설정합니다.",
         "group": "대기열 및 가사"
+      },
+      "colors": {
+        "queue": {
+          "intensity": "배경색 강도"
+        }
       }
     },
     "audio": {
@@ -872,7 +883,7 @@
         "checking": "업데이트 확인 중...",
         "checkingManually": "업데이트 확인 중...",
         "currentVersion": {
-          "info": "현재 실행 중인 Aonsoku 버전입니다.",
+          "info": "현재 실행 중인 SZ Music 버전입니다.",
           "label": "현재 버전"
         },
         "description": "애플리케이션 업데이트를 확인하고 설치합니다.",
@@ -911,7 +922,7 @@
     },
     "privacy": {
       "services": {
-        "description": "Aonsoku가 접근할 수 있는 외부 서비스를 관리합니다.",
+        "description": "SZ Music가 접근할 수 있는 외부 서비스를 관리합니다.",
         "group": "외부 서비스",
         "lrclib": {
           "info": "LRCLIB은 가사 검색에 사용됩니다.",
@@ -941,7 +952,7 @@
       "group": "서버",
       "locked": "서버 URL 설정이 이 배포에 의해 잠겨 있습니다.",
       "primaryUrl": {
-        "info": "앱 시작 시 Aonsoku가 먼저 시도하는 서버 URL입니다.",
+        "info": "앱 시작 시 SZ Music가 먼저 시도하는 서버 URL입니다.",
         "label": "기본 URL",
         "placeholder": "https://your-server.example.com"
       },
@@ -1344,5 +1355,8 @@
   },
   "navigation": {
     "back": "뒤쪽에"
+  },
+  "common": {
+    "noResults": "검색 결과 없음."
   }
 }

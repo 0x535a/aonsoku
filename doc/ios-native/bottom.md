@@ -1,3 +1,8 @@
+> Historical Capacitor host design. The main/deploy integration now uses main's
+> native SwiftUI `MainTabView` and shared `NowPlayingPresentation` instead of this
+> WKWebView shell. The native tabs/accessory and phone player remain owned by the
+> existing main architecture; old WK shell fixtures have been removed.
+
 # Aonsoku — iOS 与 iPadOS 原生导航及迷你播放器改造目标
 
 ## 项目背景与范围

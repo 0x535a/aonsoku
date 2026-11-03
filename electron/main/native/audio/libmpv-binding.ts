@@ -75,7 +75,7 @@ export class LibMpvBindingLoadError extends Error {
       cause instanceof Error ? ` Last error: ${cause.message}` : "";
     super(
       [
-        "Unable to load the Aonsoku libmpv native addon.",
+        "Unable to load the SZ Music libmpv native addon.",
         "Run pnpm native-audio:build, set AONSOKU_LIBMPV_ADDON_PATH,",
         "or package the addon under resources/native-audio/<platform>-<arch>.",
         `Searched: ${searchedPaths.join(", ") || "(none)"}.`,
@@ -144,7 +144,7 @@ export function createNativeMpvPlayer(
   ) {
     native.destroy?.();
     throw new Error(
-      "The Aonsoku libmpv addon does not expose the required system media session methods.",
+      "The SZ Music libmpv addon does not expose the required system media session methods.",
     );
   }
   return new NativeMpvPlayerAdapter(native);

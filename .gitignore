@@ -40,11 +40,23 @@ dist/
 coverage/
 .build/
 .swiftpm/
+ios/AonsokuKit/Vendor/CTailscale.xcframework/
+electron/main/native/audio/libmpv/build/
+resources/native-audio/*/
 
-# personal doc
+# Cloudflare Workers local state and secrets
+**/.wrangler/
+**/.dev.vars
+coordination-worker/wrangler.deploy.json
+coordination-worker/.deploy.secrets.json
+
+# deploy personal documentation and legacy native build outputs
 /doc/*
 !/doc/carplay/
 /doc/carplay/*
 !/doc/carplay/*.md
-electron/main/native/audio/libmpv/build/
-resources/native-audio/*/
+/android/capacitor-cordova-android-plugins/
+/ios/App/
+/ios/capacitor-cordova-ios-plugins/
+/capacitor-plugins/capacitor-native/android/
+*.tsbuildinfo

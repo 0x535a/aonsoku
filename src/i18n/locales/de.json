@@ -142,7 +142,8 @@
     "selectLyrics": "Songtext-Einstellungen",
     "dynamicArtwork": "Dynamisches Albumcover",
     "dynamicArtworkInfo": "Nutzen Sie immersive Covervideos im Vollbild-Player. Unabhängig von der Grafik auf dem Sperrbildschirm.",
-    "queueShuffling": "Zufallswiedergabe"
+    "queueShuffling": "Zufallswiedergabe",
+    "close": "Schließen"
   },
   "generic": {
     "beta": "Beta",
@@ -159,7 +160,9 @@
         "poster": "Poster"
       }
     },
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten"
   },
   "home": {
     "explore": "Entdecken",
@@ -267,7 +270,8 @@
     "about": "Über",
     "language": "Sprache",
     "server": "Server",
-    "serverLogout": "Abmelden"
+    "serverLogout": "Abmelden",
+    "account": "Konto"
   },
   "mobile": {
     "access_recommendation": "Bitte greifen Sie über einen Computer oder ein Tablet darauf zu.",
@@ -350,7 +354,8 @@
       "unstar": "Aktuellen Titel aus Favoriten entfernen",
       "volume": {
         "mute": "Stumm",
-        "unmute": "Lautschalten"
+        "unmute": "Lautschalten",
+        "label": "Lautstärke"
       }
     },
     "sleepTimer": {
@@ -571,7 +576,8 @@
         "connecting": "Verbinden",
         "authenticating": "Authentifizierung",
         "connected": "Verbunden",
-        "error": "Fehler"
+        "error": "Fehler",
+        "reconnecting": "Wieder verbinden…"
       },
       "lastSync": {
         "label": "Letzte Synchronisierung"
@@ -619,7 +625,7 @@
         "sourcePauseTimeout": "Das Quellgerät hat vor Ablauf der Frist nicht bestätigt, dass die Wiedergabe angehalten wurde.",
         "unsupportedMedia": "Dieser Medientyp kann nicht auf einem anderen Gerät fortgesetzt werden.",
         "deviceRevoked": "Dieses Gerät darf die geräteübergreifende Synchronisierung nicht mehr verwenden.",
-        "protocolIncompatible": "Aktualisieren Sie Aonsoku auf einem oder mehreren Geräten.",
+        "protocolIncompatible": "Aktualisieren Sie SZ Music auf einem oder mehreren Geräten.",
         "forbidden": "Dieses Gerät kann derzeit nicht gesteuert oder übertragen werden.",
         "fallback": "Übergabe fehlgeschlagen: {{reason}}"
       },
@@ -667,6 +673,11 @@
         },
         "description": "Warteschlange und Liedtextseite anpassen.",
         "group": "Warteschlange und Liedtexte"
+      },
+      "colors": {
+        "queue": {
+          "intensity": "Intensität der Hintergrundfarbe"
+        }
       }
     },
     "audio": {
@@ -872,7 +883,7 @@
         "checking": "Suche nach Updates…",
         "checkingManually": "Suche nach Updates…",
         "currentVersion": {
-          "info": "Die Version von Aonsoku, die du derzeit verwendest.",
+          "info": "Die Version von SZ Music, die du derzeit verwendest.",
           "label": "Aktuelle Version"
         },
         "description": "Nach Anwendungsupdates suchen und diese installieren.",
@@ -911,7 +922,7 @@
     },
     "privacy": {
       "services": {
-        "description": "Legt fest welche Dienste Aonsoku verwenden kann",
+        "description": "Legt fest welche Dienste SZ Music verwenden kann",
         "group": "Externe Dienste",
         "lrclib": {
           "info": "LRCLIB wird für Liedtexte verwendet.",
@@ -941,7 +952,7 @@
       "group": "Server",
       "locked": "Server-URL-Einstellungen sind durch diese Bereitstellung gesperrt.",
       "primaryUrl": {
-        "info": "Die Server-URL versucht Aonsoku zuerst, wenn die App startet.",
+        "info": "Die Server-URL versucht SZ Music zuerst, wenn die App startet.",
         "label": "Primäre URL",
         "placeholder": "https://your-server.example.com"
       },
@@ -1344,5 +1355,8 @@
   },
   "navigation": {
     "back": "Zurück"
+  },
+  "common": {
+    "noResults": "Keine Ergebnisse gefunden."
   }
 }

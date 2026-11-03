@@ -73,8 +73,6 @@ describe("handoff UI subscriptions", () => {
     callbacks.onHandoffCommitted = observer;
     unsubscribePlayer();
     transport.callbacks!.onHandoffCommitted({
-      version: 1,
-      messageId: "committed",
       type: "handoff_committed",
       transactionId: "tx",
       snapshot,
@@ -97,14 +95,24 @@ describe("handoff UI subscriptions", () => {
       },
     });
     transport.callbacks!.onHandoffCommitted({
-      version: 1,
-      messageId: "committed",
       type: "handoff_committed",
       transactionId: "tx",
       snapshot,
       newGeneration: 2,
     });
     expect(events).toEqual(["finish-ui", "playback"]);
+  });
+
+  it("forgets tokens and pending history locally when the music session ends", async () => {
+    const { clearTokens } = await import("./tokenStore");
+    const outbox = (
+      manager as unknown as { outbox: { clear(): Promise<void> } }
+    ).outbox;
+    const clear = vi.spyOn(outbox, "clear");
+    await manager.forgetCurrentDevice();
+    expect(clearTokens).toHaveBeenCalled();
+    expect(clear).toHaveBeenCalled();
+    expect(manager.getDeviceId()).toBeNull();
   });
 
   it("delivers failures to both surfaces and preserves unhandled errors", () => {
@@ -117,8 +125,6 @@ describe("handoff UI subscriptions", () => {
     });
     manager.subscribeHandoffEvents({ onError: inactive });
     transport.callbacks!.onHandoffFailed({
-      version: 1,
-      messageId: "failed",
       type: "handoff_failed",
       transactionId: "tx",
       code: "source_pause_timeout",

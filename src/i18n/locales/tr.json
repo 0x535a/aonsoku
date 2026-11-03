@@ -142,7 +142,8 @@
     "selectLyrics": "Şarkı sözü ayarları",
     "dynamicArtwork": "Dinamik albüm kapağı",
     "dynamicArtworkInfo": "Tam ekran oynatıcıda sürükleyici kapak videolarını kullanın. Kilit ekranı çizimlerinden bağımsız.",
-    "queueShuffling": "Karışık oynatma"
+    "queueShuffling": "Karışık oynatma",
+    "close": "Kapat"
   },
   "generic": {
     "beta": "Beta",
@@ -159,7 +160,9 @@
         "poster": "Poster"
       }
     },
-    "cancel": "İptal"
+    "cancel": "İptal",
+    "moveUp": "Yukarı taşı",
+    "moveDown": "Aşağı taşı"
   },
   "home": {
     "explore": "Keşfet",
@@ -267,7 +270,8 @@
     "about": "Hakkında",
     "language": "Dil",
     "server": "Sunucu",
-    "serverLogout": "Çıkış Yap"
+    "serverLogout": "Çıkış Yap",
+    "account": "Hesap"
   },
   "mobile": {
     "access_recommendation": "Lütfen bir bilgisayar veya tabletten erişin.",
@@ -350,7 +354,8 @@
       "unstar": "Mevcut şarkının yıldızını kaldır",
       "volume": {
         "mute": "Sessiz",
-        "unmute": "Sesi aç"
+        "unmute": "Sesi aç",
+        "label": "Ses düzeyi"
       }
     },
     "sleepTimer": {
@@ -571,7 +576,8 @@
         "connecting": "Bağlanıyor",
         "authenticating": "Kimlik doğrulama",
         "connected": "Bağlı",
-        "error": "Hata"
+        "error": "Hata",
+        "reconnecting": "Yeniden bağlanılıyor…"
       },
       "lastSync": {
         "label": "Son senkronizasyon"
@@ -619,7 +625,7 @@
         "sourcePauseTimeout": "Kaynak cihaz, oynatmanın son tarihten önce duraklatıldığını onaylamadı.",
         "unsupportedMedia": "Bu medya türüne başka bir cihazda devam edilemez.",
         "deviceRevoked": "Bu cihazın artık cihazlar arası senkronizasyonu kullanmasına izin verilmiyor.",
-        "protocolIncompatible": "Aonsoku'yu bir veya daha fazla cihazda güncelleyin.",
+        "protocolIncompatible": "SZ Music'yu bir veya daha fazla cihazda güncelleyin.",
         "forbidden": "Bu cihaz şu anda kontrol edilemiyor veya aktarılamıyor.",
         "fallback": "Aktarım başarısız oldu: {{reason}}"
       },
@@ -667,6 +673,11 @@
         },
         "description": "Kuyruk ve şarkı sözleri sayfasını özelleştir.",
         "group": "Kuyruk ve şarkı sözleri"
+      },
+      "colors": {
+        "queue": {
+          "intensity": "Arka plan rengi yoğunluğu"
+        }
       }
     },
     "audio": {
@@ -872,7 +883,7 @@
         "checking": "Güncellemeler kontrol ediliyor...",
         "checkingManually": "Güncellemeler kontrol ediliyor...",
         "currentVersion": {
-          "info": "Şu anda çalıştırdığınız Aonsoku sürümü.",
+          "info": "Şu anda çalıştırdığınız SZ Music sürümü.",
           "label": "Mevcut Sürüm"
         },
         "description": "Uygulama güncellemelerini kontrol edin ve yükleyin.",
@@ -911,7 +922,7 @@
     },
     "privacy": {
       "services": {
-        "description": "Aonsoku'nun erişebileceği harici hizmetleri yönetin.",
+        "description": "SZ Music'nun erişebileceği harici hizmetleri yönetin.",
         "group": "Harici Hizmetler",
         "lrclib": {
           "info": "LRCLIB şarkı sözlerini bulmak için kullanılır.",
@@ -941,7 +952,7 @@
       "group": "Sunucu",
       "locked": "Sunucu URL ayarları bu dağıtım tarafından kilitlenmiştir.",
       "primaryUrl": {
-        "info": "Aonsoku'nun uygulama başladığında ilk denediği sunucu URL'si.",
+        "info": "SZ Music'nun uygulama başladığında ilk denediği sunucu URL'si.",
         "label": "Birincil URL",
         "placeholder": "https://your-server.example.com"
       },
@@ -1344,5 +1355,8 @@
   },
   "navigation": {
     "back": "Geri"
+  },
+  "common": {
+    "noResults": "Sonuç bulunamadı."
   }
 }

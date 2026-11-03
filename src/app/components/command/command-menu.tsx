@@ -47,7 +47,7 @@ export default function CommandMenu() {
 
   const [query, setQuery] = useState("");
   const [pages, setPages] = useState<CommandPages[]>(["HOME"]);
-  const [pageTitle, setPageTitle] = useState<string>("Aonsoku");
+  const [pageTitle, setPageTitle] = useState<string>("SZ Music");
 
   const activePage = pages[pages.length - 1];
   const isHome = activePage === "HOME";
@@ -82,7 +82,7 @@ export default function CommandMenu() {
 
     // 首页
     if (pathname === "/") {
-      setPageTitle("Aonsoku");
+      setPageTitle("SZ Music");
       return;
     }
 
@@ -125,7 +125,7 @@ export default function CommandMenu() {
       return;
     }
 
-    setPageTitle("Aonsoku");
+    setPageTitle("SZ Music");
   }, [location.pathname, albumData, artistData, playlistData, t]);
 
   const { data: searchResult } = useQuery({

@@ -142,7 +142,8 @@
     "selectLyrics": "Textinställningar",
     "dynamicArtwork": "Dynamiskt albumomslag",
     "dynamicArtworkInfo": "Använd uppslukande omslagsvideor i helskärmsspelaren. Oberoende av konstverk på låsskärmen.",
-    "queueShuffling": "Blanda uppspelning"
+    "queueShuffling": "Blanda uppspelning",
+    "close": "Stäng"
   },
   "generic": {
     "beta": "Beta",
@@ -159,7 +160,9 @@
         "poster": "Affisch"
       }
     },
-    "cancel": "Avbryt"
+    "cancel": "Avbryt",
+    "moveUp": "Flytta upp",
+    "moveDown": "Flytta ned"
   },
   "home": {
     "explore": "Utforska",
@@ -267,7 +270,8 @@
     "about": "Om",
     "language": "Språk",
     "server": "Server",
-    "serverLogout": "Logga ut"
+    "serverLogout": "Logga ut",
+    "account": "Konto"
   },
   "mobile": {
     "access_recommendation": "Vänligen öppna den från en dator eller surfplatta.",
@@ -350,7 +354,8 @@
       "unstar": "Avstjärnmarkera aktuell låt",
       "volume": {
         "mute": "Tysta",
-        "unmute": "Återställ ljud"
+        "unmute": "Återställ ljud",
+        "label": "Volym"
       }
     },
     "sleepTimer": {
@@ -571,7 +576,8 @@
         "connecting": "Ansluter",
         "authenticating": "Autentiseras",
         "connected": "Ansluten",
-        "error": "Fel"
+        "error": "Fel",
+        "reconnecting": "Återansluter…"
       },
       "lastSync": {
         "label": "Senaste synkronisering"
@@ -619,7 +625,7 @@
         "sourcePauseTimeout": "Källenheten bekräftade inte att uppspelningen pausades före deadline.",
         "unsupportedMedia": "Den här mediatypen kan inte fortsätta på en annan enhet.",
         "deviceRevoked": "Den här enheten får inte längre använda synkronisering över flera enheter.",
-        "protocolIncompatible": "Uppdatera Aonsoku på en eller flera enheter.",
+        "protocolIncompatible": "Uppdatera SZ Music på en eller flera enheter.",
         "forbidden": "Den här enheten kan inte kontrolleras eller överföras just nu.",
         "fallback": "Handoff misslyckades: {{reason}}"
       },
@@ -667,6 +673,11 @@
         },
         "description": "Anpassa kön och sidan med sångtexter.",
         "group": "Kö och sångtexter"
+      },
+      "colors": {
+        "queue": {
+          "intensity": "Bakgrundsfärgens intensitet"
+        }
       }
     },
     "audio": {
@@ -872,7 +883,7 @@
         "checking": "Söker efter uppdateringar...",
         "checkingManually": "Söker efter uppdateringar...",
         "currentVersion": {
-          "info": "Versionen av Aonsoku du kör för närvarande.",
+          "info": "Versionen av SZ Music du kör för närvarande.",
           "label": "Aktuell version"
         },
         "description": "Sök efter och installera appuppdateringar.",
@@ -911,7 +922,7 @@
     },
     "privacy": {
       "services": {
-        "description": "Hantera de externa tjänster som Aonsoku kan komma åt.",
+        "description": "Hantera de externa tjänster som SZ Music kan komma åt.",
         "group": "Externa tjänster",
         "lrclib": {
           "info": "LRCLIB används för att hitta låttexter.",
@@ -941,7 +952,7 @@
       "group": "Server",
       "locked": "Server-URL-inställningarna är låsta av denna distribution.",
       "primaryUrl": {
-        "info": "Server-URL:en Aonsoku försöker först när appen startar.",
+        "info": "Server-URL:en SZ Music försöker först när appen startar.",
         "label": "Primär URL",
         "placeholder": "https://your-server.example.com"
       },
@@ -1344,5 +1355,8 @@
   },
   "navigation": {
     "back": "Tillbaka"
+  },
+  "common": {
+    "noResults": "Ingen resultat hittades."
   }
 }

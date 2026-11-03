@@ -325,7 +325,7 @@ bool AppendPropertyValue(DBusMessageIter* variant, const std::string& iface,
     }
   } else if (iface == kRootInterface) {
     if (prop == "Identity") {
-      AppendStringValue(variant, "Aonsoku");
+      AppendStringValue(variant, "SZ Music");
       return true;
     }
     if (prop == "DesktopEntry") {
@@ -374,7 +374,7 @@ void AppendAllPlayerProperties(DBusMessageIter* dict) {
 
 // Appends all Root property dict entries. Static; no lock required.
 void AppendAllRootProperties(DBusMessageIter* dict) {
-  AppendStringEntry(dict, "Identity", "Aonsoku");
+  AppendStringEntry(dict, "Identity", "SZ Music");
   AppendBoolEntry(dict, "CanQuit", false);
   AppendBoolEntry(dict, "CanRaise", false);
   AppendBoolEntry(dict, "HasTrackList", false);
@@ -405,7 +405,6 @@ void EmitSeeked(DBusConnection* connection, double position_seconds) {
   dbus_message_append_args(signal, DBUS_TYPE_INT64, &position_micros,
                            DBUS_TYPE_INVALID);
   dbus_connection_send(connection, signal, nullptr);
-  dbus_connection_flush(connection);
   dbus_message_unref(signal);
 }
 
@@ -913,7 +912,9 @@ void EmitPropertiesChanged() {
   dbus_message_iter_open_container(&root, DBUS_TYPE_ARRAY, "s", &invalidated);
   dbus_message_iter_close_container(&root, &invalidated);
   dbus_connection_send(connection, signal, nullptr);
-  dbus_connection_flush(connection);
+  // DispatchLoop drains queued output. A synchronous flush here competes
+  // with its blocking read for the D-Bus I/O lock while holding g_state.mutex,
+  // and can starve playback/session updates indefinitely.
   dbus_message_unref(signal);
 }
 

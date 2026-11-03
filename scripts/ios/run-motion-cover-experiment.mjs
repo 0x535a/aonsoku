@@ -15,7 +15,7 @@ const output = resolve(
 const build = mkdtempSync(join(tmpdir(), "aonsoku-motion-experiment-"));
 const native = join(
   root,
-  "capacitor-plugins/capacitor-native/ios/Sources/AonsokuNativePlugin/Audio",
+  "ios/AonsokuKit/Sources/AonsokuKit/Audio",
 );
 const architecture = process.arch === "x64" ? "x86_64" : process.arch;
 mkdirSync(output, { recursive: true });

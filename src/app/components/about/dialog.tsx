@@ -40,7 +40,7 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
           <div className="flex gap-2 items-center justify-center w-full py-4 bg-accent/50">
             <img
               src={roundedIcon}
-              alt="Aonsoku"
+              alt="SZ Music"
               className="size-12 drop-shadow grayscale"
             />
             <h1 className="font-semibold text-2xl drop-shadow">{name}</h1>

@@ -1,8 +1,11 @@
+import { libraryAccountKey } from "../../../../src/lib/library-owner";
+import { randomUUID } from "node:crypto";
 import { realpathSync, statSync } from "node:fs";
 import {
   mkdir,
   readdir,
   readFile,
+  rename,
   rm,
   stat,
   writeFile,
@@ -14,6 +17,7 @@ import type {
   ArtistFilter,
   NativeAlbum,
   NativeArtist,
+  NativeCachedCoverImageFile,
   NativeGenre,
   NativePlaylist,
   NativePlaylistWithEntries,
@@ -28,6 +32,7 @@ import { AonsokuStore } from "../../core/store";
 import type { DesktopNativeBridgeService } from "../bridge/service";
 
 interface DataState {
+  albumOwner?: string;
   artists: NativeArtist[];
   albums: NativeAlbum[];
   songs: NativeSong[];
@@ -46,7 +51,12 @@ interface DataState {
   lastSyncedAt?: number;
   coverFiles: Record<
     string,
-    { fileName: string; contentType: string; coverSize: string }
+    {
+      fileName: string;
+      contentType: string;
+      coverSize: string;
+      revision?: string;
+    }
   >;
 }
 
@@ -73,6 +83,25 @@ function text(value: unknown): string {
   return String(value ?? "").toLocaleLowerCase();
 }
 
+function normalizedCoverSize(size: string | undefined): number {
+  const parsed = Number(size);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function legacyCoverRevision(info: { mtimeMs: number; size: number }): string {
+  return `${Math.trunc(info.mtimeMs)}-${info.size}`;
+}
+
+interface CoverGeneration {
+  cache: number;
+  entry: number;
+}
+
+interface CoverDownloadTask {
+  requestedSize: number;
+  promise: Promise<NativeCachedCoverImageFile | null>;
+}
+
 export class DesktopNativeDataService {
   private readonly store = new AonsokuStore<DataState>({
     name: "native-library",
@@ -86,6 +115,11 @@ export class DesktopNativeDataService {
     totalItems: 0,
   };
   private cancelled = false;
+  private accountGeneration = 0;
+  private readonly coverDownloads = new Map<string, CoverDownloadTask>();
+  private readonly coverGenerations = new Map<string, number>();
+  private coverPublicationTail = Promise.resolve();
+  private coverCacheGeneration = 0;
 
   constructor(
     private readonly bridge: DesktopNativeBridgeService,
@@ -104,6 +138,21 @@ export class DesktopNativeDataService {
 
   cancelSync(): void {
     this.cancelled = true;
+  }
+
+  async resetAccount(): Promise<void> {
+    this.accountGeneration++;
+    this.cancelSync();
+    this.coverDownloads.clear();
+    await this.clearCoverImages();
+    this.store.set(
+      structuredClone({
+        ...defaults,
+        albumOwner: undefined,
+        lastSyncedAt: undefined,
+      }),
+    );
+    this.updateSyncState({ phase: "idle", isSyncing: false, progress: 0 });
   }
 
   async syncAll(options?: {
@@ -139,6 +188,8 @@ export class DesktopNativeDataService {
     },
   ): Promise<void> {
     if (this.syncState.isSyncing) return;
+    const generation = this.accountGeneration;
+    const owner = this.currentAlbumOwner();
     this.cancelled = false;
     this.updateSyncState({ isSyncing: true, phase: "genres", progress: 0 });
     try {
@@ -153,7 +204,12 @@ export class DesktopNativeDataService {
         this.bridge.request({ path: "/getStarred2.view" }),
         this.bridge.request({ path: "/getArtists.view" }),
       ]);
-      if (this.cancelled) return;
+      if (
+        generation !== this.accountGeneration ||
+        this.cancelled ||
+        owner !== this.currentAlbumOwner()
+      )
+        return;
 
       const genres = ((genresResponse.data.genres as { genre?: NativeGenre[] })
         ?.genre ?? []) as NativeGenre[];
@@ -177,7 +233,16 @@ export class DesktopNativeDataService {
       this.updateSyncState({ phase: "albums", progress: 0.3 });
 
       const albums: NativeAlbum[] = [];
-      for (let offset = 0; !this.cancelled; offset += 500) {
+      for (
+        let offset = 0;
+        generation === this.accountGeneration && !this.cancelled;
+        offset += 500
+      ) {
+        if (
+          generation !== this.accountGeneration ||
+          owner !== this.currentAlbumOwner()
+        )
+          return;
         const response = await this.bridge.request({
           path: "/getAlbumList2.view",
           query: { type: "alphabeticalByName", size: 500, offset },
@@ -191,11 +256,17 @@ export class DesktopNativeDataService {
         this.updateSyncState({ processedItems: albums.length });
         if (page.length < 500) break;
       }
-      if (this.cancelled) return;
+      if (
+        generation !== this.accountGeneration ||
+        this.cancelled ||
+        owner !== this.currentAlbumOwner()
+      )
+        return;
 
       if (!includeFullSongs) {
         this.store.set({
           albums,
+          albumOwner: owner,
           songs: this.mergeStarredSongs(
             this.store.get("songs"),
             starred.song ?? [],
@@ -221,7 +292,12 @@ export class DesktopNativeDataService {
             concurrency: options.coverArtConcurrency,
             useAlbumCoverForSongs: options.useAlbumCoverForSongs,
           });
-          if (this.cancelled) return;
+          if (
+            generation !== this.accountGeneration ||
+            this.cancelled ||
+            owner !== this.currentAlbumOwner()
+          )
+            return;
         }
         this.updateSyncState({ phase: "done", progress: 1 });
         return;
@@ -229,7 +305,11 @@ export class DesktopNativeDataService {
 
       const songs: NativeSong[] = [];
       this.updateSyncState({ phase: "songs", progress: 0.6 });
-      for (let offset = 0; !this.cancelled; offset += 500) {
+      for (
+        let offset = 0;
+        generation === this.accountGeneration && !this.cancelled;
+        offset += 500
+      ) {
         const response = await this.bridge.request({
           path: "/search3.view",
           query: {
@@ -253,7 +333,18 @@ export class DesktopNativeDataService {
         if (page.length < 500) break;
       }
       const mergedSongs = this.mergeStarredSongs(songs, starred.song ?? []);
-      this.store.set({ albums, songs: mergedSongs, lastSyncedAt: Date.now() });
+      if (
+        generation !== this.accountGeneration ||
+        this.cancelled ||
+        owner !== this.currentAlbumOwner()
+      )
+        return;
+      this.store.set({
+        albums,
+        albumOwner: owner,
+        songs: mergedSongs,
+        lastSyncedAt: Date.now(),
+      });
       this.emit("dataChanged", {
         tables: [
           "genres",
@@ -273,14 +364,21 @@ export class DesktopNativeDataService {
           concurrency: options.coverArtConcurrency,
           useAlbumCoverForSongs: options.useAlbumCoverForSongs,
         });
-        if (this.cancelled) return;
+        if (
+          generation !== this.accountGeneration ||
+          this.cancelled ||
+          owner !== this.currentAlbumOwner()
+        )
+          return;
       }
       this.updateSyncState({ phase: "done", progress: 1 });
     } catch (error) {
+      if (generation !== this.accountGeneration) return;
       this.updateSyncState({ phase: "error" });
       throw error;
     } finally {
-      this.updateSyncState({ isSyncing: false });
+      if (generation === this.accountGeneration)
+        this.updateSyncState({ isSyncing: false });
     }
   }
 
@@ -404,6 +502,16 @@ export class DesktopNativeDataService {
     return this.store.get("artists").find((item) => item.id === id) ?? null;
   }
 
+  private currentAlbumOwner(): string | undefined {
+    const credentials = this.bridge.getCredentials();
+    return credentials?.serverUrl && credentials.username
+      ? libraryAccountKey({
+          url: credentials.serverUrl,
+          username: credentials.username,
+        })
+      : undefined;
+  }
+
   getAlbums(options: PaginatedQuery & AlbumFilter) {
     let items = [...this.store.get("albums")];
     if (options.search)
@@ -422,8 +530,12 @@ export class DesktopNativeDataService {
       items = items.filter((item) => (item.year ?? 0) <= options.toYear!);
     if (options.starredOnly)
       items = items.filter((item) => Boolean(item.starred));
-    if (options.sortBy === "random") items.sort(() => Math.random() - 0.5);
-    else {
+    if (options.sortBy === "random") {
+      for (let i = items.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+    } else {
       const field = options.sortBy ?? "name";
       items.sort(
         (a, b) =>
@@ -432,7 +544,10 @@ export class DesktopNativeDataService {
           ) * (options.sortOrder === "desc" ? -1 : 1),
       );
     }
-    return paginate(items, options);
+    return {
+      ...paginate(items, options),
+      libraryOwner: this.store.get("albumOwner"),
+    };
   }
 
   getAlbum({ id }: { id: string }) {
@@ -476,6 +591,7 @@ export class DesktopNativeDataService {
   }
 
   async getPlaylist({ id }: { id: string }) {
+    const generation = this.accountGeneration;
     const cached = this.store.get("playlistDetails")[id];
     if (cached) return cached;
     const response = await this.bridge.request({
@@ -485,7 +601,7 @@ export class DesktopNativeDataService {
     const playlist = response.data.playlist as
       | NativePlaylistWithEntries
       | undefined;
-    if (!playlist) return null;
+    if (!playlist || generation !== this.accountGeneration) return null;
     this.store.set(`playlistDetails.${id}`, playlist);
     return playlist;
   }
@@ -571,34 +687,41 @@ export class DesktopNativeDataService {
     contentType: string;
     coverSize: string;
   }) {
+    const generation = this.coverGeneration(options.coverArtId);
     return {
       file: await this.writeCover(
         options.coverArtId,
         Buffer.from(options.dataBase64, "base64"),
         options.contentType,
         options.coverSize,
+        generation,
       ),
     };
   }
 
   async resolveCoverImage({ coverArtId }: { coverArtId: string }) {
-    const meta = this.store.get("coverFiles")[coverArtId];
-    if (!meta) return { file: null };
-    const path = join(this.coverDirectory(), meta.fileName);
-    try {
-      const info = await stat(path);
-      return {
-        file: {
-          coverArtId,
-          uri: `aonsoku-media://cached?id=${encodeURIComponent(coverArtId)}`,
-          contentType: meta.contentType,
-          sizeBytes: info.size,
-          coverSize: meta.coverSize,
-        },
-      };
-    } catch {
-      return { file: null };
+    let meta = this.store.get("coverFiles")[coverArtId];
+    for (let attempt = 0; meta && attempt < 2; attempt++) {
+      try {
+        const info = await stat(join(this.coverDirectory(), meta.fileName));
+        const revision = meta.revision ?? legacyCoverRevision(info);
+        return {
+          file: {
+            coverArtId,
+            uri: this.cachedCoverUri(coverArtId, revision),
+            contentType: meta.contentType,
+            sizeBytes: info.size,
+            coverSize: meta.coverSize,
+            revision,
+          },
+        };
+      } catch {
+        const current = this.store.get("coverFiles")[coverArtId];
+        if (!current || current.fileName === meta.fileName) break;
+        meta = current;
+      }
     }
+    return { file: null };
   }
 
   resolveCoverFileUri(coverArtId: string): string | undefined {
@@ -624,28 +747,70 @@ export class DesktopNativeDataService {
     };
   }
 
-  async deleteCoverImage({ coverArtId }: { coverArtId: string }) {
-    const files = { ...this.store.get("coverFiles") };
-    const meta = files[coverArtId];
-    if (!meta) return { deleted: false };
-    await rm(join(this.coverDirectory(), meta.fileName), { force: true });
-    delete files[coverArtId];
-    this.store.set("coverFiles", files);
-    return { deleted: true };
+  async deleteCoverImage({
+    coverArtId,
+    expectedRevision,
+  }: {
+    coverArtId: string;
+    expectedRevision?: string;
+  }) {
+    return this.withCoverPublicationLock(async () => {
+      const files = { ...this.store.get("coverFiles") };
+      const meta = files[coverArtId];
+      if (!meta) {
+        if (expectedRevision !== undefined) return { deleted: false };
+        this.coverGenerations.set(
+          coverArtId,
+          (this.coverGenerations.get(coverArtId) ?? 0) + 1,
+        );
+        return { deleted: false };
+      }
+      let currentRevision = meta.revision;
+      if (!currentRevision && expectedRevision !== undefined) {
+        try {
+          const info = await stat(join(this.coverDirectory(), meta.fileName));
+          currentRevision = legacyCoverRevision(info);
+        } catch {}
+      }
+      if (
+        expectedRevision !== undefined &&
+        currentRevision !== expectedRevision
+      ) {
+        return { deleted: false };
+      }
+      this.coverGenerations.set(
+        coverArtId,
+        (this.coverGenerations.get(coverArtId) ?? 0) + 1,
+      );
+      await rm(join(this.coverDirectory(), meta.fileName), { force: true });
+      delete files[coverArtId];
+      this.store.set("coverFiles", files);
+      this.emit("coverCacheChanged", { coverArtId, file: null });
+      return { deleted: true };
+    });
   }
 
   async clearCoverImages() {
-    const directory = this.coverDirectory();
-    let deletedCount = 0;
-    try {
-      const files = await readdir(directory);
-      deletedCount = files.length;
-      await Promise.all(
-        files.map((file) => rm(join(directory, file), { force: true })),
-      );
-    } catch {}
-    this.store.set("coverFiles", {});
-    return { deletedCount };
+    // Invalidate every task that captured the previous cache generation before
+    // entering the publication queue. New writes line up behind this clear.
+    this.coverCacheGeneration++;
+    return this.withCoverPublicationLock(async () => {
+      const directory = this.coverDirectory();
+      const coverArtIds = Object.keys(this.store.get("coverFiles"));
+      let deletedCount = 0;
+      try {
+        const files = await readdir(directory);
+        deletedCount = files.length;
+        await Promise.all(
+          files.map((file) => rm(join(directory, file), { force: true })),
+        );
+      } catch {}
+      this.store.set("coverFiles", {});
+      for (const coverArtId of coverArtIds) {
+        this.emit("coverCacheChanged", { coverArtId, file: null });
+      }
+      return { deletedCount };
+    });
   }
 
   async downloadCoverImage({
@@ -655,33 +820,83 @@ export class DesktopNativeDataService {
     coverArtId: string;
     size: string;
   }) {
-    const response = await this.bridge.downloadBinary("/getCoverArt.view", {
-      id: coverArtId,
-      size,
-    });
     return {
-      file: await this.writeCover(
-        coverArtId,
-        response.data,
-        response.contentType,
-        size,
-      ),
+      file: await this.downloadAndStoreCover("cover", coverArtId, size),
     };
   }
 
   async downloadAvatar({ username, size }: { username: string; size: string }) {
-    const response = await this.bridge.downloadBinary("/getAvatar.view", {
-      username,
-      size,
-    });
     return {
-      file: await this.writeCover(
-        username,
-        response.data,
-        response.contentType,
-        size,
-      ),
+      file: await this.downloadAndStoreCover("avatar", username, size),
     };
+  }
+
+  private async downloadAndStoreCover(
+    kind: "cover" | "avatar",
+    coverArtId: string,
+    size: string,
+  ) {
+    const requestedSize = normalizedCoverSize(size);
+    const taskKey = `${kind}:${coverArtId}`;
+
+    while (true) {
+      const cached = await this.resolveCoverImage({ coverArtId });
+      if (
+        cached.file &&
+        normalizedCoverSize(cached.file.coverSize) >= requestedSize
+      ) {
+        return cached.file;
+      }
+
+      const current = this.coverDownloads.get(taskKey);
+      if (current) {
+        try {
+          await current.promise;
+        } catch (error) {
+          // A larger request queued behind a failed smaller request gets one
+          // chance to become the next owner. Equal/smaller callers observe the
+          // shared failure; a later request can retry after `finally` cleanup.
+          if (current.requestedSize >= requestedSize) throw error;
+        }
+        continue;
+      }
+
+      const generation = this.coverGeneration(coverArtId);
+      const promise: CoverDownloadTask["promise"] = this.fetchAndStoreCover(
+        kind,
+        coverArtId,
+        size,
+        generation,
+      ).finally(() => {
+        if (this.coverDownloads.get(taskKey)?.promise === promise) {
+          this.coverDownloads.delete(taskKey);
+        }
+      });
+      this.coverDownloads.set(taskKey, { requestedSize, promise });
+      return promise;
+    }
+  }
+
+  private async fetchAndStoreCover(
+    kind: "cover" | "avatar",
+    coverArtId: string,
+    size: string,
+    generation: CoverGeneration,
+  ) {
+    const response = await this.bridge.downloadBinary(
+      kind === "cover" ? "/getCoverArt.view" : "/getAvatar.view",
+      {
+        [kind === "cover" ? "id" : "username"]: coverArtId,
+        ...(size ? { size } : {}),
+      },
+    );
+    return this.writeCover(
+      coverArtId,
+      response.data,
+      response.contentType,
+      size,
+      generation,
+    );
   }
 
   private coverDirectory(): string {
@@ -693,43 +908,131 @@ export class DesktopNativeDataService {
     data: Buffer,
     contentType: string,
     coverSize: string,
+    generation: CoverGeneration,
   ) {
-    const directory = this.coverDirectory();
-    await mkdir(directory, { recursive: true });
-    const extension = contentType.includes("png")
-      ? "png"
-      : contentType.includes("webp")
-        ? "webp"
-        : "jpg";
-    const fileName = `${Buffer.from(coverArtId).toString("base64url")}.${extension}`;
-    const path = join(directory, fileName);
-    await writeFile(path, data);
-    this.store.set("coverFiles", {
-      ...this.store.get("coverFiles"),
-      [coverArtId]: { fileName, contentType, coverSize },
+    return this.withCoverPublicationLock(async () => {
+      if (!this.isCurrentCoverGeneration(coverArtId, generation)) return null;
+
+      const existing = await this.resolveCoverImage({ coverArtId });
+      if (
+        existing.file &&
+        normalizedCoverSize(existing.file.coverSize) >
+          normalizedCoverSize(coverSize)
+      ) {
+        return existing.file;
+      }
+
+      const directory = this.coverDirectory();
+      await mkdir(directory, { recursive: true });
+      const extension = contentType.includes("png")
+        ? "png"
+        : contentType.includes("webp")
+          ? "webp"
+          : "jpg";
+      const encodedId = Buffer.from(coverArtId).toString("base64url");
+      const publicationId = randomUUID();
+      const fileName = `${encodedId}.${publicationId}.${extension}`;
+      const tempPath = join(directory, `${fileName}.tmp`);
+      const path = join(directory, fileName);
+
+      try {
+        await writeFile(tempPath, data);
+        await rename(tempPath, path);
+        if (!this.isCurrentCoverGeneration(coverArtId, generation)) {
+          await rm(path, { force: true });
+          return null;
+        }
+
+        // Recheck under the publication lock immediately before publication.
+        // This is the final guard against a smaller completion replacing a
+        // larger file written through another entry point.
+        const files = this.store.get("coverFiles");
+        const current = files[coverArtId];
+        if (
+          current &&
+          normalizedCoverSize(current.coverSize) >
+            normalizedCoverSize(coverSize)
+        ) {
+          await rm(path, { force: true });
+          return (await this.resolveCoverImage({ coverArtId })).file;
+        }
+
+        const revision = publicationId;
+        const file: NativeCachedCoverImageFile = {
+          coverArtId,
+          uri: `aonsoku-media://cached?id=${encodeURIComponent(coverArtId)}&v=${encodeURIComponent(revision)}`,
+          contentType,
+          sizeBytes: data.byteLength,
+          coverSize,
+          revision,
+        };
+        this.store.set("coverFiles", {
+          ...files,
+          [coverArtId]: { fileName, contentType, coverSize, revision },
+        });
+        this.emit("coverCacheChanged", { coverArtId, file });
+        if (current?.fileName && current.fileName !== fileName) {
+          await rm(join(directory, current.fileName), { force: true }).catch(
+            () => {},
+          );
+        }
+        return file;
+      } finally {
+        await rm(tempPath, { force: true }).catch(() => {});
+      }
     });
+  }
+
+  private coverGeneration(coverArtId: string): CoverGeneration {
     return {
-      coverArtId,
-      uri: `aonsoku-media://cached?id=${encodeURIComponent(coverArtId)}`,
-      contentType,
-      sizeBytes: data.byteLength,
-      coverSize,
+      cache: this.coverCacheGeneration,
+      entry: this.coverGenerations.get(coverArtId) ?? 0,
     };
+  }
+
+  private cachedCoverUri(coverArtId: string, revision?: string): string {
+    const query = new URLSearchParams({ id: coverArtId });
+    if (revision) query.set("v", revision);
+    return `aonsoku-media://cached?${query}`;
+  }
+
+  private isCurrentCoverGeneration(
+    coverArtId: string,
+    generation: CoverGeneration,
+  ): boolean {
+    return (
+      generation.cache === this.coverCacheGeneration &&
+      generation.entry === (this.coverGenerations.get(coverArtId) ?? 0)
+    );
+  }
+
+  private async withCoverPublicationLock<T>(
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    const previous = this.coverPublicationTail;
+    let release = () => {};
+    const lock = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    this.coverPublicationTail = lock;
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      release();
+      if (this.coverPublicationTail === lock) {
+        this.coverPublicationTail = Promise.resolve();
+      }
+    }
   }
 
   async readCover(
     coverArtId: string,
   ): Promise<{ data: Buffer; contentType: string } | null> {
-    const meta = this.store.get("coverFiles")[coverArtId];
-    if (!meta) return null;
-    try {
-      return {
-        data: await readFile(join(this.coverDirectory(), meta.fileName)),
-        contentType: meta.contentType,
-      };
-    } catch {
-      return null;
-    }
+    const stored = await this.readStoredCover(coverArtId);
+    return stored
+      ? { data: stored.data, contentType: stored.meta.contentType }
+      : null;
   }
 
   /**
@@ -744,17 +1047,36 @@ export class DesktopNativeDataService {
     data: Buffer;
     contentType: string;
     coverSize: string;
+    revision?: string;
   } | null> {
-    const meta = this.store.get("coverFiles")[coverArtId];
-    if (!meta) return null;
-    try {
-      return {
-        data: await readFile(join(this.coverDirectory(), meta.fileName)),
-        contentType: meta.contentType,
-        coverSize: meta.coverSize,
-      };
-    } catch {
-      return null;
+    const stored = await this.readStoredCover(coverArtId);
+    return stored
+      ? {
+          data: stored.data,
+          contentType: stored.meta.contentType,
+          coverSize: stored.meta.coverSize,
+          revision: stored.meta.revision,
+        }
+      : null;
+  }
+
+  private async readStoredCover(coverArtId: string) {
+    let meta = this.store.get("coverFiles")[coverArtId];
+    for (let attempt = 0; meta && attempt < 2; attempt++) {
+      try {
+        return {
+          data: await readFile(join(this.coverDirectory(), meta.fileName)),
+          meta,
+        };
+      } catch {
+        // Atomic replacement publishes a new filename before removing the old
+        // one. A reader that captured the old metadata can lose that race; if
+        // publication advanced, retry once against the current filename.
+        const current = this.store.get("coverFiles")[coverArtId];
+        if (!current || current.fileName === meta.fileName) break;
+        meta = current;
+      }
     }
+    return null;
   }
 }

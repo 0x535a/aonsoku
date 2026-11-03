@@ -25,7 +25,8 @@
     "language": "言語",
     "server": "サーバー",
     "about": "情報",
-    "serverLogout": "ログアウト"
+    "serverLogout": "ログアウト",
+    "account": "アカウント"
   },
   "generic": {
     "seeMore": "もっと見る",
@@ -42,7 +43,9 @@
       }
     },
     "beta": "ベータ",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "moveUp": "上へ移動",
+    "moveDown": "下へ移動"
   },
   "theme": {
     "label": "テーマ",
@@ -315,7 +318,8 @@
     "switchButton": "ビッグプレーヤーに切り替える",
     "emptyQueue": "キューに曲がありません",
     "dynamicArtwork": "動くアルバムアートワーク",
-    "dynamicArtworkInfo": "全画面プレーヤーでイマーシブカバー動画を使用します。ロック画面のアートワークとは個別に設定できます。"
+    "dynamicArtworkInfo": "全画面プレーヤーでイマーシブカバー動画を使用します。ロック画面のアートワークとは個別に設定できます。",
+    "close": "閉じる"
   },
   "lyrics": {
     "customSelect": {
@@ -416,7 +420,8 @@
       },
       "volume": {
         "mute": "ミュート",
-        "unmute": "ミュート解除"
+        "unmute": "ミュート解除",
+        "label": "音量"
       }
     },
     "sleepTimer": {
@@ -678,7 +683,8 @@
         "connecting": "接続中",
         "authenticating": "認証中",
         "connected": "接続済み",
-        "error": "エラー"
+        "error": "エラー",
+        "reconnecting": "再接続中…"
       },
       "lastSync": {
         "label": "最終同期"
@@ -726,7 +732,7 @@
         "sourcePauseTimeout": "再生元のデバイスから、期限内に一時停止の確認が届きませんでした。",
         "unsupportedMedia": "このメディア タイプを別のデバイスで継続することはできません。",
         "deviceRevoked": "このデバイスではデバイス間同期の使用が許可されなくなりました。",
-        "protocolIncompatible": "1 つ以上のデバイスで Aonsoku を更新します。",
+        "protocolIncompatible": "1 つ以上のデバイスで SZ Music を更新します。",
         "forbidden": "現在、このデバイスの操作や再生の引き継ぎはできません。",
         "fallback": "再生の引き継ぎに失敗しました: {{reason}}"
       },
@@ -815,6 +821,11 @@
         },
         "description": "再生キューと歌詞ページをカスタマイズします。",
         "group": "キューと歌詞"
+      },
+      "colors": {
+        "queue": {
+          "intensity": "背景色の強度"
+        }
       }
     },
     "audio": {
@@ -964,7 +975,7 @@
     "privacy": {
       "services": {
         "group": "外部サービス",
-        "description": "Aonsoku がアクセスできる外部サービスを管理します。",
+        "description": "SZ Music がアクセスできる外部サービスを管理します。",
         "lrclib": {
           "info": "LRCLIB は曲の歌詞を検索するために使用されます。",
           "label": "LRCLIB"
@@ -1180,7 +1191,7 @@
         "description": "アプリケーションの更新を確認してインストールします。",
         "currentVersion": {
           "label": "現在のバージョン",
-          "info": "現在実行中の Aonsoku のバージョンです。"
+          "info": "現在実行中の SZ Music のバージョンです。"
         },
         "status": {
           "label": "更新ステータス",
@@ -1344,5 +1355,8 @@
   },
   "navigation": {
     "back": "戻る"
+  },
+  "common": {
+    "noResults": "結果が見つかりません。"
   }
 }

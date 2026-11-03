@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { PlaybackSnapshot } from "@/coordination/types";
 import { LanControlMessageType } from "@/types/lanControl";
+import type { IPlayerContext } from "@/types/playerContext";
 import { LoopState } from "@/types/playerContext";
+import type { ISong } from "@/types/responses/song";
 import { createQueueActions } from "./queue-actions";
 
 const mocks = vi.hoisted(() => ({
@@ -15,17 +18,17 @@ vi.mock("@/player/queue-controller", () => ({
   getNativeQueueController: () => null,
 }));
 
-function makeSong(id: string) {
+function makeSong(id: string): ISong {
   return {
     id,
     title: id,
     album: "album",
     artist: "artist",
     duration: 120,
-  };
+  } as ISong;
 }
 
-function makeState() {
+function makeState(): IPlayerContext {
   const currentSong = makeSong("a");
 
   return {
@@ -64,7 +67,7 @@ function makeState() {
       originalUserSongs: [],
       radioList: [],
     },
-  };
+  } as unknown as IPlayerContext;
 }
 
 describe("queue actions", () => {
@@ -137,6 +140,7 @@ describe("queue actions", () => {
   it("replaces a non-empty context queue immediately", () => {
     const state = makeState();
     state.playerState.isPlaying = true;
+    state.songlist.userQueue.songs = [makeSong("manually-queued")];
     const actions = createQueueActions({
       set: (fn) => fn(state as never),
       get: () => state as never,
@@ -150,10 +154,43 @@ describe("queue actions", () => {
     });
 
     expect(state.songlist.contextQueue.songs[0]?.id).toBe("replacement");
+    expect(state.songlist.userQueue.songs).toEqual([]);
     expect(state.songlist.contextQueue.sourceId).toEqual({
       type: "album",
       id: "album-2",
     });
+  });
+
+  it("replaces remote playback immediately even with manual songs queued", () => {
+    const state = makeState();
+    const remoteSend = vi.fn(() => true);
+    const actions = createQueueActions({
+      set: (fn) => fn(state as never),
+      get: () => state,
+      isRemoteActive: () => true,
+      getRemotePlaybackTarget: () => ({
+        deviceId: "remote-device",
+        snapshot: {
+          songId: "remote-current",
+          isPlaying: true,
+          userQueue: ["manual"],
+          contextQueue: ["remote-current"],
+          inUserQueue: false,
+          shuffle: false,
+          sourceId: null,
+        } as PlaybackSnapshot,
+      }),
+      remoteSend,
+      clearSonglistState: vi.fn(),
+    });
+    actions.setSongList([makeSong("replacement")], 0, false, {
+      albumId: "album-2",
+    });
+    expect(remoteSend).toHaveBeenCalledWith(LanControlMessageType.PLAY_ALBUM, {
+      albumId: "album-2",
+      songIndex: 0,
+    });
+    expect(state.songlist.contextQueue.songs[0]?.id).toBe("a");
   });
 
   it("replaces immediately when callers pass the compatibility option", () => {

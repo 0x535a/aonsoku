@@ -74,7 +74,7 @@ const config: ForgeConfig = {
     },
     win32metadata: {
       CompanyName: "realtvop",
-      ProductName: "Aonsoku",
+      ProductName: "SZ Music",
     },
     // Code signing disabled for all platforms
     osxSign: undefined,
@@ -128,7 +128,7 @@ const config: ForgeConfig = {
         options: {
           name: "aonsoku",
           bin: "aonsoku",
-          productName: "Aonsoku",
+          productName: "SZ Music",
           icon: "./build/icon.png",
           categories: ["AudioVideo", "Audio"],
         },

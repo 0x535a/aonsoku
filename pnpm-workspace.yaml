@@ -1,5 +1,6 @@
 packages:
   - "."
+  - "coordination-worker"
   - "packages/*"
   - "capacitor-plugins/*"
 
@@ -35,4 +36,5 @@ allowBuilds:
   register-scheme@https://codeload.github.com/devsnek/node-register-scheme/tar.gz/e7cc9a63a1f512565da44cb57316d9fb10750e17: true
   sharp: true
   utf-8-validate: true
+  workerd: true
   yarn: false

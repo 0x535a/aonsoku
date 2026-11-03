@@ -5,8 +5,10 @@ import {
   initAuth as workerInitAuth,
   updateAuth as workerUpdateAuth,
 } from "@/api/workerHttpClient";
+import { libraryAccountKey } from "@/lib/library-owner";
 import { coverKey } from "@/service/cache/cache-keys";
 import { asyncPool } from "@/service/cache/concurrency";
+import { replaceOwnedAlbums } from "@/service/cache/owned-albums";
 import type { CacheMetaRow, PlaylistRow } from "@/store/library-db";
 import { LibraryDB, withPlayedAt, withStarredAt } from "@/store/library-db";
 import type { SyncPhase, SyncState, SyncTier } from "@/types/cache";
@@ -19,9 +21,10 @@ import type {
   PlaylistWithEntriesResponse,
 } from "@/types/responses/playlist";
 import type { ISearchResponse } from "@/types/responses/search";
-import type { FavoritesResponse } from "@/types/responses/song";
+import type { FavoritesResponse, ISong } from "@/types/responses/song";
 
 export interface WorkerAuthConfig extends ServerAuthConfig {
+  primaryUrl?: string;
   serverType?: string | null;
 }
 
@@ -116,49 +119,10 @@ export async function bulkPutInChunks<T, K>(
   }
 }
 
-interface ISong {
-  id: string;
-  parent: string;
-  isDir: boolean;
-  title: string;
-  album: string;
-  artist: string;
-  track: number;
-  year: number;
-  coverArt: string;
-  size: number;
-  contentType: string;
-  suffix: string;
-  duration: number;
-  bitRate: number;
-  path: string;
-  playCount?: number;
-  discNumber: number;
-  created: string;
-  albumId: string;
-  artistId?: string;
-  type: string;
-  isVideo: boolean;
-  played?: string;
-  starred?: string;
-  bpm: number;
-  comment: string;
-  sortName: string;
-  mediaType: string;
-  musicBrainzId: string;
-  genres: { name: string }[];
-  replayGain: {
-    trackGain: number;
-    trackPeak: number;
-    albumGain: number;
-    albumPeak: number;
-  };
-  [k: string]: unknown;
-}
-
 export class SyncWorkerService {
   #abortController: AbortController | null = null;
   #syncGeneration = 0;
+  #albumOwner: string | undefined;
   #authReady: Promise<void>;
   #resolveAuthReady: () => void;
 
@@ -178,10 +142,14 @@ export class SyncWorkerService {
 
   initAuth(config: WorkerAuthConfig): void {
     workerInitAuth(config);
+    this.#albumOwner = libraryAccountKey(config);
     this.#resolveAuthReady();
   }
 
   updateAuth(config: WorkerAuthConfig): void {
+    const owner = libraryAccountKey(config);
+    if (this.#albumOwner !== owner) this.cancel();
+    this.#albumOwner = owner;
     workerUpdateAuth(config);
   }
 
@@ -483,6 +451,7 @@ export class SyncWorkerService {
   }
 
   async #runT2(signal: AbortSignal): Promise<void> {
+    const owner = this.#albumOwner ?? libraryAccountKey(workerEnsureAuth());
     this.#checkAborted(signal);
     this.#updateSyncState("artists", "t2");
     const artistsResult =
@@ -560,14 +529,7 @@ export class SyncWorkerService {
       }
     }
 
-    await this.db.transaction("rw", this.db.albums, async () => {
-      await this.db.albums.clear();
-      await bulkPutInChunks(
-        this.db.albums,
-        allAlbums.map(withStarredAt),
-        signal,
-      );
-    });
+    await replaceOwnedAlbums(this.db, allAlbums, owner, signal);
 
     await this.#recordTierCheckpoint("t2");
     this.#forceFlushSyncState();

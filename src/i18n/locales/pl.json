@@ -146,7 +146,8 @@
     "selectLyrics": "Ustawienia tekstu",
     "dynamicArtwork": "Dynamiczna okładka albumu",
     "dynamicArtworkInfo": "Korzystaj z wciągających filmów z okładek w odtwarzaczu pełnoekranowym. Niezależne od grafiki na ekranie blokady.",
-    "queueShuffling": "Odtwarzanie losowe"
+    "queueShuffling": "Odtwarzanie losowe",
+    "close": "Zamknij"
   },
   "generic": {
     "beta": "Beta",
@@ -163,7 +164,9 @@
         "poster": "Plakat"
       }
     },
-    "cancel": "Anuluj"
+    "cancel": "Anuluj",
+    "moveUp": "Przenieś w górę",
+    "moveDown": "Przenieś w dół"
   },
   "home": {
     "explore": "Eksploruj",
@@ -271,7 +274,8 @@
     "about": "O programie",
     "language": "Język",
     "server": "Serwer",
-    "serverLogout": "Wyloguj"
+    "serverLogout": "Wyloguj",
+    "account": "Konto"
   },
   "mobile": {
     "access_recommendation": "Uzyskaj do niej dostęp z komputera lub tabletu.",
@@ -354,7 +358,8 @@
       "unstar": "Usuń gwiazdkę",
       "volume": {
         "mute": "Wycisz",
-        "unmute": "Wyłącz wyciszenie"
+        "unmute": "Wyłącz wyciszenie",
+        "label": "Głośność"
       }
     },
     "sleepTimer": {
@@ -589,7 +594,8 @@
         "connecting": "Złączony",
         "authenticating": "Uwierzytelnianie",
         "connected": "Połączony",
-        "error": "Błąd"
+        "error": "Błąd",
+        "reconnecting": "Ponowne łączenie…"
       },
       "lastSync": {
         "label": "Ostatnia synchronizacja"
@@ -637,7 +643,7 @@
         "sourcePauseTimeout": "Urządzenie źródłowe nie potwierdziło przed upływem terminu wstrzymania odtwarzania.",
         "unsupportedMedia": "Tego typu multimediów nie można kontynuować na innym urządzeniu.",
         "deviceRevoked": "Na tym urządzeniu nie można już korzystać z synchronizacji między urządzeniami.",
-        "protocolIncompatible": "Zaktualizuj Aonsoku na jednym lub większej liczbie urządzeń.",
+        "protocolIncompatible": "Zaktualizuj SZ Music na jednym lub większej liczbie urządzeń.",
         "forbidden": "W tej chwili nie można sterować tym urządzeniem ani go przenosić.",
         "fallback": "Przekazanie nie powiodło się: {{reason}}"
       },
@@ -687,6 +693,11 @@
         },
         "description": "Dostosuj kolejkę i stronę tekstów.",
         "group": "Kolejka i teksty"
+      },
+      "colors": {
+        "queue": {
+          "intensity": "Intensywność koloru tła"
+        }
       }
     },
     "audio": {
@@ -892,7 +903,7 @@
         "checking": "Sprawdzanie aktualizacji...",
         "checkingManually": "Sprawdzanie aktualizacji...",
         "currentVersion": {
-          "info": "Wersja Aonsoku, którą obecnie używasz.",
+          "info": "Wersja SZ Music, którą obecnie używasz.",
           "label": "Obecna wersja"
         },
         "description": "Sprawdź i zainstaluj aktualizacje aplikacji.",
@@ -931,7 +942,7 @@
     },
     "privacy": {
       "services": {
-        "description": "Zarządzaj usługami zewnętrznymi do których Aonsoku może uzyskać dostęp.",
+        "description": "Zarządzaj usługami zewnętrznymi do których SZ Music może uzyskać dostęp.",
         "group": "Usługi Zewnętrzne",
         "lrclib": {
           "info": "LRCLIB jest używany do znajdowania tekstów piosenek.",
@@ -961,7 +972,7 @@
       "group": "Serwer",
       "locked": "Ustawienia URL serwera są zablokowane przez tę instalację.",
       "primaryUrl": {
-        "info": "URL serwera, który Aonsoku próbuje najpierw przy uruchamianiu.",
+        "info": "URL serwera, który SZ Music próbuje najpierw przy uruchamianiu.",
         "label": "Główny URL",
         "placeholder": "https://your-server.example.com"
       },
@@ -1370,5 +1381,8 @@
   },
   "navigation": {
     "back": "Z powrotem"
+  },
+  "common": {
+    "noResults": "Nie znaleziono wyników."
   }
 }

@@ -271,7 +271,7 @@ fn create_media_controls(
 ) -> Result<MediaControls, String> {
     let config = PlatformConfig {
         dbus_name: "aonsoku",
-        display_name: "Aonsoku",
+        display_name: "SZ Music",
         hwnd: platform_hwnd(window)?,
     };
 

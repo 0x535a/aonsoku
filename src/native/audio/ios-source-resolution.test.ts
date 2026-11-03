@@ -2,57 +2,82 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const nativeAudioPluginPath = path.join(
+const nativeAudioServicePath = path.join(
   process.cwd(),
-  "capacitor-plugins/capacitor-native/ios/Sources/AonsokuNativePlugin/Audio/NativePlaybackService.swift",
+  "ios/AonsokuKit/Sources/AonsokuKit/Audio/AudioService.swift",
+);
+const nativeSourceResolverPath = path.join(
+  process.cwd(),
+  "ios/AonsokuKit/Sources/AonsokuKit/Audio/NativeSourceResolver.swift",
+);
+const libraryMediaReferencePath = path.join(
+  process.cwd(),
+  "ios/AonsokuKit/Sources/AonsokuKit/Audio/LibraryMediaReference.swift",
 );
 
-function readNativeAudioPlugin() {
-  return readFileSync(nativeAudioPluginPath, "utf-8");
+function readNativeAudioService() {
+  return readFileSync(nativeAudioServicePath, "utf-8");
+}
+
+function readNativeSourceResolver() {
+  return readFileSync(nativeSourceResolverPath, "utf-8");
 }
 
 describe("iOS native audio source resolution", () => {
-  it("resolves WebView media stream URLs before handing sources to AVPlayer", () => {
-    const swift = readNativeAudioPlugin();
+  it("resolves library media identities through the native source resolver", () => {
+    const resolver = readNativeSourceResolver();
+    const reference = readFileSync(libraryMediaReferencePath, "utf-8");
 
-    expect(swift).toContain("let url = try resolveStreamURL(from: source)");
-    expect(swift).toContain('components.scheme == "aonsoku-media"');
-    expect(swift).toContain('fallbackSongId: source["songId"] as? String');
-    expect(swift).toContain('guard endpoint == "stream"');
-    expect(swift).toContain('params["id"] = request.songId');
-    expect(swift).toContain('params["estimateContentLength"] = "true"');
+    expect(resolver).toContain("func resolveSource(for song: QueueSong)");
+    expect(resolver).toContain(
+      "LibraryMediaReference(streamURL: song.streamUrl, fallbackSongID: song.id)",
+    );
+    expect(resolver).toContain(
+      "buildAuthenticatedStreamUrl(songId: reference.songID, extra: reference.options)",
+    );
+    expect(reference).toContain('components.scheme?.lowercased() == "aonsoku-media"');
+    expect(reference).toContain('components.host?.lowercased() == "stream"');
+    expect(reference).toContain('values["id"].flatMap { $0.isEmpty ? nil : $0 }');
+    expect(resolver).toContain('params["id"] = songId');
+    expect(resolver).toContain(
+      'params["estimateContentLength"] = String(estimateContentLengthProvider())',
+    );
   });
 
   it("preserves optional stream transcoding parameters for native playback", () => {
-    const swift = readNativeAudioPlugin();
+    const resolver = readNativeSourceResolver();
+    const reference = readFileSync(libraryMediaReferencePath, "utf-8");
 
-    expect(swift).toContain('queryItems.first { $0.name == "maxBitRate" }');
-    expect(swift).toContain('queryItems.first { $0.name == "format" }');
-    expect(swift).toContain('params["maxBitRate"] = maxBitRate');
-    expect(swift).toContain('params["format"] = format');
+    for (const option of ["maxBitRate", "format", "timeOffset", "size"]) {
+      expect(reference).toContain(`"${option}"`);
+    }
+    expect(reference).toContain("self.init(songID: songID, options: values)");
+    expect(reference).toContain("options.filter { Self.streamOptions.contains($0.key) }");
+    expect(resolver).toContain("extra: reference.options");
+    expect(resolver).toContain("for (key, value) in extra");
+    expect(resolver).toContain("params[key] = value");
   });
 
-  it("loads native asset duration asynchronously", () => {
-    const swift = readNativeAudioPlugin();
+  it("publishes duration changes observed from the current AVPlayerItem", () => {
+    const audioService = readNativeAudioService();
 
-    expect(swift).toContain("private var loadedDurationSeconds: Double?");
-    expect(swift).toContain(
-      'item.asset.loadValuesAsynchronously(forKeys: ["duration"])',
+    expect(audioService).toContain(
+      "durationObservation = item.observe(\\.duration",
     );
-    expect(swift).toContain('statusOfValue(forKey: "duration"');
-    expect(swift).not.toContain("return seconds(from: item.asset.duration)");
+    expect(audioService).toContain("generation == self.playbackGeneration");
+    expect(audioService).toContain("self.emitDuration()");
+    expect(audioService).toContain("private func emitDuration()");
+    expect(audioService).toContain("private var duration: Double");
   });
 
   it("accepts file URL cached audio entries in the native queue resolver", () => {
-    const resolver = readFileSync(
-      path.join(
-        process.cwd(),
-        "capacitor-plugins/capacitor-native/ios/Sources/AonsokuNativePlugin/Audio/NativeSourceResolver.swift",
-      ),
-      "utf-8",
-    );
+    const resolver = readNativeSourceResolver();
 
-    expect(resolver).toContain("let fileUrl = fileURL(from: cachedUri)");
+    expect(resolver).toContain(
+      "cachedFile(songId: song.id, explicitURI: song.cachedFileUri)",
+    );
+    expect(resolver).toContain("let url = fileURL(from: explicitURI)");
+    expect(resolver).toContain("if isUsableCachedFile(at: url) { return url }");
     expect(resolver).toContain("if let url = URL(string: uri), url.isFileURL");
     expect(resolver).toContain("return URL(fileURLWithPath: uri)");
   });

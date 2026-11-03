@@ -47,6 +47,8 @@ export interface PaginatedQuery {
 }
 
 export interface PaginatedResult<T> {
+  /** Optional proof of the account that supplied a native album snapshot. */
+  libraryOwner?: string;
   items: T[];
   total: number;
   hasMore: boolean;
@@ -246,6 +248,13 @@ export interface NativeCachedCoverImageFile {
   contentType?: string;
   sizeBytes?: number;
   coverSize?: string;
+  /** Stable content revision. Changes only when a new file is published. */
+  revision?: string;
+}
+
+export interface NativeCoverCacheChangedEvent {
+  coverArtId: string;
+  file: NativeCachedCoverImageFile | null;
 }
 
 export interface NativeResolveCoverImageResult {
@@ -336,6 +345,7 @@ export interface AonsokuNativeDataPlugin extends Plugin {
   }): Promise<NativeCoverImageSizeResult>;
   deleteCoverImage(options: {
     coverArtId: string;
+    expectedRevision?: string;
   }): Promise<NativeDeleteCoverImageResult>;
   clearCoverImages(): Promise<NativeClearCoverImagesResult>;
   downloadCoverImage(

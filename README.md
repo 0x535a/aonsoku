@@ -1,17 +1,14 @@
-<a id="readme-top"></a>
-
-<br />
 <div align="center">
   <a href="https://github.com/realtvop/aonsoku-reborn">
-    <img src="./build/icon.png" alt="Aonsoku" width="80" height="80">
+    <img src="./build/icon.png" alt="SZ Music" width="80" height="80">
   </a>
 
-  <h3 align="center">Aonsoku</h3>
+  <h3 align="center">SZ Music</h3>
   <p align="center">
     A modern desktop client for Navidrome/Subsonic servers built with React and Electron.
     <br />
     <br />
-    <a href="https://aonsoku.realtvop.top">Web App</a>
+    <a href="https://music.0x535a.cn">Web App</a>
     ·
     <a href="https://github.com/realtvop/aonsoku-reborn/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
@@ -157,7 +154,7 @@ WantedBy=multi-user.target default.target
   <summary>Environment Variables</summary>
   </br>
 
-Below is a table describing the environment variables that can be used in this project. Adjust them as necessary in your `.env` file.
+Below is a table describing the environment variables that can be used in this project. Copy `.env.example` to `.env` and adjust it as necessary.
 
 | Variable              | Default    | Description                                                                                                       | Required for Automatic Login |
 | --------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------- |

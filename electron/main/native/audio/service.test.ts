@@ -81,6 +81,35 @@ describe("NativeAudioService", () => {
     await fs.rm(audioCacheDirectory, { force: true, recursive: true });
   });
 
+  it("clears account audio and ignores a download URL resolved after reset", async () => {
+    service.destroy();
+    let resolveUrl!: (url: string) => void;
+    service = new NativeAudioService({
+      engine,
+      audioCacheDirectory,
+      cacheLoadedStreams: false,
+      downloadUrlResolver: () =>
+        new Promise((resolve) => {
+          resolveUrl = resolve;
+        }),
+    });
+    await service.storeAudioFile({
+      songId: "same-id",
+      dataBase64: Buffer.from("A's audio").toString("base64"),
+      contentType: "audio/mpeg",
+    });
+    const pending = service.downloadAudioFile({ songId: "old-download" });
+    await service.resetAccount();
+    const fetch = vi.spyOn(globalThis, "fetch");
+    resolveUrl("https://old-server.test/stream");
+    await pending;
+    expect(fetch).not.toHaveBeenCalled();
+    expect(
+      (await service.resolveAudioFile({ songId: "same-id" })).file,
+    ).toBeNull();
+    expect((await service.getScrobbleBuffer()).entries).toEqual([]);
+  });
+
   it("waits until ready to restore uncached aonsoku-media queue sources", async () => {
     service.destroy();
     const restoredSong = {
@@ -557,7 +586,7 @@ describe("NativeAudioService", () => {
       backend: "libmpv",
       status: "unavailable",
       code: "libmpv-addon-unavailable",
-      message: "Unable to load the Aonsoku libmpv native addon.",
+      message: "Unable to load the SZ Music libmpv native addon.",
       platformKey: "darwin-arm64",
       searchedPaths: ["/missing/aonsoku_libmpv.node"],
     });
@@ -576,7 +605,7 @@ describe("NativeAudioService", () => {
           eventName: "error",
           event: {
             code: "libmpv-addon-unavailable",
-            message: "Unable to load the Aonsoku libmpv native addon.",
+            message: "Unable to load the SZ Music libmpv native addon.",
           },
         },
       ]);

@@ -94,14 +94,7 @@ async function fetchOriginalSourceSongs(
 // by song id. Used when restoring a full queue from a remote snapshot.
 async function fetchSongMap(
   snapshot: PlaybackSnapshot,
-): Promise<Map<
-  string,
-  NonNullable<
-    Awaited<
-      ReturnType<typeof import("@/service/subsonic")>["songs"]["getSong"]
-    >["0"]
-  >
-> | null> {
+): Promise<Map<string, ISong> | null> {
   const { subsonic } = await import("@/service/subsonic");
   const ids = Array.from(
     new Set([

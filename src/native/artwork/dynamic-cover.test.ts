@@ -184,15 +184,21 @@ describe("dynamic cover consumer interface", () => {
     },
   );
 
-  it("ignores desktop providers on Windows/Linux", async () => {
+  it("uses an explicitly installed provider on Windows/Linux", async () => {
     mocks.runtime = "electron";
     mocks.mac = false;
-    const acquire = vi.fn();
-    Object.assign(window, { aonsokuDynamicCover: { acquire } });
-    expect(await dynamicCover.acquire(request)).toMatchObject({
-      status: "unavailable",
-    });
-    expect(acquire).not.toHaveBeenCalled();
+    const host = {
+      getCapabilities: vi.fn().mockResolvedValue(capabilities),
+      acquire: vi.fn().mockResolvedValue(video),
+      release: vi.fn().mockResolvedValue(undefined),
+    };
+    Object.assign(window, { aonsokuDynamicCover: host });
+    const result = await dynamicCover.acquire(request);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") throw new Error("Expected host lease");
+    await result.release();
+    expect(host.release).toHaveBeenCalledExactlyOnceWith("lease-1");
+    expect(mocks.native.acquireDynamicCover).not.toHaveBeenCalled();
   });
 
   it("does not acquire unsupported formats or protocol versions", async () => {

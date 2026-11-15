@@ -664,6 +664,10 @@ node scripts/native-audio/ci/collect-runtime-darwin.mjs --root <libmpv.dylib> --
   with lower-level helpers in `src/utils/desktop.ts` and
   `src/utils/platform.ts`.
 
+### iOS lock-screen artwork
+
+AonsokuKit Audio/LockScreenArtwork*.swift owns iOS 26 immersive static/animated artwork, DAV2 FP16/P8/P6 model downloads, resource policy and the leased video cache. Earlier systems retain normal artwork. ArtworkPreferences exposes SwiftUI model/video management; original-quality image publications must not be overwritten by thumbnails. AudioService remains the only system media owner. Run `node scripts/ios/test-lock-screen-artwork.mjs`, `node scripts/ios/test-dynamic-cover-interface.mjs`, `node scripts/check-ios-strings.mjs` and `bash scripts/test-ios-native.sh`. Model downloads are opt-in through `AONSOKU_TEST_MODEL_DOWNLOAD=1`.
+
 ### State Management
 
 Two complementary systems:
@@ -832,6 +836,10 @@ Electron follows the same renderer/native ownership boundary as Capacitor:
   metadata traffic shares one raised connection ceiling instead of saturating
   Node's default low-limit global pool and starving IPC handlers.
 
+### Native iOS CarPlay
+
+CarPlaySceneDelegate registers the system CarPlay scene. AonsokuKit/CarPlay owns native GRDB browsing and templates; AudioService remains the single playback owner. Queue rows carry occurrence indices and revisions, selections have a 15-second deadline, and cancellation releases row completion immediately. Remote projection disables transport. Default signing uses CarPlay.entitlements; builds without the capability can set `AONSOKU_ENTITLEMENTS=Aonsoku/Resources/App.entitlements`. Run `bash scripts/test-ios-native.sh` for library, playback and template tests.
+
 ### Cross-Device Coordination
 
 Aonsoku includes a Rust coordination service in `coordination-server/` for
@@ -958,12 +966,20 @@ location from inside a cached subtree unless the freeze above is extended.
   back button handling, metadata sync, coordination, network monitoring, and
   smart downloads.
 
+### Native iOS AMLL lyrics
+
+SyncedLyricsView.swift and the pure Swift LyricsMotion.swift implement native AMLL-style line springs, following and browsing. LyricsText.swift measures and draws unlimited wrapping UILabel text at an explicit width; transforms must not feed back into line geometry. Keep original text semibold to preserve wrapping. Run `bash scripts/test-ios-lyrics-motion.sh` and, with an iPhone Simulator, `bash scripts/test-ios-lyrics-layout.sh`.
+
 ### Styling
 
 Tailwind CSS uses CSS custom properties for layout dimensions
 (`--header-height`, `--sidebar-width`, `--player-height`, safe-area variables,
 etc.). Theme variables (HSL colors for dark/light) are in `src/themes.css`.
 Dark mode is class-based.
+
+### Web fullscreen artwork
+
+Fullscreen ImmersiveArtwork renders optional leased silent video with mirrored content-region edges, feathering and root-level CSS atmosphere. Hosts may install `window.aonsokuDynamicCover` using src/native/artwork/types.ts. The shared renderer uses deploy's built-in macOS/Tauri producer when available, or an explicitly installed host provider on any runtime. Plain Web without a provider preserves static artwork and hides the opt-in setting. Demand and acquire are separate; release leases through their granting provider, including when disposed or superseded. Pause hidden/background/Reduced Motion content. Run the dynamic-cover unit tests, fullscreen Cypress components and `pnpm run build`. This does not embed Web UI into the native iOS app.
 
 ### Code Splitting
 
@@ -1660,6 +1676,12 @@ iOS 16+ retains ordinary artwork and the native fullscreen consumer where availa
 existing artwork slot; it retains an asset lease until playback releases the file.
 Phone scene changes never create another audio service. Fullscreen dynamic artwork
 is opt-in, and background/reduced-motion/resource rules remain effective.
+
+All runtimes retain deploy's immediate queue replacement behavior, including
+remote playback; Play Next and append remain separate actions. Main's optional
+`window.aonsokuDynamicCover` contract remains available on every runtime, after
+built-in native provider selection. Keep both generic provider and native bridge
+unit coverage when changing that selection.
 
 Web/Tauri fullscreen keeps deploy's CSS atmosphere, feathered/mirrored dynamic
 artwork edges and focused lyric emphasis. Shared titles use main's `ScrollingText`.

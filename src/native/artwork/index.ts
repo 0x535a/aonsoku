@@ -1,7 +1,6 @@
 import { AonsokuNativePreferences } from "@aonsoku/capacitor-native/preferences";
 import { Capacitor } from "@capacitor/core";
 import { getRuntime } from "@/utils/capabilities";
-import { isMacOS } from "@/utils/desktop";
 import { isMacArtworkAvailable, tauriDynamicCover } from "./tauri";
 import type {
   DynamicCoverCapabilities,
@@ -12,6 +11,13 @@ import type {
 } from "./types";
 
 export type * from "./types";
+
+declare global {
+  interface Window {
+    /** Optional host implementation alongside the built-in native providers. */
+    aonsokuDynamicCover?: DynamicCoverProvider;
+  }
+}
 
 interface IOSDynamicCoverBridge {
   registerDynamicCoverDemand(
@@ -53,15 +59,7 @@ function provider(): DynamicCoverProvider | undefined {
   ) {
     return iosProvider;
   }
-  if (
-    isMacOS &&
-    (runtime === "electron" || runtime === "tauri") &&
-    typeof window !== "undefined"
-  ) {
-    return (window as Window & { aonsokuDynamicCover?: DynamicCoverProvider })
-      .aonsokuDynamicCover;
-  }
-  return undefined;
+  return typeof window === "undefined" ? undefined : window.aonsokuDynamicCover;
 }
 
 export function isDynamicCoverAvailable(): boolean {

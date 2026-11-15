@@ -178,6 +178,12 @@ connectivity, metered-network and cover-art options. `SyncScheduler` only owns
 the system background refresh path when `AppModel` initializes the library
 with automatic foreground sync disabled.
 
+### Native AMLL lyrics
+
+Synced lyrics use per-line position and scale springs, distance blur, a 35% viewport alignment and timed browsing suspension. Romanization appears above the original and translation below it. Each layer uses an unlimited wrapping UILabel measured at the same explicit width used for rendering. The original retains semibold weight while scale and opacity emphasize the active line. Hidden lyrics stop following playback; Reduce Motion disables blur and scaling. Tap/clock jumps use quick springs. This approximates Web AMLL; seek preview, weight animation and some timing details differ.
+
+Validate with `bash scripts/test-ios-lyrics-motion.sh` and `bash scripts/test-ios-lyrics-layout.sh`.
+
 ## Navigation and screens
 
 - **Tabs**: Home, Library, Search (`Tab(role: .search)`), each with an
@@ -311,6 +317,10 @@ with automatic foreground sync disabled.
   Language, Playback, Lyrics, Content, Storage (with the cache manager),
   Cross-Device, Privacy, About, and Sign Out. Shaking the device opens the
   native player debug screen, as before.
+
+### iOS lock-screen artwork
+
+iOS 26 system animated artwork uses generated silent static/camera/depth clips in system-requested geometry. Original artwork is upgraded independently of thumbnails. DAV2 Small FP16/P8/P6 models are downloaded on demand with pinned SHA256 verification; memory and thermal policy gate generation. Settings expose immersive/dynamic switches, model quality, motion controls and cache management. Active leases protect files from eviction. Older systems keep ordinary static system artwork. No second audio service is created.
 
 ## Settings parity
 

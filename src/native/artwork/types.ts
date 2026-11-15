@@ -40,7 +40,7 @@ export type DynamicCoverResult =
       motionAllowed?: boolean;
     };
 
-/** macOS hosts implement this bridge; future WebGPU can use the same contract. */
+/** Optional host contract shared by native producers and installed providers. */
 export interface DynamicCoverProvider {
   getCapabilities(): Promise<DynamicCoverCapabilities>;
   acquire(request: DynamicCoverRequest): Promise<DynamicCoverResult>;

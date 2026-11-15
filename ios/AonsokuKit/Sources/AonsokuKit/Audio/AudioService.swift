@@ -227,8 +227,8 @@ public final class AudioService: NSObject, @unchecked Sendable {
     public func shutdown() {
         artworkResourceObservers.forEach(NotificationCenter.default.removeObserver)
         artworkResourceObservers.removeAll()
-        cancelCarPlaySelection()
         dispatchMain { [weak self] in
+            self?.cancelCarPlayRequests()
             self?.teardown(deactivateSession: true)
         }
     }

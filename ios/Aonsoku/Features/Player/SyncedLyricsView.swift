@@ -481,7 +481,7 @@ private struct LyricsDotsView: View {
                 HStack(spacing: metrics.base * 0.25 + 4) {
                     ForEach(0..<3, id: \.self) { index in
                         Circle()
-                            .fill(.white)
+                            .fill(Color.primary)
                             .frame(width: metrics.dotDiameter, height: metrics.dotDiameter)
                             .opacity(state.opacities[index])
                     }

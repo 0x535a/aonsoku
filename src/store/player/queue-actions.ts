@@ -570,12 +570,16 @@ export function createQueueActions(shared: SharedDeps) {
       });
     },
 
-    removeSongFromQueue: (id: string, tier?: QueueTier) => {
+    removeSongFromQueue: (
+      id: string,
+      tier?: QueueTier,
+      queueIndex?: number,
+    ) => {
       if (isRemoteActive()) return;
 
       const nativeController = getNativeQueueController();
       if (nativeController) {
-        nativeController.removeFromQueue(id, tier);
+        nativeController.removeFromQueue(id, tier, queueIndex);
         return;
       }
 
@@ -584,7 +588,9 @@ export function createQueueActions(shared: SharedDeps) {
 
       if (detectedTier === "user") {
         const { userQueue, isInUserQueue } = get().songlist;
-        const removedIndex = userQueue.songs.findIndex((s) => s.id === id);
+        const removedIndex =
+          queueIndex ?? userQueue.songs.findIndex((s) => s.id === id);
+        if (userQueue.songs[removedIndex]?.id !== id) return;
         if (removedIndex === -1) return;
 
         const newUserSongs = [...userQueue.songs];
@@ -604,7 +610,9 @@ export function createQueueActions(shared: SharedDeps) {
       }
 
       const { contextQueue, isInUserQueue } = get().songlist;
-      const removedIndex = contextQueue.songs.findIndex((s) => s.id === id);
+      const removedIndex =
+        queueIndex ?? contextQueue.songs.findIndex((s) => s.id === id);
+      if (contextQueue.songs[removedIndex]?.id !== id) return;
       if (removedIndex === -1) return;
 
       const newSongs = [...contextQueue.songs];

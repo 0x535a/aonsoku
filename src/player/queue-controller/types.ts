@@ -95,7 +95,11 @@ export interface QueueController {
     sourceName?: string,
   ): void;
 
-  removeFromQueue(id: string, tier?: "context" | "user"): void;
+  removeFromQueue(
+    id: string,
+    tier?: "context" | "user",
+    queueIndex?: number,
+  ): void;
 
   reorderQueue(fromIndex: number, toIndex: number): void;
 

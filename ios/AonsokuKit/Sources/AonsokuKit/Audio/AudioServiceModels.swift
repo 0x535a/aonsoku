@@ -72,6 +72,7 @@ public struct AudioQueueSource: Codable, Equatable, Sendable {
 
 public struct AudioQueueSnapshot: Equatable, Sendable {
     public let contextSongs: [QueueSong]
+    public var sourceSongs: [QueueSong] = []
     public let currentIndex: Int
     public let sourceId: AudioQueueSource?
     public let sourceName: String?

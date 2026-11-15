@@ -27,6 +27,7 @@ interface QueueItemRowProps {
   onPlay: () => void;
   style?: CSSProperties;
   tier?: "context" | "user";
+  queueIndex?: number;
   hideDownload?: boolean;
   hideDuration?: boolean;
   hideDropdownButton?: boolean;
@@ -82,6 +83,7 @@ export const QueueItemRow = forwardRef<
     dragAttributes,
     dragListeners,
     tier,
+    queueIndex,
     hideDownload,
     hideDuration,
     hideDropdownButton,
@@ -100,6 +102,9 @@ export const QueueItemRow = forwardRef<
   const content = (
     <div
       ref={ref}
+      data-queue-tier={tier}
+      data-queue-index={queueIndex}
+      data-song-id={song.id}
       className={clsx([
         "group/queuerow flex items-center w-full h-16 text-sm rounded-md px-3 gap-2 cursor-pointer",
         "hover-supported:bg-muted",
@@ -196,7 +201,12 @@ export const QueueItemRow = forwardRef<
                 align="end"
                 onClick={(e) => e.stopPropagation()}
               >
-                <QueueMenuOptions variant="dropdown" song={song} />
+                <QueueMenuOptions
+                  variant="dropdown"
+                  song={song}
+                  tier={tier}
+                  queueIndex={queueIndex}
+                />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -218,7 +228,14 @@ export const QueueItemRow = forwardRef<
 
   return (
     <ContextMenuProvider
-      options={<QueueMenuOptions variant="context" song={song} tier={tier} />}
+      options={
+        <QueueMenuOptions
+          variant="context"
+          song={song}
+          tier={tier}
+          queueIndex={queueIndex}
+        />
+      }
     >
       {content}
     </ContextMenuProvider>

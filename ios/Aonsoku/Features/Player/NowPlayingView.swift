@@ -15,7 +15,10 @@ struct NowPlayingView: View {
     @Environment(PlayerStore.self) private var player
     @Environment(LyricsStore.self) private var lyrics
     @Environment(Localizer.self) private var t
-    @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.themeContext) private var theme
+    @Environment(\.nowPlayingPalette) private var palette
+    @Environment(\.nowPlayingViewportSize) private var viewportSize
+    @Environment(SettingsStore.self) private var settings
     @Environment(Router.self) private var router
     @Environment(PlayerPresentationState.self) private var presentation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -26,8 +29,8 @@ struct NowPlayingView: View {
         WithPerceptionTracking {
             GeometryReader { proxy in
                 WithPerceptionTracking {
-                    let isWide = sizeClass == .regular && proxy.size.width > proxy.size.height
-                        && proxy.size.width >= 900
+                    let viewport = viewportSize == .zero ? proxy.size : viewportSize
+                    let isWide = viewport.width >= viewport.height
                     Group {
                         if isWide {
                             wideLayout
@@ -45,9 +48,9 @@ struct NowPlayingView: View {
                     }
                 }
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.primary)
             .scrollDisabled(presentation.dragOffset > 0)
-            .environment(\.colorScheme, .dark)
+            .environment(\.colorScheme, NowPlayingColors(theme: theme.palette, palette: palette, intensity: settings.settings.appearance.nowPlayingColorIntensity).isDark ? .dark : .light)
             .task(id: router.isNowPlayingPresented ? player.currentSong?.id : nil) {
                 guard router.isNowPlayingPresented else { return }
                 await lyrics.load(for: player.currentSong)
@@ -114,7 +117,7 @@ struct NowPlayingView: View {
     }
 
     private var wideLayout: some View {
-        HStack(spacing: panel == nil ? 0 : 56) {
+        HStack(spacing: panel == nil ? 0 : 24) {
             VStack(spacing: 0) {
                 grabber
                 statusCapsules
@@ -128,7 +131,7 @@ struct NowPlayingView: View {
                 .frame(maxWidth: panel == nil ? 0 : 620, maxHeight: .infinity)
                 .padding(.vertical, 40)
         }
-        .padding(.horizontal, 48)
+        .padding(.horizontal, 24)
         .frame(maxWidth: .infinity)
     }
 
@@ -158,7 +161,7 @@ struct NowPlayingView: View {
             router.isNowPlayingPresented = false
         } label: {
             Capsule()
-                .fill(.white.opacity(0.35))
+                .fill(Color.primary.opacity(0.35))
                 .frame(width: 38, height: 5)
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
@@ -263,7 +266,11 @@ struct NowPlayingView: View {
     }
 
     private var bottomControlsHidden: Bool {
-        panel == .lyrics && lyricsControlsHidden
+        !presentation.usesWideLayout && (panel == .queue || (panel == .lyrics && lyricsControlsHidden))
+    }
+
+    private var lyricsUnavailable: Bool {
+        lyrics.state == .unavailable || lyrics.state == .disabled
     }
 
     private var presentationAnimation: Animation {
@@ -285,36 +292,50 @@ struct NowPlayingView: View {
         return 1
     }
 
-    /// Keep slider state alive while the entire footer gives space to lyrics.
+    /// Keep slider state alive while Queue or browsed lyrics gain space;
+    /// page actions and the landscape cover metadata remain available.
     private var bottomControls: some View {
         VStack(spacing: 0) {
-            if panel == nil {
+            if panel == nil || presentation.usesWideLayout {
                 titleRow(isCompact: false)
                     .padding(.horizontal, 30)
                     .padding(.bottom, 6)
             }
             controls
                 .padding(.top, panel == nil ? 8 : 0)
+                .frame(height: bottomControlsHidden ? 0 : nil)
+                .opacity(bottomControlsHidden ? 0 : 1)
+                .clipped()
+                .allowsHitTesting(!bottomControlsHidden)
+                .accessibilityHidden(bottomControlsHidden)
             bottomBar
         }
         .fixedSize(horizontal: false, vertical: true)
         // Page-specific metadata grows upward from the fixed button row.
         // Reusing a measured height here briefly lays out the new page in
         // the previous page's height and moves the buttons for one frame.
-        .frame(height: bottomControlsHidden ? 0 : nil, alignment: .bottom)
         .offset(y: controlsTransitionOffset)
-        .opacity(bottomControlsHidden ? 0 : controlsTransitionOpacity)
+        .opacity(controlsTransitionOpacity)
         .animation(presentationAnimation, value: presentation.isExpanded)
         .animation(presentationAnimation, value: presentation.dragOffset == 0)
         .clipped()
-        .allowsHitTesting(!bottomControlsHidden && presentation.isExpanded)
-        .accessibilityHidden(bottomControlsHidden || !presentation.isExpanded)
+        .allowsHitTesting(presentation.isExpanded)
+        .accessibilityHidden(!presentation.isExpanded)
     }
 
     private var bottomBar: some View {
         HStack(spacing: 0) {
             panelButton(.lyrics, symbol: "quote.bubble", label: t("fullscreen.lyrics"))
-                .disabled(player.isRadio)
+                .disabled(player.isRadio || lyricsUnavailable)
+            Spacer(minLength: 0)
+            Button { router.present(.lyricsSettings) } label: {
+                Image(systemName: "list.bullet.clipboard")
+                    .font(.title3.weight(.medium))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.touchFeedback)
+            .accessibilityLabel(t("fullscreen.selectLyrics"))
+            .disabled(player.isRadio)
             Spacer(minLength: 0)
             if player.target.isRemote {
                 Color.clear
@@ -341,9 +362,9 @@ struct NowPlayingView: View {
         } label: {
             Image(systemName: symbol)
                 .font(.title3.weight(.medium))
-                .foregroundStyle(isOn ? .black : .white.opacity(0.7))
+                .foregroundStyle(isOn ? Color(uiColor: .systemBackground) : Color.primary.opacity(0.7))
                 .frame(width: 44, height: 44)
-                .background(.white.opacity(isOn ? 0.92 : 0), in: .circle)
+                .background(Color.primary.opacity(isOn ? 0.92 : 0), in: .circle)
                 .contentShape(.rect)
                 .animation(.easeInOut(duration: 0.2), value: isOn)
         }
@@ -506,12 +527,12 @@ private struct ArtistMenu: View {
                     }
                 } label: {
                     MarqueeText(text: subtitle)
-                        .foregroundStyle(.white.opacity(0.65))
+                        .foregroundStyle(Color.primary.opacity(0.65))
                 }
                 .buttonStyle(.plain)
             } else {
                 MarqueeText(text: subtitle)
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(Color.primary.opacity(0.65))
             }
         }
     }
@@ -533,7 +554,7 @@ private struct NowPlayingFavoriteButton: View {
             } label: {
                 Image(systemName: isFavorite ? "heart.fill" : "heart")
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(isFavorite ? Color.red : Color.white)
+                    .foregroundStyle(isFavorite ? Color.red : Color.primary)
                     .frame(width: 44, height: 44)
                     .contentShape(.rect)
                     .appSymbolTransition()
@@ -592,7 +613,7 @@ private struct DevicesButton: View {
             } label: {
                 Image(systemName: isRemote ? "hifispeaker.and.homepod.fill" : "hifispeaker.and.homepod")
                     .font(.title3.weight(.medium))
-                    .foregroundStyle(isRemote ? AnyShapeStyle(.tint) : AnyShapeStyle(.white.opacity(0.7)))
+                    .foregroundStyle(isRemote ? AnyShapeStyle(.tint) : AnyShapeStyle(Color.primary.opacity(0.7)))
                     .frame(width: 44, height: 44)
                     .contentShape(.rect)
             }
@@ -609,15 +630,14 @@ private struct DevicesButton: View {
 /// transitions exposing the dark theme underneath.
 struct NowPlayingBackground: View {
     @Environment(\.nowPlayingPalette) private var palette
+    @Environment(\.themeContext) private var theme
     @Environment(SettingsStore.self) private var settings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         WithPerceptionTracking {
-            let appearance = settings.settings.appearance
-            let base = appearance.darkTheme.palette.background
-            let cover = (palette?.average ?? palette?.colors.first).map(Color.init) ?? base
-            base.appMix(with: cover, by: min(max(appearance.nowPlayingColorIntensity, 0), 1))
+            NowPlayingColors(theme: theme.palette, palette: palette,
+                             intensity: settings.settings.appearance.nowPlayingColorIntensity).background
                 .animation(reduceMotion ? .linear(duration: 0.15) : .smooth(duration: 0.6), value: palette)
         }
     }
@@ -625,4 +645,25 @@ struct NowPlayingBackground: View {
 
 extension EnvironmentValues {
     @Entry var nowPlayingPalette: ArtworkPalette?
+    @Entry var nowPlayingViewportSize: CGSize = .zero
+}
+
+/// Mirrors Web's blendColors + isDarkHex (relative luminance cutoff 0.43).
+private struct NowPlayingColors {
+    let background: Color
+    let isDark: Bool
+
+    init(theme: ThemePalette, palette: ArtworkPalette?, intensity: Double) {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(theme.background).getRed(&r, green: &g, blue: &b, alpha: &a)
+        let cover = palette?.average ?? palette?.colors.first
+        let amount = cover == nil ? 0 : min(max(intensity, 0), 1)
+        let rgb = RGBColor(
+            red: Double(r) + ((cover?.red ?? Double(r)) - Double(r)) * amount,
+            green: Double(g) + ((cover?.green ?? Double(g)) - Double(g)) * amount,
+            blue: Double(b) + ((cover?.blue ?? Double(b)) - Double(b)) * amount
+        )
+        background = Color(rgb)
+        isDark = rgb.luminance < 0.43
+    }
 }

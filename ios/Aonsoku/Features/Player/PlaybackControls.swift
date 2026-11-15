@@ -63,8 +63,8 @@ struct PlaybackScrubber: View {
                 dragProgress = nil
             }
         }
-        .trackColor(.white.opacity(0.22))
-        .progressColor(.white.opacity(0.8), enlarged: .white)
+        .trackColor(Color.primary.opacity(0.22))
+        .progressColor(Color.primary.opacity(0.8), enlarged: Color.primary)
         .progressLabels(
             leading: Formatters.clock(position),
             trailing: "-\(Formatters.clock(max(duration - position, 0)))"
@@ -72,10 +72,10 @@ struct PlaybackScrubber: View {
             if let quality = player.currentSong.flatMap({ Formatters.quality(of: $0) }) {
                 Text(quality)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Color.primary.opacity(0.6))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(.white.opacity(0.12), in: .capsule)
+                    .background(Color.primary.opacity(0.12), in: .capsule)
                     .lineLimit(1)
             }
         }
@@ -100,7 +100,7 @@ struct PlaybackScrubber: View {
     private var live: some View {
         VStack(spacing: 6) {
             Capsule()
-                .fill(.white.opacity(0.8))
+                .fill(Color.primary.opacity(0.8))
                 .frame(height: 7)
                 .opacity(0.35)
                 .frame(height: 24)
@@ -112,7 +112,7 @@ struct PlaybackScrubber: View {
                     .textCase(.uppercase)
             }
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.white.opacity(0.6))
+            .foregroundStyle(Color.primary.opacity(0.6))
         }
     }
 }
@@ -195,11 +195,11 @@ private struct TransportButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         WithPerceptionTracking {
             configuration.label
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.primary)
                 .background {
                     WithPerceptionTracking {
                         Circle()
-                            .fill(.white.opacity(configuration.isPressed ? 0.16 : 0))
+                            .fill(Color.primary.opacity(configuration.isPressed ? 0.16 : 0))
                     }
                 }
                 .scaleEffect(configuration.isPressed ? 0.86 : 1)
@@ -240,8 +240,8 @@ struct VolumeSlider: View {
                     dragValue = value
                 }
             }
-            .trackColor(.white.opacity(0.22))
-            .progressColor(.white.opacity(0.8), enlarged: .white)
+            .trackColor(Color.primary.opacity(0.22))
+            .progressColor(Color.primary.opacity(0.8), enlarged: Color.primary)
             .volumeIcons()
             .playerSliderRegion(.volume)
             .task(id: isEditing ? nil : dragValue) {
@@ -282,14 +282,16 @@ struct VolumeSlider: View {
 struct AudioRoutePicker: UIViewRepresentable {
     func makeUIView(context: Context) -> AVRoutePickerView {
         let view = AVRoutePickerView()
-        view.tintColor = UIColor.white.withAlphaComponent(0.65)
-        view.activeTintColor = .white
+        view.tintColor = UIColor.label.withAlphaComponent(0.65)
+        view.activeTintColor = .label
         view.prioritizesVideoDevices = false
         view.backgroundColor = .clear
         return view
     }
 
-    func updateUIView(_ view: AVRoutePickerView, context: Context) {}
+    func updateUIView(_ view: AVRoutePickerView, context: Context) {
+        view.overrideUserInterfaceStyle = context.environment.colorScheme == .dark ? .dark : .light
+    }
 }
 
 // MARK: - Sleep timer
@@ -374,7 +376,7 @@ struct PlayerBufferingIndicator: View {
         WithPerceptionTracking {
             ProgressView()
                 .controlSize(.mini)
-                .tint(.white)
+                .tint(Color.primary)
                 .opacity(isVisible && isBuffering ? 1 : 0)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)

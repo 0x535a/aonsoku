@@ -211,17 +211,19 @@ node scripts/native-audio/ci/collect-runtime-darwin.mjs --root <libmpv.dylib> --
   `NowPlayingView`, their shared background and the sole `PlayerArtwork`.
   Full-screen pages and pinned queue headers share one solid background rule:
   the cover's RMS average color blended at the configured intensity over the
-  selected dark theme background, matching the web player's color treatment
-  while retaining the native player's light controls. `NowPlayingBackground`
-  blends these colors into one opaque fill shared by the surface and pinned
-  headers.
+  active light/dark theme background. `NowPlayingBackground` blends these
+  colors into one opaque fill shared by the surface and pinned headers;
+  controls and lyrics use the same luminance cutoff (0.43) as Web to choose
+  light or dark foregrounds. Landscape (including a square viewport) uses
+  the two-column player on both iPhone and iPad; portrait uses compact pages.
   The full-screen background and page content (including opaque pinned headers)
   composite together before fading toward the glass during dismissal, so headers
   cannot remain as solid rectangles over a translucent player surface. The shared
   artwork stays outside that fade group.
   The queue hides system scroll-edge effects and uses a top/bottom
   marquee-style edge fade gradient mask; its width matches the playback
-  scrubber, extending directly to the top of the progress bar. Palette changes animate
+  scrubber, extending to the bottom page actions when compact Queue hides
+  playback controls. Palette changes animate
   the fill without inserting or removing color layers.
   The system accessory reserves space and reports native geometry only.
   A scoped UIKit marker hides the immediate host of the public
@@ -285,7 +287,9 @@ node scripts/native-audio/ci/collect-runtime-darwin.mjs --root <libmpv.dylib> --
   current-track images to them.
   Full-screen layouts share one compact transport/slider layout
   (`TransportControls(scale: 0.85)` with
-  6pt vertical transport padding) across all pages. On compact layouts,
+  6pt vertical transport padding). Compact Queue hides progress, transport and
+  volume, matching Web; landscape retains them and song metadata in the cover
+  column. Orientation uses the full viewport before safe-area padding. On compact layouts,
   `PlayerContentLayout` positions the cover/lyrics metadata and both persistent artwork
   markers above those controls. The metadata layout slots stay mounted.
   Leaving the cover page moves its title/actions upward toward the compact
@@ -311,9 +315,12 @@ node scripts/native-audio/ci/collect-runtime-darwin.mjs --root <libmpv.dylib> --
   descendants do not inherit an animation transaction. Never animate page
   selection, native List layout/scroll resets or artwork markers through a
   global transaction.
-  Manually scrolling down through synced or plain lyrics collapses the entire
-  footer (progress, transport, volume and bottom actions) and expands the lyrics
-  viewport. Scrolling back or tapping lyrics restores it, as do changing panels,
+  Manually scrolling down through synced or plain lyrics collapses progress,
+  transport and volume and expands the lyrics viewport; bottom page actions
+  remain available, matching Web. Lyrics selection has its own bottom action
+  opening the native settings sheet. Known unavailable/disabled lyrics disable
+  the lyrics page button, while selection remains available. Scrolling back
+  or tapping lyrics restores the controls, as do changing panels,
   songs or fullscreen presentation. Playback-following scrolls and viewport
   resize callbacks do not toggle the footer. The footer stays mounted to retain
   slider state, with hit testing and accessibility disabled while collapsed.
@@ -345,7 +352,7 @@ node scripts/native-audio/ci/collect-runtime-darwin.mjs --root <libmpv.dylib> --
   A tap or a clock jump over 0.5s seeks (quick spring, no stagger); Reduce Motion
   uses quick springs, no blur or scaling.
   The compact queue is one native `List` matching the progress bar width and
-  extending directly to its top edge: history, a current-track metadata
+  extending to the bottom page actions: history, a current-track metadata
   row with an artwork layout marker, then the upcoming section with pinned
   mode/title controls. Cover/lyrics metadata stays mounted but is invisible,
   noninteractive and accessibility-hidden while the queue owns that row, so
@@ -546,6 +553,21 @@ node scripts/native-audio/ci/collect-runtime-darwin.mjs --root <libmpv.dylib> --
   current operation/progress afterward; it does not pre-gate an obsolete primary
   URL before fallback can select the active or alternate address. SessionStore
   retains both active-URL notifications and generation-checked server probes.
+  Library selections on the phone, CarPlay and remote commands use
+  `AudioService.playSelection` / `NativeQueueEngine.setPlaybackQueue`.
+  `sourceSongs` retains the complete original selection independently of
+  `contextSongs`, which starts at the requested song (or rotates the whole
+  selection for repeat-all). Shuffle/repeat rebuild from that source;
+  repeat-all appends the rendered cycle without resetting previous-track
+  history or reshuffling the cycle boundary. Persistence saves optional
+  `sourceSongs`, falling back to original/context songs for older states;
+  handoff snapshots retain their prepared playback queue and adopt it as
+  the source when the wire format has no complete source. The low-level
+  `setContextQueue` still accepts already prepared queues. Queue selection
+  uses occurrence indices, and skipped user entries remain navigable through
+  Previous. Reselecting the current single song resumes without replacing
+  its source or manual queue. Web fullscreen uses occurrence keys and carries
+  tier indices through play/reorder/remove in both ordinary and virtual lists.
   `AudioService` owns a long-lived `AVQueuePlayer`,
   the queue, downloads, scrobbling, playback persistence, system media
   controls, direct-stream background caching, and staged

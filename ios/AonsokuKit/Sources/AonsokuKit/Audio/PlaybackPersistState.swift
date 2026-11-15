@@ -7,6 +7,8 @@ struct QueueSourceId: Codable, Equatable {
 
 struct PlaybackPersistState: Codable {
     var contextSongs: [QueueSong]
+    /// Optional for queues saved before source/playback separation.
+    var sourceSongs: [QueueSong]?
     var currentIndex: Int
     var userQueue: [QueueSong]
     var originalContextSongs: [QueueSong]
@@ -23,6 +25,7 @@ struct PlaybackPersistState: Codable {
 
     init(from engine: NativeQueueEngine, currentTime: Double) {
         self.contextSongs = engine.contextSongs
+        self.sourceSongs = engine.sourceSongs
         self.currentIndex = engine.currentIndex
         self.userQueue = engine.userQueue
         self.originalContextSongs = engine.originalContextSongs

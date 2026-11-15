@@ -18,6 +18,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { queueRowID } from "@/store/player/queue-rows";
 import RepeatOne from "@/app/components/icons/repeat-one";
 import { useQueueDndSensors } from "@/app/components/queue/dnd-sensors";
 import {
@@ -43,6 +44,7 @@ import {
   usePlayerCurrentSongIndex,
   usePlayerLoop,
   usePlayerShuffle,
+  usePlayerStore,
   useUserQueue,
 } from "@/store/player.store";
 import {
@@ -145,6 +147,16 @@ export const FullscreenSongQueue = memo(function FullscreenSongQueue({
   const userQueueSongs = isRemoteQueue
     ? remoteProjection.userQueueSongs
     : localUserQueue.userQueueSongs;
+  const localInUserQueue = usePlayerStore(
+    (state) => state.songlist.isInUserQueue,
+  );
+  const hiddenUserCount = (
+    isRemoteQueue
+      ? remoteProjection.snapshot?.inUserQueue
+      : localInUserQueue
+  )
+    ? 1
+    : 0;
   const clearUserQueue = localUserQueue.clearUserQueue;
   const { t } = useTranslation();
   const playHistory = usePlayHistory();
@@ -185,6 +197,7 @@ export const FullscreenSongQueue = memo(function FullscreenSongQueue({
 
   return (
     <UnifiedQueueView
+      hiddenUserCount={hiddenUserCount}
       playHistory={filteredHistory}
       userQueueSongs={userQueueSongs}
       upcomingContext={upcomingContext}
@@ -212,6 +225,7 @@ export const FullscreenSongQueue = memo(function FullscreenSongQueue({
 });
 
 function UnifiedQueueView({
+  hiddenUserCount,
   playHistory,
   userQueueSongs,
   upcomingContext,
@@ -235,6 +249,7 @@ function UnifiedQueueView({
   isMobile,
   snapHaptic,
 }: {
+  hiddenUserCount: number;
   playHistory: ISong[];
   userQueueSongs: ISong[];
   upcomingContext: ISong[];
@@ -259,8 +274,13 @@ function UnifiedQueueView({
   snapHaptic?: () => void;
 }) {
   const { t } = useTranslation();
-  const { playFromQueue, playFromUserQueue, setNextOnQueue, reorderQueue } =
-    usePlayerActions();
+  const {
+    playFromQueue,
+    playFromUserQueue,
+    playNextSong,
+    setNextOnQueue,
+    reorderQueue,
+  } = usePlayerActions();
   const loopState = usePlayerLoop();
   const isShuffleActive = usePlayerShuffle();
   const remoteProjection = useRemotePlaybackProjection();
@@ -275,9 +295,16 @@ function UnifiedQueueView({
   const playHistorySong = useCallback(
     (song: ISong) => {
       setNextOnQueue([song]);
-      playFromUserQueue(0);
+      if (isRemoteQueue) playNextSong();
+      else playFromUserQueue(hiddenUserCount);
     },
-    [setNextOnQueue, playFromUserQueue],
+    [
+      setNextOnQueue,
+      playFromUserQueue,
+      playNextSong,
+      hiddenUserCount,
+      isRemoteQueue,
+    ],
   );
 
   const queueItemProps = {
@@ -298,14 +325,19 @@ function UnifiedQueueView({
   const userSortableItems = useMemo(
     () =>
       userQueueSongs
-        .filter((song) => song.id !== currentSong?.id)
-        .map((song) => song.id),
-    [userQueueSongs, currentSong],
+        .slice(hiddenUserCount)
+        .map((song, index) =>
+          queueRowID("user", index + hiddenUserCount, song.id),
+        ),
+    [userQueueSongs, hiddenUserCount],
   );
 
   const upcomingSortableItems = useMemo(
-    () => upcomingContext.map((song) => song.id),
-    [upcomingContext],
+    () =>
+      upcomingContext.map((song, index) =>
+        queueRowID("context", contextIndex + 1 + index, song.id),
+      ),
+    [upcomingContext, contextIndex],
   );
 
   useLayoutEffect(() => {
@@ -384,7 +416,10 @@ function UnifiedQueueView({
   const userQueueStart = contextPlayedCount;
 
   function handleUserDragStart(event: DragStartEvent) {
-    const song = userQueueSongs.find((s) => s.id === event.active.id);
+    const song =
+      userQueueSongs[
+        userSortableItems.indexOf(String(event.active.id)) + hiddenUserCount
+      ];
     setActiveItem(song ?? null);
     const el = scrollContainerRef.current;
     if (el) {
@@ -398,9 +433,11 @@ function UnifiedQueueView({
     setDragOverlayBg("");
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const fromLocal = userQueueSongs.findIndex((s) => s.id === active.id);
-    const toLocal = userQueueSongs.findIndex((s) => s.id === over.id);
-    if (fromLocal === -1 || toLocal === -1) return;
+    const fromLocal =
+      userSortableItems.indexOf(String(active.id)) + hiddenUserCount;
+    const toLocal =
+      userSortableItems.indexOf(String(over.id)) + hiddenUserCount;
+    if (fromLocal < hiddenUserCount || toLocal < hiddenUserCount) return;
     const fromGlobal = userQueueStart + fromLocal;
     const toGlobal = userQueueStart + toLocal;
     if (!isRemoteQueue) {
@@ -409,7 +446,8 @@ function UnifiedQueueView({
   }
 
   function handleUpcomingDragStart(event: DragStartEvent) {
-    const song = upcomingContext.find((s) => s.id === event.active.id);
+    const song =
+      upcomingContext[upcomingSortableItems.indexOf(String(event.active.id))];
     setActiveItem(song ?? null);
     const el = scrollContainerRef.current;
     if (el) {
@@ -423,8 +461,8 @@ function UnifiedQueueView({
     setDragOverlayBg("");
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const fromLocal = upcomingContext.findIndex((s) => s.id === active.id);
-    const toLocal = upcomingContext.findIndex((s) => s.id === over.id);
+    const fromLocal = upcomingSortableItems.indexOf(String(active.id));
+    const toLocal = upcomingSortableItems.indexOf(String(over.id));
     if (fromLocal === -1 || toLocal === -1) return;
     const fromGlobal = contextPlayedCount + userQueueSongs.length + fromLocal;
     const toGlobal = contextPlayedCount + userQueueSongs.length + toLocal;
@@ -456,11 +494,12 @@ function UnifiedQueueView({
   const isRepeatOne = effectiveLoopState === LoopState.One;
   const isRepeatAll = effectiveLoopState === LoopState.All;
   const hasNoUpcoming =
-    upcomingContext.length === 0 && userQueueSongs.length === 0;
+    upcomingContext.length === 0 && userQueueSongs.length <= hiddenUserCount;
 
   if (useVirtualization) {
     return (
       <VirtualizedQueueView
+        hiddenUserCount={hiddenUserCount}
         playHistory={playHistory}
         userQueueSongs={userQueueSongs}
         upcomingContext={upcomingContext}
@@ -576,6 +615,7 @@ function UnifiedQueueView({
         {userQueueSongs.length > 0 && (
           <div>
             <UserQueueSection
+              hiddenUserCount={hiddenUserCount}
               userQueueSongs={userQueueSongs}
               userSortableItems={userSortableItems}
               currentSong={currentSong}
@@ -644,8 +684,9 @@ function UnifiedQueueView({
                     const contextIdx = contextIndex + 1 + idx;
                     return (
                       <SortableQueueItem
-                        key={song.id}
-                        id={song.id}
+                        key={queueRowID("context", contextIdx, song.id)}
+                        id={queueRowID("context", contextIdx, song.id)}
+                        queueIndex={contextIdx}
                         song={song}
                         isActive={false}
                         onPlay={() => playFromQueue(contextSongs, contextIdx)}
@@ -696,6 +737,7 @@ function UnifiedQueueView({
 }
 
 function VirtualizedQueueView({
+  hiddenUserCount,
   playHistory,
   userQueueSongs,
   upcomingContext,
@@ -734,6 +776,7 @@ function VirtualizedQueueView({
   queueItemProps,
   snapHaptic,
 }: {
+  hiddenUserCount: number;
   playHistory: ISong[];
   userQueueSongs: ISong[];
   upcomingContext: ISong[];
@@ -818,16 +861,12 @@ function VirtualizedQueueView({
       items.push({ type: "modeButtons" });
     }
 
-    const filteredUserQueueSongs = userQueueSongs.filter(
-      (song) => song.id !== currentSong?.id,
-    );
+    const filteredUserQueueSongs = userQueueSongs.slice(hiddenUserCount);
 
     if (filteredUserQueueSongs.length > 0) {
       items.push({ type: "queueHeader" });
-      for (const song of filteredUserQueueSongs) {
-        const userQueueIndex = userQueueSongs.findIndex(
-          (s) => s.id === song.id,
-        );
+      for (const [offset, song] of filteredUserQueueSongs.entries()) {
+        const userQueueIndex = offset + hiddenUserCount;
         items.push({
           type: "userQueueSong",
           song,
@@ -877,6 +916,7 @@ function VirtualizedQueueView({
 
     return items;
   }, [
+    hiddenUserCount,
     hideHistory,
     hideCurrentSong,
     hideModeButtons,
@@ -884,7 +924,6 @@ function VirtualizedQueueView({
     playHistory,
     userQueueSongs,
     upcomingContext,
-    currentSong,
     contextIndex,
     hasNoUpcoming,
     isRepeatOne,
@@ -896,6 +935,14 @@ function VirtualizedQueueView({
   const virtualizer = useVirtualizer({
     count: virtualItems.length,
     getScrollElement,
+    getItemKey: (index) => {
+      const item = virtualItems[index];
+      if (item?.type === "userQueueSong")
+        return queueRowID("user", item.userQueueIndex, item.song.id);
+      if (item?.type === "upcomingSong")
+        return queueRowID("context", item.contextIdx, item.song.id);
+      return item?.type === "history" ? item.key : `${item?.type}:${index}`;
+    },
     estimateSize: (index) => {
       const item = virtualItems[index];
       if (!item) return 64;
@@ -1088,9 +1135,14 @@ function VirtualizedQueueView({
 
                         {item.type === "userQueueSong" && (
                           <SortableQueueItem
-                            id={item.song.id}
+                            id={queueRowID(
+                              "user",
+                              item.userQueueIndex,
+                              item.song.id,
+                            )}
+                            queueIndex={item.userQueueIndex}
                             song={item.song}
-                            isActive={currentSong?.id === item.song.id}
+                            isActive={false}
                             onPlay={() =>
                               playFromUserQueue(item.userQueueIndex)
                             }
@@ -1132,7 +1184,12 @@ function VirtualizedQueueView({
 
                         {item.type === "upcomingSong" && (
                           <SortableQueueItem
-                            id={item.song.id}
+                            id={queueRowID(
+                              "context",
+                              item.contextIdx,
+                              item.song.id,
+                            )}
+                            queueIndex={item.contextIdx}
                             song={item.song}
                             isActive={false}
                             onPlay={() =>
@@ -1198,6 +1255,7 @@ function RepeatIndicator({
 }
 
 function UserQueueSection({
+  hiddenUserCount,
   userQueueSongs,
   userSortableItems,
   currentSong,
@@ -1212,6 +1270,7 @@ function UserQueueSection({
   sticky = false,
   queueItemProps,
 }: {
+  hiddenUserCount: number;
   userQueueSongs: ISong[];
   userSortableItems: string[];
   currentSong: ISong | null;
@@ -1231,9 +1290,7 @@ function UserQueueSection({
     isMobile: boolean;
   };
 }) {
-  const filteredUserQueueSongs = userQueueSongs.filter(
-    (song) => song.id !== currentSong?.id,
-  );
+  const filteredUserQueueSongs = userQueueSongs.slice(hiddenUserCount);
 
   if (filteredUserQueueSongs.length === 0) return null;
 
@@ -1267,17 +1324,15 @@ function UserQueueSection({
               {t("generic.clear")}
             </Button>
           </div>
-          {filteredUserQueueSongs.map((song) => {
-            const userQueueIndex = userQueueSongs.findIndex(
-              (s) => s.id === song.id,
-            );
-            const isCurrent = currentSong?.id === song.id;
+          {filteredUserQueueSongs.map((song, offset) => {
+            const userQueueIndex = offset + hiddenUserCount;
             return (
               <SortableQueueItem
-                key={song.id}
-                id={song.id}
+                key={queueRowID("user", userQueueIndex, song.id)}
+                id={queueRowID("user", userQueueIndex, song.id)}
+                queueIndex={userQueueIndex}
                 song={song}
-                isActive={isCurrent}
+                isActive={false}
                 onPlay={() => onPlaySong(userQueueIndex)}
                 tier="user"
                 {...queueItemProps}

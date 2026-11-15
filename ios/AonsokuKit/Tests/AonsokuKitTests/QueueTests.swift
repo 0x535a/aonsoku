@@ -2,6 +2,94 @@ import XCTest
 @testable import AonsokuKit
 
 final class QueueTests: XCTestCase {
+    func testSelectionStartsAtCurrentAndKeepsCompleteSource() {
+        let engine = NativeQueueEngine()
+        let songs = ["a", "b", "c", "d"].map { makeSong($0) }
+        engine.setPlaybackQueue(songs: songs, index: 2, shuffle: false, autoplay: false)
+        XCTAssertEqual(engine.contextSongs.map(\.id), ["c", "d"])
+        XCTAssertEqual(engine.sourceSongs.map(\.id), ["a", "b", "c", "d"])
+        XCTAssertFalse(engine.hasPrev)
+        let spy = QueueDelegateSpy()
+        engine.delegate = spy
+        engine.skipToPrevious(currentTime: 2)
+        XCTAssertEqual(spy.seekedSongIds, ["c"])
+    }
+
+    func testRepeatRebuildsFromSourceAndPreservesCrossCyclePrevious() {
+        let engine = NativeQueueEngine()
+        engine.setPlaybackQueue(songs: ["a", "b", "c", "d"].map { makeSong($0) }, index: 2, shuffle: false)
+        engine.setLoopState(.all)
+        XCTAssertEqual(engine.contextSongs.map(\.id), ["c", "d", "a", "b"])
+        engine.skipToNext()
+        engine.skipToNext()
+        engine.skipToPrevious(currentTime: 0)
+        XCTAssertEqual(engine.currentSong?.id, "d")
+        engine.setLoopState(.off)
+        XCTAssertEqual(engine.contextSongs.map(\.id), ["d"])
+        XCTAssertEqual(engine.sourceSongs.map(\.id), ["a", "b", "c", "d"])
+    }
+
+    func testRepeatAllPreparesNextCycleBeforeCurrentReachesEnd() {
+        let engine = NativeQueueEngine()
+        engine.setLoopState(.all)
+        engine.setPlaybackQueue(songs: ["a", "b"].map { makeSong($0) }, index: 0, shuffle: false)
+        engine.skipToNext()
+        XCTAssertEqual(engine.contextSongs.map(\.id), ["a", "b", "a", "b"])
+        engine.skipToNext()
+        engine.skipToPrevious(currentTime: 0)
+        XCTAssertEqual(engine.currentSong?.id, "b")
+    }
+
+    func testRepeatAllDrainsUserQueueIntoNextPreparedCycle() {
+        let engine = NativeQueueEngine()
+        engine.setLoopState(.all)
+        engine.setPlaybackQueue(songs: ["a", "b"].map { makeSong($0) }, index: 0, shuffle: false)
+        engine.playAtIndex(1, startTime: nil)
+        engine.addToUserQueue(songs: [makeSong("u")], position: "next")
+        engine.skipToNext()
+        engine.skipToNext()
+        XCTAssertEqual(engine.currentSong?.id, "a")
+        engine.skipToPrevious(currentTime: 0)
+        XCTAssertEqual(engine.currentSong?.id, "u")
+    }
+
+    func testSelectingUserOccurrenceRetainsSkippedSongsForPrevious() {
+        let engine = NativeQueueEngine()
+        engine.setPlaybackQueue(songs: [makeSong("a")], index: 0, shuffle: false)
+        engine.addToUserQueue(songs: ["u1", "u2", "u3"].map { makeSong($0) }, position: "last")
+        engine.playUserQueueAtIndex(2)
+        XCTAssertEqual(engine.currentSong?.id, "u3")
+        XCTAssertEqual(engine.playedUserQueueHistory.map(\.id), ["u1", "u2"])
+        engine.skipToPrevious(currentTime: 0)
+        XCTAssertEqual(engine.currentSong?.id, "u2")
+    }
+
+    func testReorderingLaterDuplicateDoesNotMoveCurrentOccurrence() {
+        let engine = NativeQueueEngine()
+        engine.setContextQueue(songs: ["a", "a", "b", "c"].map { makeSong($0) }, currentIndex: 1,
+                               autoplay: false, startTime: nil)
+        XCTAssertTrue(engine.reorderContextQueue(fromIndex: 2, toIndex: 3))
+        XCTAssertEqual(engine.currentIndex, 1)
+    }
+
+    func testSourceQueueSurvivesPersistenceAndOldStatesDecode() throws {
+        let engine = NativeQueueEngine()
+        engine.setPlaybackQueue(songs: ["a", "b", "c"].map { makeSong($0) }, index: 1, shuffle: false)
+        let data = try JSONEncoder().encode(PlaybackPersistState(from: engine, currentTime: 2))
+        let restored = NativeQueueEngine()
+        restored.restoreState(from: try JSONDecoder().decode(PlaybackPersistState.self, from: data))
+        restored.setLoopState(.all)
+        XCTAssertEqual(restored.contextSongs.map(\.id), ["b", "c", "a"])
+
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        legacy.removeValue(forKey: "sourceSongs")
+        let oldData = try JSONSerialization.data(withJSONObject: legacy)
+        let old = NativeQueueEngine()
+        old.restoreState(from: try JSONDecoder().decode(PlaybackPersistState.self, from: oldData))
+        XCTAssertEqual(old.currentSong?.id, "b")
+        XCTAssertEqual(old.sourceSongs.map(\.id), ["a", "b", "c"])
+    }
+
     func testSetContextQueueLoadsRequestedSongAndStartPosition() {
         let engine = NativeQueueEngine()
         let delegate = QueueDelegateSpy()
@@ -81,7 +169,7 @@ final class QueueTests: XCTestCase {
         XCTAssertEqual(engine.nextSongForAutomaticAdvance?.id, "b")
     }
 
-    func testAutomaticPreloadPredictionAvoidsUnpredictableOrLoopedBoundaries() {
+    func testAutomaticPreloadPredictionKeepsRepeatOneAndExtendsShuffledCycles() {
         let engine = NativeQueueEngine()
         engine.setContextQueue(
             songs: [makeSong("a"), makeSong("b"), makeSong("c")],
@@ -98,8 +186,9 @@ final class QueueTests: XCTestCase {
         engine.clearUserQueue()
         engine.setLoopState(.all)
         engine.setShuffleActive(true)
+        let first = engine.contextSongs.first?.id
         engine.playAtIndex(engine.contextSongs.count - 1, startTime: nil)
-        XCTAssertNil(engine.nextSongForAutomaticAdvance)
+        XCTAssertEqual(engine.nextSongForAutomaticAdvance?.id, first)
     }
 
     func testPreviousRestartsAfterThresholdBeforeChangingQueuePosition() {

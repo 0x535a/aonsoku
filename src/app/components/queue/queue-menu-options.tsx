@@ -12,12 +12,14 @@ interface QueueMenuOptionsProps {
   variant: "context" | "dropdown";
   song: ISong;
   tier?: QueueTier;
+  queueIndex?: number;
 }
 
 export function QueueMenuOptions({
   variant,
   song,
   tier,
+  queueIndex,
 }: QueueMenuOptionsProps) {
   const navigate = useNavigate();
   const { removeSongFromQueue } = usePlayerActions();
@@ -33,7 +35,7 @@ export function QueueMenuOptions({
         variant={variant}
         onClick={(e) => {
           e.stopPropagation();
-          removeSongFromQueue(song.id, tier);
+          removeSongFromQueue(song.id, tier, queueIndex);
         }}
       />
       {(tier === "user" || tier === undefined) && (

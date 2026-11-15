@@ -8,6 +8,7 @@ struct Fixture: View {
     let scale: CGFloat
     let active: Bool
     let translation: Bool
+    var scheme: ColorScheme = .dark
     static let original = "夜空の光とどちらが多いのだろう？ 長い歌詞も省略せず最後の文字まで表示します。終わり"
     static let roman = "yo zo ra no hi ka ri to do chi ra ga o o i no da ro u? nagai kashi mo saigo made subete hyouji shimasu. owari"
     static let translated = "和夜空光芒比起来哪个多呢？无论歌词有多长，都应完整显示最后一个字，不能隐藏或省略。结束"
@@ -36,7 +37,9 @@ struct Fixture: View {
                     .fixedSize(horizontal: false, vertical: true)
                 }.buttonStyle(.plain)
             }.frame(width: width, height: 1600, alignment: .topLeading)
-        }.frame(width: width, height: 650).background(Color(white: 0.23))
+        }.frame(width: width, height: 650)
+            .background(Color(white: scheme == .dark ? 0.23 : 0.95))
+            .environment(\.colorScheme, scheme)
     }
 }
 
@@ -100,6 +103,23 @@ class LayoutScene: UIResponder, UIWindowSceneDelegate {
                         }
                     }
                 }
+            }
+        }
+        // The production UIKit text must follow the player's blended-background
+        // contrast, including changes while a lyric label stays mounted.
+        for scheme in [ColorScheme.light, .dark, .light] {
+            let host = UIHostingController(rootView: Fixture(width: 390, scale: 1, active: true,
+                                                            translation: true, scheme: scheme))
+            window?.rootViewController = host
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            host.view.layoutIfNeeded()
+            for label in labels(host.view) {
+                let color = label.textColor.resolvedColor(with: label.traitCollection)
+                var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+                color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+                let brightness = (red + green + blue) / 3
+                check(scheme == .dark ? brightness > 0.7 : brightness < 0.3,
+                      "Lyric text did not adapt to \(scheme) background")
             }
         }
         // Explicit 1/2/3/4+ line cases, newlines, long unbroken words and emoji.

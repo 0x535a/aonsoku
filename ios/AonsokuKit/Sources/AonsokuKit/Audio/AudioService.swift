@@ -643,9 +643,30 @@ public final class AudioService: NSObject, @unchecked Sendable {
             )
             if let repeatMode {
                 self.queueEngine.setLoopState(
-                    LoopState(rawValue: repeatMode.rawValue) ?? .off
+                    LoopState(rawValue: repeatMode.rawValue) ?? .off, rebuild: false
                 )
             }
+            self.persistence.markStateDirty()
+        }
+    }
+
+    /// Starts a library selection with the same source/playback separation as Web.
+    public func playSelection(
+        songs: [QueueSong], index: Int, shuffle: Bool = false,
+        sourceId: AudioQueueSource? = nil, sourceName: String? = nil,
+        repeatMode: AudioRepeatMode? = nil
+    ) {
+        cancelCarPlaySelection()
+        stateQueue.async { [weak self] in
+            guard let self, !songs.isEmpty else { return }
+            self.isQueueActive = true
+            if let repeatMode {
+                self.queueEngine.setLoopState(LoopState(rawValue: repeatMode.rawValue) ?? .off, rebuild: false)
+            }
+            self.queueEngine.setPlaybackQueue(
+                songs: songs, index: index, shuffle: shuffle,
+                sourceId: sourceId.map { QueueSourceId(type: $0.type, id: $0.id) }, sourceName: sourceName
+            )
             self.persistence.markStateDirty()
         }
     }
@@ -691,6 +712,7 @@ public final class AudioService: NSObject, @unchecked Sendable {
         }
         var state = PlaybackPersistState(from: queueEngine, currentTime: 0)
         state.contextSongs = []
+        state.sourceSongs = []
         state.currentIndex = 0
         state.userQueue = songs
         state.originalContextSongs = []
@@ -726,6 +748,14 @@ public final class AudioService: NSObject, @unchecked Sendable {
     public func playAtIndex(_ index: Int, startTime: Double? = nil) {
         stateQueue.async { [weak self] in
             self?.queueEngine.playAtIndex(index, startTime: startTime)
+        }
+    }
+
+    public func playUserQueueAtIndex(_ index: Int) {
+        cancelCarPlaySelection()
+        stateQueue.async { [weak self] in
+            self?.queueEngine.playUserQueueAtIndex(index)
+            self?.persistence.markStateDirty()
         }
     }
 
@@ -1050,6 +1080,7 @@ public final class AudioService: NSObject, @unchecked Sendable {
             resolveRemoteSongs(
                 ids: songIds,
                 index: index,
+                navigateExistingQueue: true,
                 generation: generation,
                 completion: completion
             )
@@ -1233,6 +1264,7 @@ public final class AudioService: NSObject, @unchecked Sendable {
                         currentTime: snapshot.progressSeconds
                     )
                     state.contextSongs = context
+                    state.sourceSongs = context
                     state.currentIndex = snapshot.contextIndex
                     state.userQueue = user
                     state.originalContextSongs = context
@@ -2228,6 +2260,7 @@ public final class AudioService: NSObject, @unchecked Sendable {
     private func makeQueueSnapshot() -> AudioQueueSnapshot {
         AudioQueueSnapshot(
             contextSongs: queueEngine.contextSongs,
+            sourceSongs: queueEngine.sourceSongs,
             currentIndex: queueEngine.currentIndex,
             sourceId: queueEngine.sourceId.map {
                 AudioQueueSource(type: $0.type, id: $0.id)
@@ -2343,6 +2376,7 @@ public final class AudioService: NSObject, @unchecked Sendable {
 
         var state = PlaybackPersistState(from: queueEngine, currentTime: 0)
         state.contextSongs = songs
+        state.sourceSongs = originalContextSongs.isEmpty ? songs : originalContextSongs
         state.currentIndex = currentIndex
         state.userQueue = userSongs
         state.originalContextSongs = originalContextSongs
@@ -2386,16 +2420,42 @@ public final class AudioService: NSObject, @unchecked Sendable {
             guard let self else { return }
             let songs = self.resolveSongs(ids: ids).map(\.queueSong)
             guard !songs.isEmpty else { return }
-            self.setContextQueue(songs: songs, currentIndex: index)
+            self.playSelection(songs: songs, index: index)
         }
     }
 
     private func resolveRemoteSongs(
         ids: [String],
         index: Int,
+        navigateExistingQueue: Bool = false,
         generation: Int,
         completion: @escaping (Bool) -> Void
     ) {
+        if navigateExistingQueue {
+            stateQueue.async { [weak self] in
+                guard let self, self.isRemoteCommandCurrent(generation), ids.indices.contains(index) else {
+                    completion(false)
+                    return
+                }
+                let engine = self.queueEngine
+                let context = engine.contextSongs.map(\.id)
+                let users = engine.userQueue.map(\.id)
+                if ids == context {
+                    engine.playAtIndex(index, startTime: nil)
+                } else if ids == users {
+                    engine.playUserQueueAtIndex(index)
+                } else if ids == context + users {
+                    if index < context.count { engine.playAtIndex(index, startTime: nil) }
+                    else { engine.playUserQueueAtIndex(index - context.count) }
+                } else {
+                    self.resolveRemoteSongs(ids: ids, index: index, generation: generation, completion: completion)
+                    return
+                }
+                self.persistence.markStateDirty()
+                completion(true)
+            }
+            return
+        }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else {
                 completion(false)
@@ -2434,16 +2494,27 @@ public final class AudioService: NSObject, @unchecked Sendable {
                 completion(false)
                 return
             }
+            if !shuffle, self.isQueueActive {
+                let engine = self.queueEngine
+                let sameSelection = !engine.isInUserQueue && !engine.isShuffleActive
+                    && engine.currentSong?.id == songs[index].id
+                    && engine.sourceId == sourceId && engine.sourceSongs.map(\.id) == songs.map(\.id)
+                // A one-song play command resumes that song even if it came
+                // from a different source. Queue navigation retains both tiers.
+                if sameSelection || (songs.count == 1 && engine.currentSong?.id == songs[0].id) {
+                    self.play()
+                    completion(true)
+                    return
+                }
+            }
             self.isQueueActive = true
-            self.queueEngine.setContextQueue(
+            self.queueEngine.setPlaybackQueue(
                 songs: songs,
-                currentIndex: index,
-                autoplay: true,
-                startTime: nil,
+                index: index,
+                shuffle: shuffle,
                 sourceId: sourceId,
                 sourceName: sourceName
             )
-            if shuffle { self.queueEngine.setShuffleActive(true) }
             self.persistence.markStateDirty()
             completion(true)
         }
@@ -2456,13 +2527,13 @@ public final class AudioService: NSObject, @unchecked Sendable {
                       db: self.databaseManager.dbPool
                   ).getWithSongs(id),
                   !result.songs.isEmpty else { return }
-            self.setContextQueue(
+            self.playSelection(
                 songs: result.songs.map(\.queueSong),
-                currentIndex: index,
+                index: index,
+                shuffle: shuffle,
                 sourceId: AudioQueueSource(type: "album", id: id),
                 sourceName: result.album.name
             )
-            if shuffle { self.setShuffle(true) }
         }
     }
 
@@ -2479,13 +2550,13 @@ public final class AudioService: NSObject, @unchecked Sendable {
                   ) else { return }
             let ids = entries.map(\.id)
             let songs = self.resolveSongs(ids: ids).map(\.queueSong)
-            self.setContextQueue(
+            self.playSelection(
                 songs: songs,
-                currentIndex: index,
+                index: index,
+                shuffle: shuffle,
                 sourceId: AudioQueueSource(type: "playlist", id: id),
                 sourceName: detail.name
             )
-            if shuffle { self.setShuffle(true) }
         }
     }
 
@@ -4152,7 +4223,7 @@ extension AudioService {
                 self.stateQueue.async {
                     guard self.carPlaySelectionGeneration == generation, self.remoteProjection == nil else { return }
                     self.isQueueActive = true
-                    self.queueEngine.setContextQueue(songs: songs, currentIndex: queueIndex, autoplay: true, startTime: nil,
+                    self.queueEngine.setPlaybackQueue(songs: songs, index: queueIndex, shuffle: false,
                         sourceId: sourceId.map { QueueSourceId(type: $0.type, id: $0.id) }, sourceName: sourceName)
                     self.persistence.markStateDirty()
                     DispatchQueue.main.async {

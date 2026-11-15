@@ -18,7 +18,7 @@ struct LyricsTextLayout {
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
         label.adjustsFontSizeToFitWidth = false
-        label.textColor = .white
+        label.textColor = .label
         label.attributedText = NSAttributedString(string: text, attributes: [
             .font: font, .paragraphStyle: paragraph,
         ])
@@ -47,6 +47,7 @@ struct LyricsText: UIViewRepresentable {
     }
 
     func updateUIView(_ label: UILabel, context: Context) {
+        label.overrideUserInterfaceStyle = context.environment.colorScheme == .dark ? .dark : .light
         layout.configure(label)
     }
 

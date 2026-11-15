@@ -22,7 +22,7 @@ struct LyricsPanel: View {
                 case .idle, .loading:
                     message(t("fullscreen.loadingLyrics")) {
                         ProgressView()
-                            .tint(.white)
+                            .tint(Color.primary)
                     }
                 case .unavailable:
                     message(t("fullscreen.noLyrics"), systemImage: "quote.bubble") {
@@ -74,11 +74,11 @@ struct LyricsPanel: View {
             if let systemImage {
                 Image(systemName: systemImage)
                     .font(.largeTitle)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Color.primary.opacity(0.5))
             }
             Text(text)
                 .font(.headline)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(Color.primary.opacity(0.7))
                 .multilineTextAlignment(.center)
             accessory()
         }
@@ -113,7 +113,7 @@ private struct PlainLyrics: View {
                     }
                     LyricsCredit(lyrics: lyrics)
                 }
-                .foregroundStyle(.white.opacity(0.88))
+                .foregroundStyle(Color.primary.opacity(0.88))
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 28)
@@ -200,7 +200,7 @@ struct LyricsCredit: View {
             let parts = [lyrics.credit, source].compactMap { $0 }.filter { !$0.isEmpty }
             Text(parts.joined(separator: " · "))
                 .font(.footnote.weight(.medium))
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(Color.primary.opacity(0.45))
                 .padding(.top, 12)
         }
     }

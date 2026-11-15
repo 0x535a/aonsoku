@@ -7,6 +7,41 @@ import XCTest
 
 @MainActor
 final class PlayerStoreTests: XCTestCase {
+    func testPlayingCurrentSongFromAnotherSourceKeepsManualQueue() async throws {
+        let fixture = try PlayerStoreTestFixture()
+        defer { fixture.audio.shutdown() }
+        let remote = PlayerRemoteSpy()
+        remote.remoteNowPlaying = RemoteNowPlaying(
+            deviceId: "remote-1", deviceName: "Remote", song: mediaSong("current"),
+            queue: PlayerQueue(current: QueueEntry(song: mediaSong("current"), tier: .context, index: 0),
+                userQueue: [QueueEntry(song: mediaSong("queued"), tier: .user, index: 0)], source: .album("album")))
+        let store = fixture.store(remote: remote)
+        store.play(song: mediaSong("current"))
+        let resumed = await waitForPlayerStoreTest { remote.commands.count == 1 }
+        XCTAssertTrue(resumed)
+        XCTAssertEqual(remote.commandTypes, ["play"])
+        XCTAssertEqual(store.playbackStarts, 0)
+    }
+
+    func testPhoneSelectionStartsAtRequestedSongAndRetainsSource() async throws {
+        let fixture = try PlayerStoreTestFixture()
+        defer { fixture.audio.shutdown() }
+        let store = fixture.store()
+        store.start()
+        store.play(["a", "b", "c", "d"].map { mediaSong($0) }, startingAt: 2, source: .playlist("list"))
+        let selected = await waitForPlayerStoreTest { store.currentSong?.id == "c" }
+        XCTAssertTrue(selected)
+        XCTAssertEqual(fixture.audio.fullState()?.contextSongs.map(\.id), ["c", "d"])
+        XCTAssertEqual(fixture.audio.fullState()?.sourceSongs.map(\.id), ["a", "b", "c", "d"])
+        fixture.audio.addToUserQueue(songs: [fixture.queueSong("u1"), fixture.queueSong("u2")], position: "last")
+        let queued = await waitForPlayerStoreTest { store.queue.userQueue.count == 2 }
+        XCTAssertTrue(queued)
+        store.play(entry: try XCTUnwrap(store.queue.userQueue.last))
+        let jumped = await waitForPlayerStoreTest { store.currentSong?.id == "u2" }
+        XCTAssertTrue(jumped)
+        XCTAssertEqual(fixture.audio.fullState()?.playedUserQueueHistory.map(\.id), ["u1"])
+    }
+
     func testQueueStoresLibraryIdentityBeforeResolvingPlaybackURL() async throws {
         let fixture = try PlayerStoreTestFixture()
         defer { fixture.audio.shutdown() }
@@ -256,6 +291,39 @@ final class PlayerStoreTests: XCTestCase {
             [[2, 3], [4, 5]]
         )
         fixture.audio.shutdown()
+    }
+
+    func testRemoteQueueNavigationRetainsBothTiersWithoutRepositoryLookup() async throws {
+        let fixture = try PlayerStoreTestFixture()
+        defer { fixture.audio.shutdown() }
+        fixture.audio.setContextQueue(songs: ["a", "b"].map { fixture.queueSong($0) }, currentIndex: 0, autoplay: false)
+        fixture.audio.addToUserQueue(songs: ["u1", "u2"].map { fixture.queueSong($0) }, position: "last")
+        let loaded = await waitForPlayerStoreTest { fixture.audio.fullState()?.userQueue.count == 2 }
+        XCTAssertTrue(loaded)
+        let jumped = await withCheckedContinuation { continuation in
+            XCTAssertTrue(fixture.audio.executeRemote(.playAtIndex(songIds: ["u1", "u2"], index: 1)) {
+                continuation.resume(returning: $0)
+            })
+        }
+        XCTAssertTrue(jumped)
+        XCTAssertEqual(fixture.audio.fullState()?.currentSongId, "u2")
+        XCTAssertEqual(fixture.audio.fullState()?.contextSongs.map(\.id), ["a", "b"])
+        XCTAssertEqual(fixture.audio.fullState()?.playedUserQueueHistory.map(\.id), ["u1"])
+    }
+
+    func testRemoteProjectionSelectsUserOccurrenceIncludingHiddenCurrent() async throws {
+        let fixture = try PlayerStoreTestFixture()
+        defer { fixture.audio.shutdown() }
+        let remote = PlayerRemoteSpy()
+        remote.remoteNowPlaying = RemoteNowPlaying(deviceId: "remote", deviceName: "Remote", song: mediaSong("u1"),
+            queue: PlayerQueue(current: QueueEntry(song: mediaSong("u1"), tier: .user, index: 0),
+                userQueue: [QueueEntry(song: mediaSong("u2"), tier: .user, index: 1)]))
+        let store = fixture.store(remote: remote)
+        store.play(entry: try XCTUnwrap(store.queue.userQueue.first))
+        let sent = await waitForPlayerStoreTest { remote.commands.count == 1 }
+        XCTAssertTrue(sent)
+        XCTAssertEqual(remote.commands.first?.jsonObject["song_ids"] as? [String], ["u1", "u2"])
+        XCTAssertEqual(remote.commands.first?.jsonObject["index"] as? Int, 1)
     }
 
     func testRemoteQueueExecutionCompletesAfterMutation() async throws {

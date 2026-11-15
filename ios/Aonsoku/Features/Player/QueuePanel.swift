@@ -168,7 +168,7 @@ struct QueuePanel<CurrentMetadata: View>: View {
                             if queue.remainingCount == 0 {
                                 Text(t("fullscreen.emptyQueue"))
                                     .font(.footnote)
-                                    .foregroundStyle(.white.opacity(0.5))
+                                    .foregroundStyle(Color.primary.opacity(0.5))
                                     .frame(maxWidth: .infinity)
                                     .queueRow(isActive: isActive)
                             }
@@ -302,7 +302,7 @@ private extension View {
     func queuePinnedHeader(isActive: Bool) -> some View {
         textCase(nil)
             .padding(.vertical, 10)
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.primary)
             .background {
                 WithPerceptionTracking {
                     NowPlayingBackground()
@@ -337,18 +337,18 @@ private struct QueueSectionHeader<Actions: View>: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
                         .displayFont(.inline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.primary)
                     if let subtitle {
                         Text(subtitle)
                             .font(.footnote)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(Color.primary.opacity(0.6))
                             .lineLimit(1)
                     }
                 }
                 Spacer()
                 actions
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(Color.primary.opacity(0.7))
                     .buttonStyle(.touchFeedback)
             }
         }
@@ -375,16 +375,16 @@ private struct QueueSongRow: View {
                                 ExplicitBadge()
                             }
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.primary)
                         Text(song.artistLine)
                             .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(Color.primary.opacity(0.6))
                             .lineLimit(1)
                     }
                     Spacer(minLength: 8)
                     if isMovable {
                         Image(systemName: "line.3.horizontal")
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(Color.primary.opacity(0.4))
                             .accessibilityHidden(true)
                     }
                 }
@@ -450,11 +450,11 @@ private struct QueueModeToggle: View {
                 Label(title, systemImage: systemImage)
                     .font(.subheadline.weight(.semibold))
                     .appSymbolTransition()
-                    .foregroundStyle(isOn ? .black : .white)
+                    .foregroundStyle(isOn ? Color(uiColor: .systemBackground) : Color.primary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .frame(minWidth: 120)
-                    .background(.white.opacity(isOn ? 0.92 : 0.12), in: .capsule)
+                    .background(Color.primary.opacity(isOn ? 0.92 : 0.12), in: .capsule)
                     .contentShape(.capsule)
             }
             .buttonStyle(.pressable)
@@ -474,7 +474,7 @@ private struct QueueModeNote: View {
         WithPerceptionTracking {
             Label(title, systemImage: systemImage)
                 .font(.footnote.weight(.medium))
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Color.primary.opacity(0.5))
                 .frame(maxWidth: .infinity)
         }
     }

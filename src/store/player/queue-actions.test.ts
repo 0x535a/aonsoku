@@ -75,6 +75,51 @@ describe("queue actions", () => {
     vi.clearAllMocks();
   });
 
+  it("removes the selected duplicate user occurrence", () => {
+    const state = makeState();
+    state.songlist.userQueue.songs = [
+      makeSong("same"),
+      makeSong("middle"),
+      makeSong("same"),
+    ];
+    const actions = createQueueActions({
+      set: (fn) => fn(state as never),
+      get: () => state,
+      isRemoteActive: () => false,
+      remoteSend: vi.fn(),
+      clearSonglistState: vi.fn(),
+    });
+    actions.removeSongFromQueue("same", "user", 2);
+    expect(state.songlist.userQueue.songs.map((song) => song.id)).toEqual([
+      "same",
+      "middle",
+    ]);
+  });
+
+  it("removes a later context duplicate without removing or restarting the current occurrence", () => {
+    const state = makeState();
+    state.songlist.contextQueue.songs = [
+      makeSong("a"),
+      makeSong("b"),
+      makeSong("a"),
+    ];
+    const actions = createQueueActions({
+      set: (fn) => fn(state as never),
+      get: () => state,
+      isRemoteActive: () => false,
+      remoteSend: vi.fn(),
+      clearSonglistState: vi.fn(),
+    });
+    actions.removeSongFromQueue("a", "context", 2);
+    expect(state.songlist.contextQueue.songs.map((song) => song.id)).toEqual([
+      "a",
+      "b",
+    ]);
+    expect(state.playerProgress.progress).toBe(2);
+    actions.removeSongFromQueue("b", "context", 0);
+    expect(state.songlist.contextQueue.songs).toHaveLength(2);
+  });
+
   it("restarts the current song when previous is used without a real previous song", () => {
     const state = makeState();
     const actions = createQueueActions({

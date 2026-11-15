@@ -123,6 +123,8 @@ class NativeQueueEngine {
     weak var delegate: NativeQueueEngineDelegate?
 
     private(set) var contextSongs: [QueueSong] = []
+    /// Complete selection, independent of the played/upcoming queue window.
+    private(set) var sourceSongs: [QueueSong] = []
     private(set) var originalContextSongs: [QueueSong] = []
     private(set) var currentIndex: Int = 0
 
@@ -146,7 +148,7 @@ class NativeQueueEngine {
     }
 
     private var maxShuffleStartHistory: Int {
-        max(10, min(contextSongs.count / 4, 50))
+        max(10, min(sourceSongs.count / 4, 50))
     }
 
     var currentSong: QueueSong? {
@@ -178,9 +180,8 @@ class NativeQueueEngine {
     /// can be known without mutating the queue. AudioService uses this to
     /// stage exactly one AVQueuePlayer item ahead of the current song.
     ///
-    /// Repeat-one only advances while a user-queued song remains. A shuffled
-    /// repeat-all wrap is intentionally not predicted because `wrapToStart()`
-    /// reshuffles before selecting the next song.
+    /// Repeat-one only advances while a user-queued song remains. Repeat-all
+    /// copies the rendered cycle, including its shuffle order.
     var nextSongForAutomaticAdvance: QueueSong? {
         if loopState == .one {
             if isInUserQueue {
@@ -194,7 +195,7 @@ class NativeQueueEngine {
             if currentIndex < contextSongs.count - 1 {
                 return contextSongs[currentIndex + 1]
             }
-            if loopState == .all, !isShuffleActive {
+            if loopState == .all {
                 return contextSongs.first
             }
             return nil
@@ -204,13 +205,35 @@ class NativeQueueEngine {
         if currentIndex < contextSongs.count - 1 {
             return contextSongs[currentIndex + 1]
         }
-        if loopState == .all, !isShuffleActive {
+        if loopState == .all {
             return contextSongs.first
         }
         return nil
     }
 
     // MARK: - Queue Setup
+
+    static func playbackSongs(_ songs: [QueueSong], index: Int, loop: LoopState, shuffle: Bool) -> [QueueSong] {
+        guard !songs.isEmpty else { return [] }
+        let index = max(0, min(index, songs.count - 1))
+        let ordered = Array(songs[index...]) + (loop == .all ? Array(songs[..<index]) : [])
+        guard shuffle, let first = ordered.first else { return ordered }
+        return [first] + NativeShuffleEngine().shuffleWithGapAvoidance(Array(ordered.dropFirst()), history: [])
+    }
+
+    /// Product-level selection shared by the phone, CarPlay and remote commands.
+    /// Low-level setContextQueue still accepts already prepared transport queues.
+    func setPlaybackQueue(
+        songs: [QueueSong], index: Int, shuffle: Bool, autoplay: Bool = true,
+        sourceId: QueueSourceId? = nil, sourceName: String? = nil
+    ) {
+        let prepared = Self.playbackSongs(songs, index: index, loop: loopState, shuffle: shuffle)
+        setContextQueue(songs: prepared, currentIndex: 0, autoplay: autoplay, startTime: nil,
+                        sourceId: sourceId, sourceName: sourceName)
+        sourceSongs = songs
+        originalContextSongs = songs
+        if shuffle { markAsShuffled(originalSongs: songs) }
+    }
 
     func setContextQueue(
         songs: [QueueSong],
@@ -221,6 +244,7 @@ class NativeQueueEngine {
         sourceName: String? = nil
     ) {
         self.contextSongs = songs
+        self.sourceSongs = songs
         self.originalContextSongs = []
         self.currentIndex = max(0, min(currentIndex, songs.count - 1))
         self.userQueue = []
@@ -262,13 +286,11 @@ class NativeQueueEngine {
               fromIndex >= 0, fromIndex < contextSongs.count,
               toIndex >= 0, toIndex < contextSongs.count else { return false }
 
-        let currentSongId = currentSong?.id
         let song = contextSongs.remove(at: fromIndex)
         contextSongs.insert(song, at: toIndex)
-        if let currentSongId,
-           let retainedIndex = contextSongs.firstIndex(where: { $0.id == currentSongId }) {
-            currentIndex = retainedIndex
-        }
+        if fromIndex == currentIndex { currentIndex = toIndex }
+        else if fromIndex < currentIndex && toIndex >= currentIndex { currentIndex -= 1 }
+        else if fromIndex > currentIndex && toIndex <= currentIndex { currentIndex += 1 }
         delegate?.queueEngine(self, didChangeContents: "queue-edit")
         return true
     }
@@ -360,6 +382,7 @@ class NativeQueueEngine {
 
     func clearAll() {
         contextSongs = []
+        sourceSongs = []
         originalContextSongs = []
         currentIndex = 0
         userQueue = []
@@ -379,6 +402,7 @@ class NativeQueueEngine {
         guard index >= 0, index < contextSongs.count else { return }
         isInUserQueue = false
         currentIndex = index
+        ensureNextCycle()
         if let song = currentSong {
             delegate?.queueEngine(self, loadSong: song, autoplay: true, startTime: startTime)
             delegate?.queueEngine(self, didAdvanceTo: currentIndex, songId: song.id, reason: .skip)
@@ -414,6 +438,11 @@ class NativeQueueEngine {
             }
             return
         }
+        if loopState == .all, !isInUserQueue, userQueue.isEmpty,
+           contextSongs.count == 1, let song = currentSong {
+            delegate?.queueEngine(self, seekToStart: song)
+            return
+        }
         advanceToNext(reason: .ended)
     }
 
@@ -422,7 +451,7 @@ class NativeQueueEngine {
     }
 
     func skipToPrevious(currentTime: Double) {
-        if currentTime > prevSeekThreshold {
+        if currentTime > prevSeekThreshold || !hasPrev {
             if let song = currentSong {
                 delegate?.queueEngine(self, seekToStart: song)
             }
@@ -445,10 +474,9 @@ class NativeQueueEngine {
             }
 
             isInUserQueue = false
+            ensureNextCycle(advancing: true)
             if currentIndex < contextSongs.count - 1 {
                 currentIndex += 1
-            } else if loopState == .all {
-                wrapToStart()
             }
             notifyAdvance(reason: reason)
             return
@@ -467,6 +495,7 @@ class NativeQueueEngine {
             pushShuffleHistory(song.id)
         }
 
+        if loopState == .all && contextSongs.count > 1 { ensureNextCycle(advancing: true) }
         if currentIndex < contextSongs.count - 1 {
             currentIndex += 1
             notifyAdvance(reason: reason)
@@ -474,7 +503,6 @@ class NativeQueueEngine {
         }
 
         if loopState == .all {
-            wrapToStart()
             notifyAdvance(reason: reason)
             return
         }
@@ -509,12 +537,13 @@ class NativeQueueEngine {
         }
     }
 
-    private func wrapToStart() {
-        // A queue made only of user-queued songs has no context to wrap to.
-        guard !contextSongs.isEmpty else { return }
-        let lastPlayedId = contextSongs[currentIndex].id
-        currentIndex = 0
-        reshuffleForWrap(lastPlayedSongId: lastPlayedId)
+    private func ensureNextCycle(advancing: Bool = false) {
+        guard loopState == .all, contextSongs.count > 1,
+              currentIndex + (advancing ? 1 : 0) >= contextSongs.count - 1 else { return }
+        // Keep the rendered order, including shuffle, and retain previous-track
+        // navigation across the cycle boundary, just like the web queue.
+        let count = max(sourceSongs.count, contextSongs.count)
+        contextSongs.append(contentsOf: Array(contextSongs.prefix(count)))
     }
 
     private func notifyAdvance(reason: QueueAdvanceReason) {
@@ -535,6 +564,7 @@ class NativeQueueEngine {
 
     func markAsShuffled(originalSongs: [QueueSong]) {
         isShuffleActive = true
+        sourceSongs = originalSongs
         originalContextSongs = originalSongs
         if let song = currentSong {
             shuffleStartHistory = shuffleEngine.pushToHistory(
@@ -545,12 +575,22 @@ class NativeQueueEngine {
         }
     }
 
-    func setLoopState(_ state: LoopState) {
+    func setLoopState(_ state: LoopState, rebuild: Bool = true) {
+        guard loopState != state else { return }
         self.loopState = state
+        if rebuild { rebuildPlaybackQueue(shuffle: isShuffleActive) }
+    }
+
+    private func rebuildPlaybackQueue(shuffle: Bool) {
+        guard let song = currentSong,
+              let index = sourceSongs.firstIndex(where: { $0.id == song.id }) else { return }
+        contextSongs = Self.playbackSongs(sourceSongs, index: index, loop: loopState, shuffle: shuffle)
+        currentIndex = 0
+        originalContextSongs = sourceSongs
     }
 
     private func applyShuffle() {
-        guard contextSongs.count > 1 else { return }
+        guard contextSongs.count + userQueue.count > 1 else { return }
 
         originalContextSongs = contextSongs
 
@@ -560,11 +600,7 @@ class NativeQueueEngine {
             )
         }
 
-        let upcoming = Array(contextSongs.suffix(from: currentIndex + 1))
-        if !upcoming.isEmpty {
-            let shuffled = shuffleEngine.shuffleWithGapAvoidance(upcoming, history: shuffleHistory)
-            contextSongs = Array(contextSongs.prefix(currentIndex + 1)) + shuffled
-        }
+        rebuildPlaybackQueue(shuffle: true)
 
         if !userQueue.isEmpty {
             originalUserSongs = userQueue
@@ -585,41 +621,18 @@ class NativeQueueEngine {
             return
         }
 
-        let currentSongId = currentSong?.id
-        if let id = currentSongId,
-           let newIdx = originalContextSongs.firstIndex(where: { $0.id == id }) {
-            contextSongs = originalContextSongs
-            currentIndex = newIdx
-        } else {
-            contextSongs = originalContextSongs
-            currentIndex = min(currentIndex, contextSongs.count - 1)
-        }
+        rebuildPlaybackQueue(shuffle: false)
 
         if !originalUserSongs.isEmpty {
             userQueue = originalUserSongs
             originalUserSongs = []
         }
 
-        originalContextSongs = []
+        originalContextSongs = sourceSongs
         playedUserQueueHistory = []
         isShuffleActive = false
         shuffleHistory = []
         delegate?.queueEngine(self, didChangeContents: "unshuffle")
-    }
-
-    private func reshuffleForWrap(lastPlayedSongId: String?) {
-        guard isShuffleActive, contextSongs.count > 1 else { return }
-
-        let upcoming = Array(contextSongs.suffix(from: 1))
-        var reshuffled = shuffleEngine.shuffleWithGapAvoidance(upcoming, history: shuffleHistory)
-
-        if let lastId = lastPlayedSongId,
-           let idx = reshuffled.firstIndex(where: { $0.id == lastId }) {
-            let song = reshuffled.remove(at: idx)
-            reshuffled.append(song)
-        }
-
-        contextSongs = [contextSongs[0]] + reshuffled
     }
 
     private func pushShuffleHistory(_ id: String) {
@@ -632,6 +645,8 @@ class NativeQueueEngine {
 
     func restoreState(from persisted: PlaybackPersistState) {
         contextSongs = persisted.contextSongs
+        sourceSongs = persisted.sourceSongs ?? (persisted.originalContextSongs.isEmpty
+            ? persisted.contextSongs : persisted.originalContextSongs)
         currentIndex = persisted.currentIndex
         userQueue = persisted.userQueue
         originalContextSongs = persisted.originalContextSongs
@@ -664,6 +679,7 @@ class NativeQueueEngine {
                 "sourceId": sourceIdValue,
                 "sourceName": sourceNameValue,
             ],
+            "sourceQueue": ["songs": sourceSongs.map { $0.toDict() }],
             "userQueue": userQueue.map { $0.toDict() },
             "originalContextSongs": originalContextSongs.map { $0.toDict() },
             "originalUserSongs": originalUserSongs.map { $0.toDict() },

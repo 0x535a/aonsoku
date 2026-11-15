@@ -720,14 +720,19 @@ export class NativeQueueController implements QueueController {
     });
   }
 
-  removeFromQueue(id: string, tier?: "context" | "user"): void {
+  removeFromQueue(
+    id: string,
+    tier?: "context" | "user",
+    queueIndex?: number,
+  ): void {
     const state = usePlayerStore.getState();
     const detectedTier = tier ?? findSongTier(state.songlist, id);
 
     if (detectedTier === "user") {
-      const index = state.songlist.userQueue.songs.findIndex(
-        (s) => s.id === id,
-      );
+      const index =
+        queueIndex ??
+        state.songlist.userQueue.songs.findIndex((s) => s.id === id);
+      if (state.songlist.userQueue.songs[index]?.id !== id) return;
       if (index === -1) return;
 
       const prevUserSongs = [...state.songlist.userQueue.songs];
@@ -756,7 +761,9 @@ export class NativeQueueController implements QueueController {
 
     if (detectedTier === "context") {
       const { contextQueue, isInUserQueue } = state.songlist;
-      const removedIndex = contextQueue.songs.findIndex((s) => s.id === id);
+      const removedIndex =
+        queueIndex ?? contextQueue.songs.findIndex((s) => s.id === id);
+      if (contextQueue.songs[removedIndex]?.id !== id) return;
       if (removedIndex === -1) return;
 
       const newSongs = [...contextQueue.songs];

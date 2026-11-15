@@ -252,9 +252,8 @@ public final class PlayerStore {
 
     // MARK: Starting playback
 
-    /// Plays `songs` from `index`, replacing the context queue. When songs
-    /// the user queued would be lost while playing, sets
-    /// `pendingReplacement` instead, unless `confirmed` is true.
+    /// Plays `songs` from `index`, replacing the queue immediately. Reselecting
+    /// the current unshuffled source resumes it, retaining manually queued songs.
     public func play(
         _ songs: [Song],
         startingAt index: Int? = nil,
@@ -316,7 +315,7 @@ public final class PlayerStore {
     /// Plays one song on its own (search results, song links).
     public func play(song: Song, sourceName: String? = nil, confirmed: Bool = false) {
         selectionGeneration += 1
-        if !confirmed, isSameContext(songs: [song], index: 0, source: nil) {
+        if !isRadio, currentSong?.id == song.id {
             resume()
             return
         }
@@ -601,9 +600,10 @@ public final class PlayerStore {
             let contextCurrent = queue.current.flatMap {
                 $0.tier == .context ? $0 : nil
             }
+            let userCurrent = queue.current.flatMap { $0.tier == .user ? $0 : nil }
             let entries = entry.tier == .context
                 ? queue.history + Array(contextCurrent.map { [$0] } ?? []) + queue.upNext
-                : queue.userQueue
+                : Array(userCurrent.map { [$0] } ?? []) + queue.userQueue
             let ids = entries.map(\.song.id)
             guard let index = entries.firstIndex(where: { $0.id == entry.id }) else { return }
             sendRemote(.playAtIndex(songIds: ids, index: index))
@@ -613,14 +613,7 @@ public final class PlayerStore {
         case .context:
             audio.playAtIndex(entry.index)
         case .user:
-            guard let snapshot = lastSnapshot else { return }
-            if snapshot.isInUserQueue {
-                let between = Array(1..<max(1, entry.index))
-                if !between.isEmpty { audio.removeFromUserQueue(indices: between) }
-            } else if entry.index > 0 {
-                audio.removeFromUserQueue(indices: Array(0..<entry.index))
-            }
-            audio.skipToNext()
+            audio.playUserQueueAtIndex(entry.index)
         }
     }
 
@@ -1083,32 +1076,17 @@ public final class PlayerStore {
             return
         }
 
-        var queue = original
-        var queueIndex = convertedIndex
-        if shuffle {
-            let ordered: [QueueSong]
-            if localRepeatMode == .all {
-                ordered = Array(original[convertedIndex...]) + Array(original[..<convertedIndex])
-            } else {
-                ordered = Array(original[convertedIndex...])
-            }
-            if let first = ordered.first {
-                queue = [first] + ordered.dropFirst().shuffled()
-                queueIndex = 0
-            }
-        }
         let nativeSource = source.map { AudioQueueSource(type: $0.kind.rawValue, id: $0.id) }
         radio = nil
         errorMessage = nil
-        audio.setContextQueue(
-            songs: queue,
-            currentIndex: queueIndex,
+        audio.playSelection(
+            songs: original,
+            index: convertedIndex,
+            shuffle: shuffle,
             sourceId: nativeSource,
             sourceName: sourceName,
-            autoplay: true,
             repeatMode: localRepeatMode
         )
-        if shuffle { audio.markAsShuffled(originalSongs: original) }
         playbackStarts += 1
     }
 
@@ -1127,6 +1105,9 @@ public final class PlayerStore {
             queue.current?.song.id == songs[index].id,
             queue.source == source
         else { return false }
+        if !target.isRemote, let snapshot = lastSnapshot, !snapshot.sourceSongs.isEmpty {
+            return snapshot.sourceSongs.map(\.id) == songs.map(\.id)
+        }
         let active = ([queue.current].compactMap { $0 } + queue.upNext).map(\.song.id)
         return active == Array(songs[index...]).map(\.id)
     }

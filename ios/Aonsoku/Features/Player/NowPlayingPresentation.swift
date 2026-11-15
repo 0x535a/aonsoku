@@ -315,6 +315,7 @@ private struct NowPlayingPresentation: ViewModifier {
                                             .frame(width: surface.width, height: surface.height)
                                             .position(x: surface.midX, y: surface.midY)
                                         NowPlayingView()
+                                            .environment(\.nowPlayingViewportSize, full.size)
                                             .padding(insets)
                                             .frame(width: width, height: height)
                                             .coordinateSpace(name: PlayerArtworkLocation.coordinateSpace)

@@ -119,8 +119,12 @@ export class WebQueueController implements QueueController {
     this.#getActions().setLastOnQueue(songs, sourceId, sourceName);
   }
 
-  removeFromQueue(id: string, tier?: "context" | "user"): void {
-    this.#getActions().removeSongFromQueue(id, tier);
+  removeFromQueue(
+    id: string,
+    tier?: "context" | "user",
+    queueIndex?: number,
+  ): void {
+    this.#getActions().removeSongFromQueue(id, tier, queueIndex);
   }
 
   reorderQueue(fromIndex: number, toIndex: number): void {

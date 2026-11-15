@@ -26,7 +26,8 @@ final class RestorationTests: XCTestCase {
         let restored = NativeQueueEngine()
         restored.restoreState(from: persisted)
 
-        XCTAssertEqual(restored.contextSongs.map(\.id), ["a", "b"])
+        XCTAssertEqual(restored.contextSongs.map(\.id), ["b", "a"])
+        XCTAssertEqual(restored.sourceSongs.map(\.id), ["a", "b"])
         XCTAssertEqual(restored.currentSong?.id, "b")
         XCTAssertEqual(restored.userQueue.map(\.id), ["u"])
         XCTAssertEqual(restored.loopState, .all)

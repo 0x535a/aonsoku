@@ -159,7 +159,7 @@ they do not expose observable state.
 | `FavoritesStore` | Optimistic starred state for songs, albums, and artists, shared by every screen. |
 | `PlaylistsStore` | Playlist list plus create, edit, delete, add songs, remove songs. |
 | `PinnedHomeStore` | Albums and playlists pinned to Home. |
-| `PlayerStore` | Now playing item, progress, buffering, repeat/shuffle, queue sections, sleep timer, volume, queue replacement confirmation, remote playback target. |
+| `PlayerStore` | Now playing item, progress, buffering, repeat/shuffle, queue sections, sleep timer, volume, immediate queue replacement, remote playback target. |
 | `LyricsStore` | Lyrics for the current song from Navidrome, LRCLIB, or a custom server; synced lines, translations, romaji, per-song selection, offset, and disable state. |
 | `DownloadsStore` | Explicit and smart downloads, stream cache, cover cache, pool statistics, cache browser, quotas. |
 | `LibrarySyncStore` | Sync phase/tier/progress, last sync time, sync now, cancel. |
@@ -228,14 +228,22 @@ Validate with `bash scripts/test-ios-lyrics-motion.sh` and `bash scripts/test-io
   32pt over the first 96pt of a downward slide, reversing on expansion.
   A stationary full-viewport probe uses public UIKit concentric corner APIs,
   so the moving player's position never changes the measured baseline.
-- **Now Playing**: one opaque color blending the cover palette with the dark
-  theme background, shared by all pages and pinned queue headers. The queue
-  matches the progress bar's width, extends directly to the top of the scrubber,
+- **Now Playing**: one opaque color blending the cover palette with the active
+  light/dark theme background, shared by all pages and pinned queue headers.
+  Controls and lyrics adapt to the blended color with Web's luminance cutoff
+  of 0.43. Full viewport orientation selects the layout: portrait uses compact
+  pages; landscape and square viewports use cover/controls beside a panel,
+  including on iPhone. The queue matches the progress bar's width and extends
+  to the bottom page actions when compact Queue hides the playback controls,
   hides system scroll materials, and applies a marquee-style edge fade gradient mask
   at its top and bottom. Artwork
   shrinks while paused, marquee title, favorite and more menus, scrubber,
-  transport, volume, and a bottom bar for lyrics, AirPlay, Aonsoku devices,
-  and the queue. The pinned SliderControl package supplies `.progressLabels`
+  transport, volume, and a bottom bar for lyrics, lyric selection, AirPlay,
+  Aonsoku devices, and the queue. Lyric selection opens the native settings
+  sheet. Known unavailable/disabled lyrics disable the page button. Compact
+  Queue hides the progress/transport/volume controls; browsing compact lyrics
+  also hides these controls, while page actions stay available. Landscape
+  always keeps the cover metadata and playback controls in its left column. The pinned SliderControl package supplies `.progressLabels`
   (seek on release, elapsed/remaining labels that scale while dragging, and
   an independently sized quality badge in the center slot) and `.volumeIcons`
   (speaker icons, inertia and elastic limits) variants.
@@ -276,7 +284,17 @@ Validate with `bash scripts/test-ios-lyrics-motion.sh` and `bash scripts/test-io
   measurement and drawing. Long lyrics wrap to any number of lines; focus
   transforms do not change line breaks or feed back into row measurement.
   `scripts/test-ios-lyrics-layout.sh` exercises this text layer inside a SwiftUI
-  Button/canvas on an iPhone Simulator across widths, text sizes and focus states.
+  Button/canvas on an iPhone Simulator across widths, text sizes, focus states
+  and light/dark text contrast.
+  Playback selections keep the complete original `sourceSongs` independently
+  of the current `contextSongs` queue. Non-looping playback starts at the
+  requested song; repeat-all rotates the full source and appends the rendered
+  cycle, retaining Previous across boundaries. Shuffle/repeat changes rebuild
+  from the source. Phone, CarPlay and remote selections share the native engine;
+  persistence retains the source with a fallback for older saved states.
+  Queue entries use occurrence indices, so repeated songs can be selected
+  independently. Skipped manual entries stay in the Previous history, and
+  selecting the current single song resumes without replacing the queue.
   Every queue entry resets to the
   current track at the top, including reopening fullscreen with Queue selected.
   Once settled at that anchor, a downward pan on the current-track row dismisses
@@ -331,7 +349,7 @@ iOS 26 system animated artwork uses generated silent static/camera/depth clips i
 | Appearance: auto full-screen player | Opens Now Playing when a song, album, playlist, artist, or station starts playing. |
 | Appearance: album cover for songs | Same behavior for song artwork and cover sync. |
 | Appearance: pointer cursors | Not applicable; iPadOS draws its own pointer effects. |
-| Fullscreen: background color intensity | Intensity of the Now Playing artwork gradient. |
+| Fullscreen: background color intensity | Strength of the cover-average color blended over the active theme background. |
 | Language | In-app language picker (system default plus the 18 bundled languages). |
 | Audio: haptic feedback | Gates all sensory feedback. |
 | Audio: ReplayGain (enabled, track/album, pre-amp, default gain) | Applied by native playback. |
